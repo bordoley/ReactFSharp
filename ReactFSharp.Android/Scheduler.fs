@@ -1,6 +1,6 @@
 ﻿namespace React.Android
 
-module AndroidScheduler =
+module Scheduler =
   open System
   open System.Reactive.Concurrency
   open System.Reactive.Disposables
@@ -59,4 +59,5 @@ module AndroidScheduler =
 
       member this.Now with get () = DateTimeOffset.Now
 
-  let scheduler = (new LooperScheduler(Looper.MainLooper)) :> IScheduler
+  let looperScheduler looper = (new LooperScheduler(looper)) :> IScheduler 
+  let mainLoopScheduler = looperScheduler Looper.MainLooper

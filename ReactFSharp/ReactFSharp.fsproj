@@ -49,8 +49,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="ReactChildren.fs" />
     <Compile Include="React.fs" />
-    <Compile Include="ReactBridge.fs" />
+    <Compile Include="ReactDom.fs" />
+    <Compile Include="ReactView.fs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

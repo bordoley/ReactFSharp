@@ -11,67 +11,60 @@ open Android.Widget
 
 open React
 open React.Android
+open React.Android.Views
+open React.Android.Widget
 
+module FSXObservable = FSharp.Control.Reactive.Observable
 
 module Views =
-  open React.Android.NativeWidget
-  open React.Android.Widget
-
-  let MyButton = ReactStatelessComponent (fun (props: unit) ->
-    Button >>= { 
-      layoutParams = ViewGroupLayoutParams(300, 100)
-      text = "just a test" 
-      onClick = None
-    }
-  )
-
-  let StatefulButton: ReactComponent<unit> = ReactStatefulComponent (fun props ->
+  let StatefulButton = ReactStatefulComponent (fun props ->
     let action = new Event<unit>()
   
     let reducer (state, _) = state + 1
   
-    let render (props, state: int) = Button >>= { 
-      layoutParams = ViewGroupLayoutParams(300, 100)
-      text = sprintf "count %i" state
-      onClick = Some action.Trigger
-    }
+    let render (props, state: int) = 
+      Widgets.Button >>= { 
+        layoutParams = ViewGroupLayoutParams(300, 100)
+        text = sprintf "count %i" state
+        onClick = Some action.Trigger
+      }
 
-    ReactComponent.stateReducing render reducer 0 action.Publish props
+    let actions = 
+      action.Publish
+      |> FSXObservable.observeOn (System.Reactive.Concurrency.NewThreadScheduler())
+
+    ReactComponent.stateReducing render reducer 0 actions props
   )
       
-
   let MyComponent = ReactStatelessComponent (fun (props: unit) -> 
-    LinearLayout >>= {
+    Widgets.LinearLayout >>= {
       props = 
         {
-          layoutParams = LinearLayoutLayoutParams(-1, -1,  (float32 0.0))
+          layoutParams = LinearLayoutLayoutParams(-1, -1, (float32 0.0))
           orientation = Android.Widget.Orientation.Vertical
         }
       children = %% 
         [| 
-          ("child1", MyButton >>= ())
+          ("child1", StatefulButton >>= ())
           ("child2", StatefulButton >>= ())
           ("child3", StatefulButton >>= ()) 
         |]
     }
   )
 
-[<Activity (Label = "ReactFSharp", MainLauncher = true, Icon = "@mipmap/icon")>]
+[<Activity (Label = "ReactFSharp", MainLauncher = true)>]
 type MainActivity () =
-    inherit Activity ()
+  inherit Activity ()
 
-    override this.OnCreate (bundle) =
-        base.OnCreate (bundle)
+  override this.OnCreate (bundle) =
+    base.OnCreate (bundle)
 
-        let element = Views.MyComponent >>= ()
-        let rootNode = ReactNoneDOMNode |> ReactDom.updateWith element
-        let viewProvider = React.Android.NativeWidget.viewProvider this
-        let statefulViewProvider = React.Android.NativeWidget.statefulViewProvider this
-        let updateWith = ReactView.updateWith AndroidScheduler.scheduler viewProvider statefulViewProvider
-        let layout = None |> updateWith rootNode
+    let viewProvider = AndroidReactView.createViewProvider (this :> Context) Widgets.widgets
+    let render = AndroidReactView.render viewProvider
 
-        match layout with
-        | Some layout -> 
-          let view = React.Android.AndroidNativeView.getView layout
-          this.SetContentView view
-        | None -> failwith "ugghh"
+    let element = Views.MyComponent >>= ()
+    let view = render element
+
+    match AndroidReactView.getView view with
+    | Some view -> this.SetContentView view
+    | None -> failwith "ugghh"
