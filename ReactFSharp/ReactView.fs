@@ -134,6 +134,6 @@ module ReactView =
 
           view
 
-    let dom = ReactDom.updateWith element ReactNoneDOMNode 
+    let dom = ReactDom.render element 
     updateWith dom ReactViewNone
 
