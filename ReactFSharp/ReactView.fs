@@ -18,7 +18,6 @@ and IReactStatefulView =
   inherit IDisposable
 
   abstract member Id: int with get
-  abstract member State: IObservable<ReactView> with get
 
 and IReactView =
   inherit IDisposable

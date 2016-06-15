@@ -32,7 +32,9 @@ module AndroidReactView =
               prevView |> ReactView.dispose
 
               match getView nextView with
-              | Some child -> view.AddView child 
+              | Some child -> 
+                  view.AddView child 
+                  view.LayoutParameters <- child.LayoutParameters
               | _ -> ()
 
               nextView
@@ -44,7 +46,6 @@ module AndroidReactView =
      ReactStatefulView { new obj()
        interface IReactStatefulView with
          member this.Id = id
-         member this.State = state
        interface IDisposable with
          member this.Dispose () = 
            subscription.Dispose()
