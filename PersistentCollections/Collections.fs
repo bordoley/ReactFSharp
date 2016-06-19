@@ -63,6 +63,9 @@ module Collection =
 
   let get (key: 'k) (collection: ICollection<'k, 'v>) =
     collection.Get key 
+   
+  let isEmpty (vec: IVector<'v>) = 
+    vec.Count = 0
 
   let toSeq (collection: ICollection<'k, 'v>) =
     collection.Keys |> Seq.map (fun k -> (k, collection |> get k))
@@ -120,9 +123,11 @@ module Vector =
     vec |> toArray |> createUnsafe
 
   let pop (vec: IVector<'v>) =
-    if vec.Count > 0 then
+    if vec.Count > 1 then
       let arr = Array.init (vec.Count - 1) (fun i -> vec |> Collection.get i)
       arr |> createUnsafe
+    elif vec.Count = 1 then 
+      empty
     else failwith "can not pop empty vector"
 
   let sub (startIndex: int) (count: int) (vec: IVector<'v>) : IVector<'v> =
@@ -158,6 +163,9 @@ module Vector =
           vec.TryGet (vec.Count - index - 1)
         else None
   }
+
+  let last (vec: IVector<'v>) =
+    vec.Get (vec.Count - 1)
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Map =

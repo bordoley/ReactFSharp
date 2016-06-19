@@ -5,29 +5,42 @@ open PersistentCollections
 
 [<EntryPoint>]
 let main argv = 
+  let n = 3000000
+  let testSeq = seq { 0 .. n } 
+
   let vec = 
-    seq { 0 .. 30000 } 
+    testSeq
     |> Seq.fold (
         fun acc i -> acc |> PersistentVector.add i
       ) PersistentVector.empty
 
-  let v2 =  PersistentVector.update 1 3 vec
+  Seq.zip testSeq (vec |> PersistentVector.toSeq )
+  |> Seq.iter (
+      fun (i, v) -> if i <> v then printfn "notEqual %i %i" i v
+    )
   
-  let (_, vec2) = 
-    seq { 0 .. 30000 } 
-    |> Seq.fold (
-        fun (i, acc) (v: int) -> 
-          let acc = PersistentVector.update v (i - v) acc
-          (i, acc)
-      ) (30000, vec)
-
-   
-  Seq.zip (seq { 0 .. 30000 }) (vec2 |> PersistentVector.toSeq )
-  |> Seq.iteri (
-    fun i (a, b) -> 
-      let getResult = vec2 |> PersistentVector.get i
-      if getResult <> 30000 - i then printfn "get result failure at %i %i" getResult i
+  testSeq |> Seq.iter (
+    fun i -> 
+      let v = vec |> PersistentVector.get i
+      if i <> v then printfn "get failed %i %i" i v
   )
+
+  testSeq
+  |> Seq.fold (
+      fun acc (v: int) -> PersistentVector.update v (n - v) acc
+    ) vec
+  |> PersistentVector.toSeq
+  |> Seq.iteri (
+      fun i v ->
+        if (n - i) <> v then printfn "expect %i but was %i" (n - i) v
+    )
+ (*
+  let rec drain (v: PersistentVector<_>) =
+    if v.count > 1 then
+       drain (v |> PersistentVector.pop)
+     else v
+
+  let empty = drain vec*)
 
   printfn "%A" argv
   0 // return an integer exit code
