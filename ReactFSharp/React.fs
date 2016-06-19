@@ -1,10 +1,13 @@
 ﻿namespace React
 
+open PersistentCollections
 open System
 
 module FSXObservable = FSharp.Control.Reactive.Observable
 
-type [<ReferenceEquality>] ReactElement = 
+type ReactElementChildren = IMap<string, ReactElement>
+
+and [<ReferenceEquality>] ReactElement = 
   | ReactStatefulElement of ReactStatefulElement
   | ReactStatelessElement of ReactStatelessElement
   | ReactNativeElement of ReactNativeElement
@@ -29,7 +32,7 @@ and [<ReferenceEquality>] ReactNativeElement = {
 and [<ReferenceEquality>] ReactNativeElementGroup = {
   name: string
   props: obj
-  children: ReactChildren<ReactElement>
+  children: ReactElementChildren
 }
 
 and [<ReferenceEquality>] ReactComponent<'Props> = 
@@ -89,4 +92,4 @@ module Operators =
   let (>>=) (comp : ReactComponent<'Props>) (props : 'Props) = ReactElement.create props comp
 
   [<CompiledName("CreateChildren")>]
-  let (~%%) (children: array<string * ReactElement>) = ReactChildren.create children
+  let (~%%) (children: seq<string * ReactElement>) = Map.create System.Collections.Generic.EqualityComparer.Default children

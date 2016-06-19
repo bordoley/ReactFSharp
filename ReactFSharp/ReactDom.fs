@@ -1,11 +1,14 @@
 ﻿namespace React
 
+open PersistentCollections
 open System
 open System.Reactive.Subjects
 
 module FSXObservable = FSharp.Control.Reactive.Observable
 
-type [<ReferenceEquality>] internal ReactDOMNode = 
+type ReactDOMNodeChildren = IMap<string, ReactDOMNode>
+
+and [<ReferenceEquality>] internal ReactDOMNode = 
   | ReactStatefulDOMNode of ReactStatefulDOMNode
   | ReactStatelessDOMNode of ReactStatelessDOMNode
   | ReactNativeDOMNode of ReactNativeDOMNode
@@ -33,27 +36,27 @@ and [<ReferenceEquality>] internal ReactNativeDOMNode = {
 
 and [<ReferenceEquality>] internal ReactNativeDOMNodeGroup = {
   element: ReactNativeElementGroup
-  children: ReactChildren<ReactDOMNode>
+  children: ReactDOMNodeChildren
 }
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module internal ReactDom =
   let render (element: ReactElement) =
-    let rec updateChildrenWith (elements: ReactChildren<ReactElement>) (nodes: ReactChildren<ReactDOMNode>) =
-      let keys = elements |> ReactChildren.keys
+    let rec updateChildrenWith (elements: ReactElementChildren) (nodes: ReactDOMNodeChildren) =
+      let keys = elements.Keys
 
       keys 
       |> Seq.map (fun key ->
-          let element = elements |> ReactChildren.find key
+          let element = elements |> Collection.get key
 
           let node =
-            match (nodes |> ReactChildren.tryFind key) with
+            match (nodes |> Collection.tryGet key) with
             | None -> ReactNoneDOMNode |> updateWith element
             | Some node -> node |> updateWith element
           (key, node)
         ) 
       |> Seq.toArray
-      |> ReactChildren.create
+      |> Map.createWithDefaultEquality
 
     and updateWith (element: ReactElement) (tree: ReactDOMNode) = 
       match (tree, element) with
@@ -138,7 +141,7 @@ module internal ReactDom =
 
           | ReactNativeElementGroup ele -> ReactNativeDOMNodeGroup {
               element = ele 
-              children = ReactChildren.empty |> updateChildrenWith ele.children
+              children = Map.empty |> updateChildrenWith ele.children
             }
 
           | ReactNoneElement -> ReactNoneDOMNode

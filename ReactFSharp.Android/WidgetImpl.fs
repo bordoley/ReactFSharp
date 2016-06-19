@@ -2,6 +2,7 @@
 
 open Android.Views
 open Android.Widget
+open PersistentCollections
 open React
 open React.Android.Views
 open System
@@ -74,7 +75,7 @@ module internal WidgetImpl =
 
     updateProps props
 
-    let children = ref ReactChildren.empty
+    let children = ref Map.empty
 
     ReactViewGroup { new obj()
         interface IReactViewGroup with 
@@ -85,8 +86,10 @@ module internal WidgetImpl =
             and set (value) =
               let oldChildren = !children
 
-              ReactChildren.iteri2optional (
-                fun prev next indx -> 
+              (oldChildren |> Collection.toSeq)
+              |> Seq.zipAll (value |> Collection.toSeq) 
+              |> Seq.iteri (
+                fun indx (prev, next) ->
                   match (prev, next) with
                   | (Some (prevKey, prevChild), Some(nextKey, nextChild)) when prevKey = nextKey -> ()
                   | (Some (prevKey, prevChild), Some(nextKey, nextChild)) ->
@@ -107,8 +110,7 @@ module internal WidgetImpl =
                       | None -> ()
 
                   | (None, None) -> ()
-
-              ) value oldChildren
+                ) 
 
               children := value
         interface IDisposable with

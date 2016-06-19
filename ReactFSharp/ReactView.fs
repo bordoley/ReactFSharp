@@ -1,6 +1,6 @@
 ﻿namespace React
 
-open React
+open PersistentCollections
 open System
 open System.Reactive.Linq
 open System.Reactive.Disposables
@@ -30,7 +30,7 @@ and IReactViewGroup =
 
   abstract member Name: string with get
   abstract member UpdateProps: obj -> unit
-  abstract member Children: ReactChildren<ReactView> with get, set
+  abstract member Children: IMap<string, ReactView> with get, set
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ReactView =
@@ -46,7 +46,7 @@ module ReactView =
     | ReactViewNone -> ()
 
   let private removeChildren = function
-    | ReactViewGroup view -> view.Children <- ReactChildren.empty
+    | ReactViewGroup view -> view.Children <- Map.empty
     | _ -> ()
  
   let render
@@ -91,19 +91,19 @@ module ReactView =
             viewWithChildren.UpdateProps node.element.props
 
             let children =
-              node.children |> ReactChildren.map (
+              node.children |> Map.mapWithKey (
                 fun key node -> 
                   updateWith node 
-                   <| match viewWithChildren.Children |> ReactChildren.tryFind key with
+                   <| match viewWithChildren.Children |> Collection.tryGet key with
                       | Some childView -> childView
                       | None -> ReactViewNone
-              )
+              ) |> Map.createWithDefaultEquality
           
             let oldChildren = viewWithChildren.Children
             viewWithChildren.Children <- children
          
-            for (name, view) in oldChildren.nodes do
-              match children |> React.ReactChildren.tryFind name with
+            for (name, view) in oldChildren |> Collection.toSeq do
+              match children |> Collection.tryGet name with
               | Some _ -> ()
               | None -> dispose view
 
@@ -125,9 +125,9 @@ module ReactView =
             | (ReactNativeDOMNode node, ReactView _) -> ()
             | (ReactNativeDOMNodeGroup node, ReactViewGroup view) ->
                 let children =
-                  node.children |> ReactChildren.map (
+                  node.children |> Map.mapWithKey (
                     fun key node -> ReactViewNone |> updateWith node
-                  )
+                  ) |> Map.createWithDefaultEquality
                 view.Children <- children
             | _ -> failwith "node/view mismatch"
 

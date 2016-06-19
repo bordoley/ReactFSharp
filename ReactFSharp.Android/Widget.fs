@@ -13,7 +13,7 @@ module Widgets =
 
   type LinearLayoutComponentProps = {
     props: LinearLayoutProps
-    children: ReactChildren<ReactElement>
+    children: ReactElementChildren
   }
   let LinearLayout = ReactStatelessComponent (fun (props: LinearLayoutComponentProps) -> ReactNativeElementGroup {
     name = AndroidWidgetLinearLayout

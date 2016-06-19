@@ -84,6 +84,10 @@
       <Project>{EAC934D3-335F-42DA-8266-447EF7A895B5}</Project>
       <Name>ReactFSharp.Android</Name>
     </ProjectReference>
+    <ProjectReference Include="..\PersistentCollections\PersistentCollections.fsproj">
+      <Project>{15264E12-9F19-484B-93E2-E15EB428938B}</Project>
+      <Name>PersistentCollections</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.FSharp.targets" />
 </Project>
