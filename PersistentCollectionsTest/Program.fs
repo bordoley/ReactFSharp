@@ -2,6 +2,7 @@
 // See the 'F# Tutorial' project for more help.
 
 open PersistentCollections
+open System
 
 [<EntryPoint>]
 let main argv = 
@@ -12,7 +13,15 @@ let main argv =
     testSeq
     |> Seq.fold (
         fun acc i -> acc |> PersistentVector.add i
-      ) PersistentVector.empty
+      ) (PersistentVector.createWithDefaultEquality ())
+
+  let vec2 = 
+    testSeq
+    |> Seq.fold (
+        fun acc (v: int) -> PersistentVector.update v v acc
+      ) vec
+
+  printfn "vecs are equal? %b" (Object.ReferenceEquals (vec, vec2))
 
   Seq.zip testSeq (vec |> PersistentVector.toSeq )
   |> Seq.iter (
