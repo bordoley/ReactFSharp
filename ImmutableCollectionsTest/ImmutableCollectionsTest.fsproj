@@ -5,8 +5,8 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{215A70B3-95B4-4296-B38E-64D20CA0DC12}</ProjectGuid>
     <OutputType>Exe</OutputType>
-    <RootNamespace>PersistentCollectionsTest</RootNamespace>
-    <AssemblyName>PersistentCollectionsTest</AssemblyName>
+    <RootNamespace>ImmutableCollectionsTest</RootNamespace>
+    <AssemblyName>ImmutableCollectionsTest</AssemblyName>
     <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -46,9 +46,9 @@
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\PersistentCollections\PersistentCollections.fsproj">
+    <ProjectReference Include="..\ImmutableCollections\ImmutableCollections.fsproj">
       <Project>{15264E12-9F19-484B-93E2-E15EB428938B}</Project>
-      <Name>PersistentCollections</Name>
+      <Name>ImmutableCollections</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(FSharpTargetsPath)" />

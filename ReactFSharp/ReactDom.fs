@@ -1,6 +1,6 @@
 ﻿namespace React
 
-open PersistentCollections
+open ImmutableCollections
 open System
 open System.Reactive.Subjects
 

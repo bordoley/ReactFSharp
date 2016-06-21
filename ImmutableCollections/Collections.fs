@@ -1,4 +1,4 @@
-﻿namespace PersistentCollections
+﻿namespace ImmutableCollections
 
 open System
 open System.Collections

@@ -2,7 +2,7 @@
 
 open Android.Views
 open Android.Widget
-open PersistentCollections
+open ImmutableCollections
 open React
 open React.Android.Views
 open System

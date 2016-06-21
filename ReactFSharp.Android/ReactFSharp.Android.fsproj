@@ -60,9 +60,9 @@
       <Project>{0609D9C5-45D6-42F8-9BD9-89D5411C9441}</Project>
       <Name>ReactFSharp</Name>
     </ProjectReference>
-    <ProjectReference Include="..\PersistentCollections\PersistentCollections.fsproj">
+    <ProjectReference Include="..\ImmutableCollections\ImmutableCollections.fsproj">
       <Project>{15264E12-9F19-484B-93E2-E15EB428938B}</Project>
-      <Name>PersistentCollections</Name>
+      <Name>ImmutableCollections</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

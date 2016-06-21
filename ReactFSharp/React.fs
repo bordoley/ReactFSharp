@@ -1,6 +1,6 @@
 ﻿namespace React
 
-open PersistentCollections
+open ImmutableCollections
 open System
 
 module FSXObservable = FSharp.Control.Reactive.Observable
