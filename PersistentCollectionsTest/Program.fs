@@ -6,14 +6,21 @@ open System
 
 [<EntryPoint>]
 let main argv = 
-  let n = 3000000
+  let n = 300000
   let testSeq = seq { 0 .. n } 
+
+  let empty1 = PersistentVector.create ()
+
+  let empty2 = PersistentVector.create ()
+
+  printfn "empty are equal? %b" (Object.ReferenceEquals (empty1, empty2))
+
 
   let vec = 
     testSeq
     |> Seq.fold (
         fun acc i -> acc |> PersistentVector.add i
-      ) (PersistentVector.createWithDefaultEquality ())
+      ) empty1
 
   let vec2 = 
     testSeq
@@ -43,13 +50,13 @@ let main argv =
       fun i v ->
         if (n - i) <> v then printfn "expect %i but was %i" (n - i) v
     )
- (*
-  let rec drain (v: PersistentVector<_>) =
-    if v.count > 1 then
-       drain (v |> PersistentVector.pop)
-     else v
 
-  let empty = drain vec*)
+    (*
+  let mutable empty = vec
+  while (empty.count >= 2) do
+    let prev = empty
+    empty <- PersistentVector.pop empty
+   *)
 
   printfn "%A" argv
   0 // return an integer exit code

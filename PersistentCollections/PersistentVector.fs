@@ -2,28 +2,30 @@
 
 open System
 open System.Collections.Generic
+open System.Runtime.CompilerServices
+
 // http://hypirion.com/musings/understanding-persistent-vector-pt-1
 
 type [<ReferenceEquality>] PersistentVectorTrie<'v> = 
-  | PersistentVectorLeafNode of IVector<IVector<'v>>
+  | PersistentVectorLeafNode of ImmutableArray<ImmutableArray<'v>>
   | PersistentVectorTrieNode of PersistentVectorTrieNode<'v>
 
 and [<ReferenceEquality>] PersistentVectorTrieNode<'v> = {
-  nodes: IVector<PersistentVectorTrie<'v>>
+  nodes: ImmutableArray<PersistentVectorTrie<'v>>
   depth: int
 }
 
 type [<ReferenceEquality>] PersistentVectorRootNode<'v> =
   | PersistentVectorTrieRootNode of PersistentVectorTrieNode<'v>
-  | PersistentVectorLeafRootNode of IVector<IVector<'v>>
-  | PersistentVectorValuesRootNode of IVector<'v>
+  | PersistentVectorLeafRootNode of ImmutableArray<ImmutableArray<'v>>
+  | PersistentVectorValuesRootNode of ImmutableArray<'v>
   | PersistentVectorNoneRootNode
 
 type [<ReferenceEquality>] PersistentVector<'v> = {
   comparer: IEqualityComparer<'v>
   count: int
   root: PersistentVectorRootNode<'v>
-  tail: IVector<'v>
+  tail: ImmutableArray<'v>
 }
 
 module PersistentVector =
@@ -37,30 +39,30 @@ module PersistentVector =
     let level = depth * bits
     let ret = (index >>> level) &&& mask 
     ret
-
-  let create comparer = {
+  
+  let createWithComparer (comparer: IEqualityComparer<'v>) = {
     comparer = comparer
     count = 0
     root = PersistentVectorNoneRootNode
-    tail = Vector.empty
-  }
+    tail = ImmutableArray.empty ()
+  } 
 
-  let createWithDefaultEquality () =
-    create EqualityComparer.Default
+  let create () =
+    createWithComparer EqualityComparer.Default
 
-  let rec private newPath depth (tail: IVector<'v>) =
+  let rec private newPath depth (tail: ImmutableArray<'v>) =
     if depth = leafDepth then 
-      PersistentVectorLeafNode (Vector.createUnsafe [| tail |])
+      PersistentVectorLeafNode (ImmutableArray.createUnsafe [| tail |])
     else 
       let child = newPath (depth - 1) tail
       PersistentVectorTrieNode {
-        nodes = (Vector.createUnsafe [| child |])
+        nodes = (ImmutableArray.createUnsafe [| child |])
         depth = depth
       }
 
-  let getTailOffset vec = vec.count - vec.tail.Count
+  let private getTailOffset vec = vec.count - (vec.tail |> Collection.count)
 
-  let getDepthFromRoot = function
+  let private getDepthFromRoot = function
     | PersistentVectorTrieRootNode trie -> trie.depth
     | PersistentVectorLeafRootNode _ -> leafDepth
     | PersistentVectorValuesRootNode _ -> 0
@@ -68,7 +70,7 @@ module PersistentVector =
 
   let private pushTail (vec: PersistentVector<'v>) : PersistentVectorRootNode<'v> =
     let tail = vec.tail
-    if tail.Count <> width then failwith "tail wrong size"
+    if (tail |> Collection.count) <> width then failwith "tail wrong size"
 
     let depth = getDepthFromRoot vec.root
 
@@ -77,43 +79,43 @@ module PersistentVector =
         PersistentVectorValuesRootNode tail
 
     | PersistentVectorValuesRootNode values -> 
-        PersistentVectorLeafRootNode (Vector.createUnsafe [| values; tail |])
+        PersistentVectorLeafRootNode (ImmutableArray.createUnsafe [| values; tail |])
 
     | PersistentVectorLeafRootNode leafNode ->
-        if leafNode.Count < width then 
-          PersistentVectorLeafRootNode (leafNode |> Vector.add tail)
+        if (leafNode |> Collection.count) < width then 
+          PersistentVectorLeafRootNode (leafNode |> ImmutableArray.add tail)
         else 
           let oldLeafNode = PersistentVectorLeafNode leafNode
-          let newLeafNode = PersistentVectorLeafNode (Vector.createUnsafe [| tail |])
+          let newLeafNode = PersistentVectorLeafNode (ImmutableArray.createUnsafe [| tail |])
          
           PersistentVectorTrieRootNode {
-            nodes = (Vector.createUnsafe [| oldLeafNode; newLeafNode |])
+            nodes = (ImmutableArray.createUnsafe [| oldLeafNode; newLeafNode |])
             depth = depth + 1
           }
 
     | PersistentVectorTrieRootNode trie -> 
-        let rec pushTail depth (trie: IVector<PersistentVectorTrie<'v>>) = 
+        let rec pushTail depth (trie: ImmutableArray<PersistentVectorTrie<'v>>) = 
           let index = computeIndex depth (vec.count - 1)
 
           match trie |> Collection.tryGet index with
-          | Some (PersistentVectorLeafNode leafNode) when leafNode.Count < width -> 
-              let newLeafNode = PersistentVectorLeafNode (leafNode |> Vector.add tail)
+          | Some (PersistentVectorLeafNode leafNode) when (leafNode |> Collection.count) < width -> 
+              let newLeafNode = PersistentVectorLeafNode (leafNode |> ImmutableArray.add tail)
               PersistentVectorTrieNode {
-                nodes = trie |> Vector.cloneAndSet index newLeafNode
+                nodes = trie |> ImmutableArray.cloneAndSet index newLeafNode
                 depth = depth
               }
 
-          | None when trie.Count < width -> 
+          | None when (trie |> Collection.count) < width -> 
               let newNode = newPath (depth - 1) tail
               PersistentVectorTrieNode {
-                nodes = trie |> Vector.add newNode
+                nodes = trie |> ImmutableArray.add newNode
                 depth = depth
               }
 
           | Some (PersistentVectorTrieNode trieNode) -> 
               let newTrieNode = pushTail (depth - 1) trieNode.nodes
               PersistentVectorTrieNode {
-                nodes = trie |> Vector.cloneAndSet index newTrieNode
+                nodes = trie |> ImmutableArray.cloneAndSet index newTrieNode
                 depth = depth
               }               
 
@@ -124,7 +126,7 @@ module PersistentVector =
         if ((vec.count - 1) >>> bits) >= (1 <<< shift) then
           let oldRootNode = PersistentVectorTrieNode trie
           PersistentVectorTrieRootNode {
-            nodes = Vector.createUnsafe [| oldRootNode; (newPath depth tail) |]
+            nodes = ImmutableArray.createUnsafe [| oldRootNode; (newPath depth tail) |]
             depth = depth + 1
           }
         else 
@@ -136,17 +138,17 @@ module PersistentVector =
               PersistentVectorTrieRootNode trieNode
 
   let add (v: 'v) (vec: PersistentVector<'v>) =
-    if vec.tail.Count < width then { 
+    if (vec.tail |> Collection.count) < width then { 
         vec with
           count = vec.count + 1
           root = vec.root
-          tail = vec.tail |> Vector.add v
+          tail = vec.tail |> ImmutableArray.add v
       }
     else {
         vec with
           count = vec.count + 1
           root = pushTail vec 
-          tail = Vector.createUnsafe [| v |]
+          tail = ImmutableArray.createUnsafe [| v |]
       }
 
   let toSeq (vec: PersistentVector<'v>) = seq {
@@ -209,16 +211,16 @@ module PersistentVector =
     | Some v -> v
     | _ -> failwith "index out of bounds"
 
-  let private doUpdateValuesNode (comparer: IEqualityComparer<'v>) index v (valuesNode: IVector<'v>) =
+  let private doUpdateValuesNode (comparer: IEqualityComparer<'v>) index v (valuesNode: ImmutableArray<'v>) =
     let nodeIndex = computeIndex 0 index
     let currentValue = valuesNode |> Collection.get nodeIndex
 
     if comparer.Equals(currentValue, v) then
       valuesNode
     else 
-      valuesNode |> Vector.cloneAndSet nodeIndex v
+      valuesNode |> ImmutableArray.cloneAndSet nodeIndex v
 
-  let private doUpdateLeafNode (comparer: IEqualityComparer<'v>) index v (leafNode: IVector<IVector<'v>>) =
+  let private doUpdateLeafNode (comparer: IEqualityComparer<'v>) index v (leafNode: ImmutableArray<ImmutableArray<'v>>) =
     let leafIndex = computeIndex leafDepth index
     let valuesNode = leafNode |> Collection.get leafIndex
     let newValuesNode = valuesNode |> doUpdateValuesNode comparer index v
@@ -226,7 +228,7 @@ module PersistentVector =
     if Object.ReferenceEquals(valuesNode, newValuesNode) then
       leafNode
     else 
-      leafNode |> Vector.cloneAndSet leafIndex newValuesNode
+      leafNode |> ImmutableArray.cloneAndSet leafIndex newValuesNode
 
   let rec private doUpdateTrieNode (comparer: IEqualityComparer<'v>) index v (trieNode: PersistentVectorTrieNode<'v>) =
     let pos = computeIndex trieNode.depth index
@@ -255,7 +257,7 @@ module PersistentVector =
     else
       {
         depth = trieNode.depth
-        nodes = (trieNode.nodes |> Vector.cloneAndSet pos newChildNodeAtPos)
+        nodes = (trieNode.nodes |> ImmutableArray.cloneAndSet pos newChildNodeAtPos)
       }
 
   let update (index: int) (v: 'v) (vec: PersistentVector<'v>): PersistentVector<'v> =
@@ -270,7 +272,7 @@ module PersistentVector =
       if vec.comparer.Equals(currentValue, v) then
         vec
       else 
-        let newTail = vec.tail |> Vector.cloneAndSet nodeIndex v
+        let newTail = vec.tail |> ImmutableArray.cloneAndSet nodeIndex v
         { vec with tail = newTail }
     else 
       let newRoot = 
@@ -306,8 +308,44 @@ module PersistentVector =
         vec
       else
         { vec with root = newRoot }
+        (*
+  let pop (vec: PersistentVector<'v>) =
+    if vec.count = 0 then
+      failwith "Can't pop empty vector"
+    elif vec.count = 1 then 
+        createWithComparer vec.comparer
+    elif (vec.tail |> Collection.count) > 1 then
+      let newTail = vec.tail |> ImmutableArray.pop
 
-      (*
+      { vec with 
+          count = vec.count - 1
+          tail = newTail
+      }
+    else
+      let index = vec.count - 2
+      let newTail = vec |> leafNodeFor index  |> Option.get
+
+      let newRoot =
+        match vec.root with
+        | PersistentVectorTrieRootNode trieNode ->
+            vec.root
+        | PersistentVectorLeafRootNode leafNode ->
+            if ((leafNode |> Collection.count) > 2) then 
+              let newLeafNode = leafNode |> ImmutableArray.pop
+              PersistentVectorLeafRootNode newLeafNode
+            else 
+              PersistentVectorValuesRootNode (leafNode |> Collection.get 0)
+        | PersistentVectorValuesRootNode valuesNode ->
+            PersistentVectorNoneRootNode      
+        | PersistentVectorNoneRootNode ->
+            failwith "Something went wrong"
+      { vec with
+          count = vec.count - 1
+          root = newRoot
+          tail = newTail
+      }
+
+
   let pop (vec: PersistentVector<'v>) =
     if vec.count = 0 then
       failwith "Can't pop empty vector"

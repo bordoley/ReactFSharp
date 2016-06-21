@@ -75,7 +75,7 @@ module internal WidgetImpl =
 
     updateProps props
 
-    let children = ref Map.empty
+    let children = ref Collection.empty
 
     ReactViewGroup { new obj()
         interface IReactViewGroup with 
@@ -86,8 +86,7 @@ module internal WidgetImpl =
             and set (value) =
               let oldChildren = !children
 
-              (oldChildren |> Collection.toSeq)
-              |> Seq.zipAll (value |> Collection.toSeq) 
+              Seq.zipAll oldChildren value
               |> Seq.iteri (
                 fun indx (prev, next) ->
                   match (prev, next) with
