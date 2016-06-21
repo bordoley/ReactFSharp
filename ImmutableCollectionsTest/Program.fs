@@ -5,9 +5,9 @@ open ImmutableCollections
 open System
 
 [<EntryPoint>]
-let main argv = 
+let main argv =
   let n = 300000
-  let testSeq = seq { 0 .. n } 
+  let testSeq = seq { 0 .. n }
 
   let empty1 = PersistentVector.create ()
 
@@ -15,14 +15,21 @@ let main argv =
 
   printfn "empty are equal? %b" (Object.ReferenceEquals (empty1, empty2))
 
+  let testEnumeration (vec: PersistentVector<_>) =
+    seq{ 0 .. (vec.count - 1) }
+    |> Seq.zip (vec |> PersistentVector.toSeq)
 
-  let vec = 
+    |> Seq.iter (
+      fun (i, v) -> if i <> v then failwith (sprintf "vec.count = %i, index: %i, actual: %i"  vec.count i v)
+    )
+
+  let vec =
     testSeq
     |> Seq.fold (
         fun acc i -> acc |> PersistentVector.add i
       ) empty1
 
-  let vec2 = 
+  let vec2 =
     testSeq
     |> Seq.fold (
         fun acc (v: int) -> PersistentVector.update v v acc
@@ -34,9 +41,9 @@ let main argv =
   |> Seq.iter (
       fun (i, v) -> if i <> v then printfn "notEqual %i %i" i v
     )
-  
+
   testSeq |> Seq.iter (
-    fun i -> 
+    fun i ->
       let v = vec |> PersistentVector.get i
       if i <> v then printfn "get failed %i %i" i v
   )
@@ -51,12 +58,12 @@ let main argv =
         if (n - i) <> v then printfn "expect %i but was %i" (n - i) v
     )
 
-    (*
+
   let mutable empty = vec
-  while (empty.count >= 2) do
+  while (empty.count > 0) do
     let prev = empty
     empty <- PersistentVector.pop empty
-   *)
+    //testEnumeration empty
 
   printfn "%A" argv
   0 // return an integer exit code
