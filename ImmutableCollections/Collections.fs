@@ -8,35 +8,44 @@ type ICollection<'k, 'v> =
   inherit IEnumerable<'k*'v>
 
   abstract member Count: int
-  abstract member Get: 'k -> 'v
+  abstract member Item: 'k -> 'v
   abstract member Keys: seq<'k>
   abstract member TryGet: 'k -> Option<'v>
   abstract member Values: seq<'v>
 
-type ISet<'k> =
-  inherit ICollection<'k, 'k>
+type ISet<'v> =
+  inherit IEnumerable<'v>
+
+  abstract member Count: int
+  abstract member Item: 'v -> bool
 
 type IVector<'v> =
   inherit ICollection<int, 'v>
 
-type ImmutableArray<'v> internal (backingArray: array<'v>) =
-  member this.CopyTo (sourceIndex: int, destinationArray: array<'v>, destinationIndex: int, length: int) =
-    Array.Copy(backingArray, sourceIndex, destinationArray, destinationIndex, length)
+type IPersistentMap<'k, 'v> =
+  inherit ICollection<'k, 'v>
 
-  interface IVector<'v> with
-    member this.Count = backingArray.Length
-    member this.Get index = backingArray.[index]
-    member this.GetEnumerator () = (backingArray |> Seq.mapi (fun i v -> (i, v))).GetEnumerator()
-    member this.GetEnumerator () = backingArray.GetEnumerator()
-    member this.Keys = seq { 0 .. (backingArray.Length - 1) }
-    member this.TryGet index =
-      if index >= 0 && index < backingArray.Length then
-        Some backingArray.[index]
-      else None
-    member this.Values = backingArray |> Array.toSeq
+  abstract member Put: 'k * 'v -> IPersistentMap<'k, 'v>
+  abstract member Remove: 'k -> IPersistentMap<'k, 'v>
+
+type IPersistentSet<'v> =
+  inherit ISet<'v>
+
+  abstract member Add: 'v -> IPersistentSet<'v>
+  abstract member Remove: 'v -> IPersistentSet<'v>
+
+type IPersistentVector<'v> = 
+  inherit IVector<'v>
+
+  abstract member Add: 'v -> IPersistentVector<'v>
+  abstract member Pop: unit -> IPersistentVector<'v>
+  abstract member Update: int * 'v -> IPersistentVector<'v>
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Seq =
+  let getEnumerator (seq: seq<_>) =
+    seq.GetEnumerator()
+
   let zipAll (b: seq<'b>) (a: seq<'a>) =
     let enumA = a.GetEnumerator()
     let enumB = b.GetEnumerator()
@@ -59,6 +68,24 @@ module Seq =
 
     zipAll enumA enumB
 
+type ImmutableArray<'v> internal (backingArray: array<'v>) =
+  member this.CopyTo (sourceIndex: int, destinationArray: array<'v>, destinationIndex: int, length: int) =
+    Array.Copy(backingArray, sourceIndex, destinationArray, destinationIndex, length)
+
+  interface IVector<'v> with
+    member this.Count = backingArray.Length
+    member this.Item index = backingArray.[index]
+    member this.GetEnumerator () = 
+      backingArray |> Seq.mapi (fun i v -> (i, v)) |> Seq.getEnumerator
+    member this.GetEnumerator () = backingArray.GetEnumerator()
+    member this.Keys = seq { 0 .. (backingArray.Length - 1) }
+    member this.TryGet index =
+      if index >= 0 && index < backingArray.Length then
+        Some backingArray.[index]
+      else None
+    member this.Values = backingArray |> Array.toSeq
+
+
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Collection =
   let tryGet (key: 'k) (collection: ICollection<'k, 'v>) =
@@ -68,7 +95,7 @@ module Collection =
     collection.Count
 
   let get (key: 'k) (collection: ICollection<'k, 'v>) =
-    collection.Get key
+    collection.Item key
 
   let isEmpty (collection: ICollection<'k, 'v>) =
     collection.Count = 0
@@ -89,9 +116,9 @@ module Collection =
     {
       new ICollection<'k, 'v> with
         member this.Count = backingDictionary.Count
-        member this.Get key = backingDictionary.Item key
+        member this.Item key = backingDictionary.Item key
         member this.GetEnumerator () =
-          (backingDictionary |> Seq.map (fun kvp -> (kvp.Key, kvp.Value))).GetEnumerator()
+          backingDictionary |> Seq.map (fun kvp -> (kvp.Key, kvp.Value)) |> Seq.getEnumerator
         member this.GetEnumerator () = (this.GetEnumerator()) :> IEnumerator
         member this.Keys = (backingDictionary.Keys :> seq<'k>)
         member this.TryGet key =
@@ -107,8 +134,8 @@ module Collection =
   let empty = {
     new ICollection<'k, 'v> with
       member this.Count = 0
-      member this.Get _ = failwith "key not found"
-      member this.GetEnumerator () = (Seq.empty :> IEnumerable<'k*'v>).GetEnumerator()
+      member this.Item _ = failwith "key not found"
+      member this.GetEnumerator () = (Seq.empty :> IEnumerable<'k*'v>) |> Seq.getEnumerator
       member this.GetEnumerator () = (this.GetEnumerator()) :> IEnumerator
       member this.Keys = Seq.empty
       member this.TryGet _ = None
@@ -126,37 +153,39 @@ module Vector =
   let sub (startIndex: int) (count: int) (vec: IVector<'v>) : IVector<'v> =
     if startIndex < 0 || startIndex >= vec.Count then
       failwith "startIndex out of range"
-    elif startIndex + count >= vec.Count then
+    elif startIndex + count > vec.Count then
       failwith "count out of range"
-
-    {
-      new IVector<'v> with
-        member this.Count = count
-        member this.Get index =
-          if index >= 0 && index < count then
-            vec.Get (index + startIndex)
-          else failwith "index out of range"
-        member this.GetEnumerator () =
-          (vec |> Seq.skip startIndex |> Seq.take count).GetEnumerator()
-        member this.GetEnumerator () =
-          this.GetEnumerator() :> IEnumerator
-        member this.Keys = seq { 0 .. (count - 1) }
-        member this.TryGet index =
-          if index >= 0 && index < count then
-            vec.TryGet (index + startIndex)
-          else None
-        member this.Values = vec.Values |> Seq.skip startIndex |> Seq.take count
-    }
+    elif startIndex = 0 && count = vec.Count then 
+      vec
+    else
+      {
+        new IVector<'v> with
+          member this.Count = count
+          member this.Item index =
+            if index >= 0 && index < count then
+              vec.Item (index + startIndex)
+            else failwith "index out of range"
+          member this.GetEnumerator () =
+            vec |> Seq.skip startIndex |> Seq.take count |> Seq.getEnumerator
+          member this.GetEnumerator () =
+            this.GetEnumerator() :> IEnumerator
+          member this.Keys = seq { 0 .. (count - 1) }
+          member this.TryGet index =
+            if index >= 0 && index < count then
+              vec.TryGet (index + startIndex)
+            else None
+          member this.Values = vec.Values |> Seq.skip startIndex |> Seq.take count
+      }
 
   let reverse (vec: IVector<'v>) : IVector<'v> = {
     new IVector<'v> with
       member this.Count = vec.Count
-      member this.Get index =
+      member this.Item index =
         if index >= 0 && index < vec.Count then
-          vec.Get (vec.Count - index - 1)
+          vec.Item (vec.Count - index - 1)
         else failwith "index out of range"
       member this.GetEnumerator () =
-        (vec |> Seq.rev).GetEnumerator()
+        vec |> Seq.rev |> Seq.getEnumerator
       member this.GetEnumerator () =
         this.GetEnumerator() :> IEnumerator
       member this.Keys = vec.Keys
@@ -237,12 +266,12 @@ module ImmutableArray =
     {
       new IVector<'v> with
         member this.Count = count
-        member this.Get index =
+        member this.Item index =
           if index >= 0 && index < count then
             arr |> Collection.get (index + startIndex)
           else failwith "index out of range"
         member this.GetEnumerator () =
-          (seq { 0 .. (count - 1) } |> Seq.map (fun i -> (i, this.Get i))).GetEnumerator()
+          seq { 0 .. (count - 1) } |> Seq.map (fun i -> (i, this.Item i)) |> Seq.getEnumerator
         member this.GetEnumerator () =
           this.GetEnumerator() :> IEnumerator
         member this.Keys = seq { 0 .. (count - 1) }
@@ -251,22 +280,20 @@ module ImmutableArray =
             arr |> Collection.tryGet (index + startIndex)
           else None
         member this.Values =
-          seq { 0 .. (count - 1) } |> Seq.map (fun i -> this.Get i)
+          seq { 0 .. (count - 1) } |> Seq.map (fun i -> this.Item i)
     }
 
   let reverse (arr: ImmutableArray<'v>) : IVector<'v> = {
     new IVector<'v> with
       member this.Count = arr |> Collection.count
-      member this.Get index =
+      member this.Item index =
         if index >= 0 && index < this.Count then
           arr |> Collection.get (this.Count - index - 1)
         else failwith "index out of range"
       member this.GetEnumerator () =
-        (seq { 0 .. (this.Count - 1) }
-          |> Seq.map (
-            fun i -> (i, this.Get (this.Count - i - 1))
-          )
-        ).GetEnumerator()
+        seq { 0 .. (this.Count - 1) }
+        |> Seq.map (fun i -> (i, this.Item (this.Count - i - 1)))
+        |> Seq.getEnumerator
       member this.GetEnumerator () =
         this.GetEnumerator() :> IEnumerator
       member this.Keys = arr |> Collection.keys
@@ -276,28 +303,20 @@ module ImmutableArray =
         else None
       member this.Values =
         seq { 0 .. (this.Count - 1) }
-        |> Seq.map (fun i -> this.Get (this.Count - i - 1))
+        |> Seq.map (fun i -> this.Item (this.Count - i - 1))
     }
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Set =
-  let createWithComparer (comparer: IEqualityComparer<'k>) (items: seq<'k>): ISet<'k> =
-    let backingDictionary = new Dictionary<'k, 'k>(comparer)
-    items |> Seq.iter (fun k -> backingDictionary.Add(k, k))
+  let createWithComparer (comparer: IEqualityComparer<'v>) (items: seq<'v>): ISet<'v> =
+    let backingDictionary = new Dictionary<'v, 'v>(comparer)
+    items |> Seq.iter (fun v -> backingDictionary.Add(v, v))
 
-    {
-      new ISet<'k> with
+    { new ISet<'v> with
         member this.Count = backingDictionary.Count
-        member this.Get key = backingDictionary.Item key
-        member this.GetEnumerator () =
-          (backingDictionary |> Seq.map (fun kvp -> (kvp.Key, kvp.Value))).GetEnumerator()
+        member this.Item v = backingDictionary.ContainsKey v
+        member this.GetEnumerator () = backingDictionary.Keys |> Seq.getEnumerator
         member this.GetEnumerator () = (this.GetEnumerator()) :> IEnumerator
-        member this.Keys = (backingDictionary.Keys :> seq<'k>)
-        member this.TryGet key =
-          match backingDictionary.TryGetValue(key) with
-          | (true, v) -> Some v
-          | _ -> None
-        member this.Values = this.Keys
     }
 
   let create (items: seq<'k>) =

@@ -4,9 +4,7 @@
 open ImmutableCollections
 open System
 
-[<EntryPoint>]
-let main argv =
-  let n = 300000
+let persistentVectorTests n = 
   let testSeq = seq { 0 .. n }
 
   let empty1 = PersistentVector.create ()
@@ -15,12 +13,11 @@ let main argv =
 
   printfn "empty are equal? %b" (Object.ReferenceEquals (empty1, empty2))
 
-  let testEnumeration (vec: PersistentVector<_>) =
-    seq{ 0 .. (vec.count - 1) }
-    |> Seq.zip (vec |> PersistentVector.toSeq)
-
+  let testEnumeration (vec: IPersistentVector<_>) =
+    seq{ 0 .. (vec |> Vector.lastIndex) }
+    |> Seq.zip (vec |> Collection.values)
     |> Seq.iter (
-      fun (i, v) -> if i <> v then failwith (sprintf "vec.count = %i, index: %i, actual: %i"  vec.count i v)
+      fun (i, v) -> if i <> v then failwith (sprintf "vec.count = %i, index: %i, actual: %i"  (vec |> Collection.count) i v)
     )
 
   let vec =
@@ -37,7 +34,7 @@ let main argv =
 
   printfn "vecs are equal? %b" (Object.ReferenceEquals (vec, vec2))
 
-  Seq.zip testSeq (vec |> PersistentVector.toSeq )
+  Seq.zip testSeq (vec |> Collection.values)
   |> Seq.iter (
       fun (i, v) -> if i <> v then printfn "notEqual %i %i" i v
     )
@@ -52,19 +49,37 @@ let main argv =
   |> Seq.fold (
       fun acc (v: int) -> PersistentVector.update v (n - v) acc
     ) vec
-  |> PersistentVector.toSeq
+  |> Collection.values
   |> Seq.iteri (
       fun i v ->
         if (n - i) <> v then printfn "expect %i but was %i" (n - i) v
     )
 
-
   let mutable empty = vec
-  while (empty.count > 0) do
+  while (empty |> Collection.count > 0) do
     let prev = empty
     empty <- PersistentVector.pop empty
     //testEnumeration empty
 
-  printfn "%A" argv
-  0 // return an integer exit code
+let persistentMapTests n = 
+  let comp = System.Collections.Generic.EqualityComparer.Default
+  let empty = PersistentMapImpl.create comp comp
+  let testSeq = seq { 0 .. n }
+
+  let result =
+    testSeq |> Seq.fold (fun acc i -> 
+      acc |> PersistentMapImpl.put i i
+    ) empty
+  
+  ()
+
+
+[<EntryPoint>]
+let main argv =
+  let n = 30
+
+  persistentVectorTests n
+  persistentMapTests n
+
+  0
 

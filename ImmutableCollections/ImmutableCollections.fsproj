@@ -39,6 +39,7 @@
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Collections.fs" />
     <Compile Include="PersistentVector.fs" />
+    <Compile Include="PersistentMap.fs" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\FSharp\Microsoft.Portable.FSharp.Targets" />
 </Project>

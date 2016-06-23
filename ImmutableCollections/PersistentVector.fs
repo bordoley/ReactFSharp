@@ -1,34 +1,35 @@
 ﻿namespace ImmutableCollections
 
 open System
+open System.Collections
 open System.Collections.Generic
-open System.Runtime.CompilerServices
 
 // http://hypirion.com/musings/understanding-persistent-vector-pt-1
 
-type [<ReferenceEquality>] PersistentVectorTrie<'v> =
-  | PersistentVectorLeafNode of ImmutableArray<ImmutableArray<'v>>
-  | PersistentVectorTrieNode of PersistentVectorTrieNode<'v>
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+module private PersistentVectorImpl =
+  type[<ReferenceEquality>] TrieNode<'v> =
+    | LeafNode of ImmutableArray<ImmutableArray<'v>>
+    | LevelNode of LevelNode<'v>
+  
+  and [<ReferenceEquality>] LevelNode<'v> = {
+    nodes: ImmutableArray<TrieNode<'v>>
+    depth: int
+  }
+  
+  type [<ReferenceEquality>] RootNode<'v> =
+    | LevelRootNode of LevelNode<'v>
+    | LeafRootNode of ImmutableArray<ImmutableArray<'v>>
+    | ValuesRootNode of ImmutableArray<'v>
+    | NoneRootNode
+  
+  type [<ReferenceEquality>] HashedTriePersistentVector<'v> = {
+    comparer: IEqualityComparer<'v>
+    count: int
+    root: RootNode<'v>
+    tail: ImmutableArray<'v>
+  }
 
-and [<ReferenceEquality>] PersistentVectorTrieNode<'v> = {
-  nodes: ImmutableArray<PersistentVectorTrie<'v>>
-  depth: int
-}
-
-type [<ReferenceEquality>] PersistentVectorRootNode<'v> =
-  | PersistentVectorTrieRootNode of PersistentVectorTrieNode<'v>
-  | PersistentVectorLeafRootNode of ImmutableArray<ImmutableArray<'v>>
-  | PersistentVectorValuesRootNode of ImmutableArray<'v>
-  | PersistentVectorNoneRootNode
-
-type [<ReferenceEquality>] PersistentVector<'v> = {
-  comparer: IEqualityComparer<'v>
-  count: int
-  root: PersistentVectorRootNode<'v>
-  tail: ImmutableArray<'v>
-}
-
-module PersistentVector =
   let private bits = 5
   let private width = 1 <<< bits
   let private mask = width - 1
@@ -40,22 +41,19 @@ module PersistentVector =
     let ret = (index >>> level) &&& mask
     ret
 
-  let createWithComparer (comparer: IEqualityComparer<'v>) = {
+  let create (comparer: IEqualityComparer<'v>) = {
     comparer = comparer
     count = 0
-    root = PersistentVectorNoneRootNode
+    root = NoneRootNode
     tail = ImmutableArray.empty ()
   }
 
-  let create () =
-    createWithComparer EqualityComparer.Default
-
   let rec private newPath depth (tail: ImmutableArray<'v>) =
     if depth = leafDepth then
-      PersistentVectorLeafNode (ImmutableArray.createUnsafe [| tail |])
+      LeafNode (ImmutableArray.createUnsafe [| tail |])
     else
       let child = newPath (depth - 1) tail
-      PersistentVectorTrieNode {
+      LevelNode {
         nodes = (ImmutableArray.createUnsafe [| child |])
         depth = depth
       }
@@ -63,58 +61,58 @@ module PersistentVector =
   let private getTailOffset vec = vec.count - (vec.tail |> Collection.count)
 
   let private getDepthFromRoot = function
-    | PersistentVectorTrieRootNode trie -> trie.depth
-    | PersistentVectorLeafRootNode _ -> leafDepth
-    | PersistentVectorValuesRootNode _ -> 0
-    | PersistentVectorNoneRootNode -> 0
+    | LevelRootNode trie -> trie.depth
+    | LeafRootNode _ -> leafDepth
+    | ValuesRootNode _ -> 0
+    | NoneRootNode -> 0
 
-  let private pushTail (vec: PersistentVector<'v>) : PersistentVectorRootNode<'v> =
+  let private pushTail (vec: HashedTriePersistentVector<'v>) : RootNode<'v> =
     let tail = vec.tail
     if (tail |> Collection.count) <> width then failwith "tail wrong size"
 
     let depth = getDepthFromRoot vec.root
 
     match vec.root with
-    | PersistentVectorNoneRootNode ->
-        PersistentVectorValuesRootNode tail
+    | NoneRootNode ->
+        ValuesRootNode tail
 
-    | PersistentVectorValuesRootNode values ->
-        PersistentVectorLeafRootNode (ImmutableArray.createUnsafe [| values; tail |])
+    | ValuesRootNode values ->
+        LeafRootNode (ImmutableArray.createUnsafe [| values; tail |])
 
-    | PersistentVectorLeafRootNode leafNode ->
+    | LeafRootNode leafNode ->
         if (leafNode |> Collection.count) < width then
-          PersistentVectorLeafRootNode (leafNode |> ImmutableArray.add tail)
+          LeafRootNode (leafNode |> ImmutableArray.add tail)
         else
-          let oldLeafNode = PersistentVectorLeafNode leafNode
-          let newLeafNode = PersistentVectorLeafNode (ImmutableArray.createUnsafe [| tail |])
+          let oldLeafNode = LeafNode leafNode
+          let newLeafNode = LeafNode (ImmutableArray.createUnsafe [| tail |])
 
-          PersistentVectorTrieRootNode {
+          LevelRootNode {
             nodes = (ImmutableArray.createUnsafe [| oldLeafNode; newLeafNode |])
             depth = depth + 1
           }
 
-    | PersistentVectorTrieRootNode trie ->
-        let rec pushTail depth (trie: ImmutableArray<PersistentVectorTrie<'v>>) =
+    | LevelRootNode trie ->
+        let rec pushTail depth (trie: ImmutableArray<TrieNode<'v>>) =
           let index = computeIndex depth (vec.count - 1)
 
           match trie |> Collection.tryGet index with
-          | Some (PersistentVectorLeafNode leafNode) when (leafNode |> Collection.count) < width ->
-              let newLeafNode = PersistentVectorLeafNode (leafNode |> ImmutableArray.add tail)
-              PersistentVectorTrieNode {
+          | Some (LeafNode leafNode) when (leafNode |> Collection.count) < width ->
+              let newLeafNode = LeafNode (leafNode |> ImmutableArray.add tail)
+              LevelNode {
                 nodes = trie |> ImmutableArray.cloneAndSet index newLeafNode
                 depth = depth
               }
 
           | None when (trie |> Collection.count) < width ->
               let newNode = newPath (depth - 1) tail
-              PersistentVectorTrieNode {
+              LevelNode {
                 nodes = trie |> ImmutableArray.add newNode
                 depth = depth
               }
 
-          | Some (PersistentVectorTrieNode trieNode) ->
+          | Some (LevelNode trieNode) ->
               let newTrieNode = pushTail (depth - 1) trieNode.nodes
-              PersistentVectorTrieNode {
+              LevelNode {
                 nodes = trie |> ImmutableArray.cloneAndSet index newTrieNode
                 depth = depth
               }
@@ -124,20 +122,20 @@ module PersistentVector =
         let shift = depth * bits
 
         if ((vec.count - 1) >>> bits) >= (1 <<< shift) then
-          let oldRootNode = PersistentVectorTrieNode trie
-          PersistentVectorTrieRootNode {
+          let oldRootNode = LevelNode trie
+          LevelRootNode {
             nodes = ImmutableArray.createUnsafe [| oldRootNode; (newPath depth tail) |]
             depth = depth + 1
           }
         else
           match pushTail depth trie.nodes with
-          | PersistentVectorLeafNode leafNode ->
+          | LeafNode leafNode ->
               failwith "how can this happen?"
-              PersistentVectorLeafRootNode leafNode
-          | PersistentVectorTrieNode trieNode ->
-              PersistentVectorTrieRootNode trieNode
+              LeafRootNode leafNode
+          | LevelNode trieNode ->
+              LevelRootNode trieNode
 
-  let add (v: 'v) (vec: PersistentVector<'v>) =
+  let add (v: 'v) (vec: HashedTriePersistentVector<'v>) =
     if (vec.tail |> Collection.count) < width then {
         vec with
           count = vec.count + 1
@@ -151,21 +149,21 @@ module PersistentVector =
           tail = ImmutableArray.createUnsafe [| v |]
       }
 
-  let toSeq (vec: PersistentVector<'v>) = seq {
+  let toSeq (vec: HashedTriePersistentVector<'v>) = seq {
     let rec toSeq = function
-      | PersistentVectorLeafNode leafNode ->
+      | LeafNode leafNode ->
           leafNode |> Collection.values |> Seq.map Collection.values |> Seq.concat
-      | PersistentVectorTrieNode trieNode ->
+      | LevelNode trieNode ->
           trieNode.nodes |> Collection.values |> Seq.map toSeq |> Seq.concat
 
     match vec.root with
-    | PersistentVectorTrieRootNode trieNode ->
-        yield! (PersistentVectorTrieNode trieNode) |> toSeq
-    | PersistentVectorLeafRootNode leafNode ->
-        yield! (PersistentVectorLeafNode leafNode) |> toSeq
-    | PersistentVectorValuesRootNode values ->
+    | LevelRootNode trieNode ->
+        yield! (LevelNode trieNode) |> toSeq
+    | LeafRootNode leafNode ->
+        yield! (LeafNode leafNode) |> toSeq
+    | ValuesRootNode values ->
         yield! values |> Collection.values
-    | PersistentVectorNoneRootNode -> ()
+    | NoneRootNode -> ()
 
     yield! vec.tail |> Collection.values
   }
@@ -174,10 +172,10 @@ module PersistentVector =
     let tailOffset = getTailOffset vec
 
     let rec findLeafNode = function
-      | PersistentVectorLeafNode leafNode ->
+      | LeafNode leafNode ->
           let nodeIndex = computeIndex leafDepth index
           leafNode |> Collection.tryGet nodeIndex
-      | PersistentVectorTrieNode trieNode ->
+      | LevelNode trieNode ->
           let nodeIndex = computeIndex trieNode.depth index
           match trieNode.nodes |> Collection.tryGet nodeIndex with
           | Some node -> findLeafNode node
@@ -189,16 +187,16 @@ module PersistentVector =
       Some vec.tail
     else
       match vec.root with
-      | PersistentVectorTrieRootNode trieNode ->
-          (PersistentVectorTrieNode trieNode) |> findLeafNode
-      | PersistentVectorLeafRootNode leafNode ->
-          (PersistentVectorLeafNode leafNode) |> findLeafNode
-      | PersistentVectorValuesRootNode values ->
+      | LevelRootNode trieNode ->
+          (LevelNode trieNode) |> findLeafNode
+      | LeafRootNode leafNode ->
+          (LeafNode leafNode) |> findLeafNode
+      | ValuesRootNode values ->
           Some values
-      | PersistentVectorNoneRootNode ->
+      | NoneRootNode ->
           None
 
-  let tryGet (index: int) (vec: PersistentVector<'v>) =
+  let tryGet (index: int) (vec: HashedTriePersistentVector<'v>) =
     let v = vec |> leafNodeFor index
     match vec |> leafNodeFor index with
     | Some vec ->
@@ -206,7 +204,7 @@ module PersistentVector =
         vec |> Collection.tryGet index
     | _ -> None
 
-  let get (index: int) (vec: PersistentVector<'v>) =
+  let get (index: int) (vec: HashedTriePersistentVector<'v>) =
     match vec |> tryGet index with
     | Some v -> v
     | _ -> failwith "index out of bounds"
@@ -230,27 +228,27 @@ module PersistentVector =
     else
       leafNode |> ImmutableArray.cloneAndSet leafIndex newValuesNode
 
-  let rec private doUpdateTrieNode (comparer: IEqualityComparer<'v>) index v (trieNode: PersistentVectorTrieNode<'v>) =
+  let rec private doUpdateTrieNode (comparer: IEqualityComparer<'v>) index v (trieNode: LevelNode<'v>) =
     let pos = computeIndex trieNode.depth index
 
     let currentChildeNodeAtPos = trieNode.nodes |> Collection.get pos
     let newChildNodeAtPos =
       match currentChildeNodeAtPos  with
-      | PersistentVectorLeafNode leafNode as currentTrieNode ->
+      | LeafNode leafNode as currentTrieNode ->
           let newLeafNode = leafNode |> doUpdateLeafNode comparer index v
 
           if Object.ReferenceEquals(leafNode, newLeafNode) then
             currentTrieNode
           else
-            PersistentVectorLeafNode newLeafNode
+            LeafNode newLeafNode
 
-      | PersistentVectorTrieNode childTrieNode as currentTrieNode ->
+      | LevelNode childTrieNode as currentTrieNode ->
           let newChildTrieNode = childTrieNode |> doUpdateTrieNode comparer index v
 
           if Object.ReferenceEquals(childTrieNode, newChildTrieNode) then
             currentTrieNode
           else
-            PersistentVectorTrieNode newChildTrieNode
+            LevelNode newChildTrieNode
 
     if Object.ReferenceEquals(currentChildeNodeAtPos, newChildNodeAtPos) then
       trieNode
@@ -260,11 +258,9 @@ module PersistentVector =
         nodes = (trieNode.nodes |> ImmutableArray.cloneAndSet pos newChildNodeAtPos)
       }
 
-  let update (index: int) (v: 'v) (vec: PersistentVector<'v>): PersistentVector<'v> =
-    if index > vec.count || index < 0 then
+  let update (index: int) (v: 'v) (vec: HashedTriePersistentVector<'v>): HashedTriePersistentVector<'v> =
+    if index >= vec.count || index < 0 then
       failwith "index out of range"
-    elif index = vec.count then
-      vec |> add v
     elif index >= (getTailOffset vec) then
       let nodeIndex = computeIndex 0 index
       let currentValue = vec.tail |> Collection.get nodeIndex
@@ -277,31 +273,31 @@ module PersistentVector =
     else
       let newRoot =
         match vec.root with
-        | PersistentVectorTrieRootNode trieNode as currentRootNode ->
+        | LevelRootNode trieNode as currentRootNode ->
             let newTrieNode = trieNode |> doUpdateTrieNode vec.comparer index v
 
             if Object.ReferenceEquals(trieNode, newTrieNode) then
               currentRootNode
             else
-              PersistentVectorTrieRootNode newTrieNode
+              LevelRootNode newTrieNode
 
-        | PersistentVectorLeafRootNode leafNode as currentRootNode ->
+        | LeafRootNode leafNode as currentRootNode ->
             let newLeafNode = leafNode |> doUpdateLeafNode vec.comparer index v
 
             if Object.ReferenceEquals(leafNode, newLeafNode) then
               currentRootNode
             else
-              PersistentVectorLeafRootNode newLeafNode
+              LeafRootNode newLeafNode
 
-        | PersistentVectorValuesRootNode valuesNode as currentRootNode ->
+        | ValuesRootNode valuesNode as currentRootNode ->
             let newValuesNode = valuesNode |> doUpdateValuesNode vec.comparer index v
 
             if Object.ReferenceEquals(valuesNode, newValuesNode) then
               currentRootNode
             else
-              PersistentVectorValuesRootNode newValuesNode
+              ValuesRootNode newValuesNode
 
-        | PersistentVectorNoneRootNode ->
+        | NoneRootNode ->
             failwith "something went wrong"
 
       if Object.ReferenceEquals(vec.root, newRoot) then
@@ -309,24 +305,24 @@ module PersistentVector =
       else
         { vec with root = newRoot }
 
-  let private popTrieRootNodeTail (trieRootNode: PersistentVectorTrieNode<'v>) : PersistentVectorTrie<'v> =
+  let private popTrieRootNodeTail (trieRootNode: LevelNode<'v>) : TrieNode<'v> =
     let rec doPop = function
-      | PersistentVectorLeafNode leafNode when (leafNode |> Collection.count) > 1  ->
+      | LeafNode leafNode when (leafNode |> Collection.count) > 1  ->
           let newLeafNode = leafNode |> ImmutableArray.pop
-          Some (PersistentVectorLeafNode newLeafNode)
-      | PersistentVectorTrieNode trieNode ->
+          Some (LeafNode newLeafNode)
+      | LevelNode trieNode ->
           let childNode = trieNode.nodes |> Vector.last
           match doPop childNode with
           | None when (trieNode.nodes |> Collection.count) > 1 ->
               let newTrieNodeNodes = trieNode.nodes |> ImmutableArray.pop
-              Some (PersistentVectorTrieNode {
+              Some (LevelNode {
                 trieNode with
                   nodes = newTrieNodeNodes
               })
           | Some newChildNode ->
               let subidx = trieNode.nodes |> Vector.lastIndex
               let newTrieNodeNodes = trieNode.nodes |> ImmutableArray.cloneAndSet subidx newChildNode
-              Some (PersistentVectorTrieNode {
+              Some (LevelNode {
                 trieNode with
                   nodes = newTrieNodeNodes
               })
@@ -339,13 +335,13 @@ module PersistentVector =
     | Some childNode ->
         let subidx = trieRootNode.nodes |> Vector.lastIndex
         let newTrieRootNodeNodes = trieRootNode.nodes |> ImmutableArray.cloneAndSet subidx childNode
-        PersistentVectorTrieNode {
+        LevelNode {
           trieRootNode with
             nodes = newTrieRootNodeNodes
         }
     | None when (trieRootNode.nodes |> Collection.count) > 2 ->
         let newTrieRootNodeNodes = trieRootNode.nodes |> ImmutableArray.pop
-        PersistentVectorTrieNode {
+        LevelNode {
           trieRootNode with
             nodes = newTrieRootNodeNodes
         }
@@ -353,11 +349,11 @@ module PersistentVector =
         trieRootNode.nodes |> Collection.get 0
     | None -> failwith "should never happen"
 
-  let pop (vec: PersistentVector<'v>) =
+  let pop (vec: HashedTriePersistentVector<'v>) =
     if vec.count = 0 then
       failwith "Can't pop empty vector"
     elif vec.count = 1 then
-        createWithComparer vec.comparer
+        create vec.comparer
     elif (vec.tail |> Collection.count) > 1 then
       let newTail = vec.tail |> ImmutableArray.pop
 
@@ -371,22 +367,22 @@ module PersistentVector =
 
       let newRoot =
         match vec.root with
-        | PersistentVectorTrieRootNode trieNode ->
+        | LevelRootNode trieNode ->
             match trieNode |> popTrieRootNodeTail with
-            | PersistentVectorLeafNode leafNode ->
-                PersistentVectorLeafRootNode leafNode
-            | PersistentVectorTrieNode trieRootNode ->
-                PersistentVectorTrieRootNode trieNode
+            | LeafNode leafNode ->
+                LeafRootNode leafNode
+            | LevelNode trieRootNode ->
+                LevelRootNode trieNode
 
-        | PersistentVectorLeafRootNode leafNode ->
+        | LeafRootNode leafNode ->
             if ((leafNode |> Collection.count) > 2) then
               let newLeafNode = leafNode |> ImmutableArray.pop
-              PersistentVectorLeafRootNode newLeafNode
+              LeafRootNode newLeafNode
             else
-              PersistentVectorValuesRootNode (leafNode |> Collection.get 0)
-        | PersistentVectorValuesRootNode valuesNode ->
-            PersistentVectorNoneRootNode
-        | PersistentVectorNoneRootNode ->
+              ValuesRootNode (leafNode |> Collection.get 0)
+        | ValuesRootNode valuesNode ->
+            NoneRootNode
+        | NoneRootNode ->
             failwith "Something went wrong"
 
       { vec with
@@ -394,3 +390,108 @@ module PersistentVector =
           root = newRoot
           tail = newTail
       }
+
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+module PersistentVector =
+  open PersistentVectorImpl
+
+  type private HashedTrieBackedPersistentVector<'v> private (backingVector) =
+    static member Create (backingVector: HashedTriePersistentVector<'v>) =
+      (new HashedTrieBackedPersistentVector<'v>(backingVector) :> IPersistentVector<'v>)
+  
+    interface IPersistentVector<'v> with
+      member this.Add v = 
+        let newBackingVector = backingVector |> add v
+        if Object.ReferenceEquals(backingVector, newBackingVector) then (this :> IPersistentVector<'v>)
+        else HashedTrieBackedPersistentVector.Create newBackingVector
+      member this.Count = backingVector.count
+      member this.Item index = backingVector |> get index
+      member this.GetEnumerator () = 
+        backingVector 
+        |> toSeq 
+        |> Seq.mapi (fun i v -> (i, v))
+        |> Seq.getEnumerator
+      member this.GetEnumerator () = (this :> IEnumerable<int*'v>).GetEnumerator() :> IEnumerator
+      member this.Keys = seq { 0 .. (backingVector.count - 1) }
+      member this.Pop () =
+        let newBackingVector = backingVector |> pop
+        HashedTrieBackedPersistentVector.Create newBackingVector
+      member this.TryGet index = backingVector |> tryGet index
+      member this.Update(index, value) =
+        let newBackingVector = backingVector |> update index value
+        if Object.ReferenceEquals(backingVector, newBackingVector) then (this :> IPersistentVector<'v>)
+        else HashedTrieBackedPersistentVector.Create newBackingVector
+      member this.Values = backingVector |> toSeq
+  
+  type private SubPersistentVector<'v>(backingVector, startIndex, count) = 
+    static member Create (backingVector: IPersistentVector<'v>, startIndex, count) =
+      if startIndex < 0 || startIndex >= backingVector.Count then 
+        failwith "startindex out of range"
+      elif startIndex + count > backingVector.Count then 
+        failwith "count out of range"
+      elif startIndex = 0 && count = backingVector.Count then 
+        backingVector
+      else (new SubPersistentVector<'v>(backingVector, startIndex, count) :> IPersistentVector<'v>)
+  
+    interface IPersistentVector<'v> with
+      member this.Add v = 
+        let index = startIndex + count
+        let newBackingVector =
+          if index < backingVector.Count then backingVector.Update (index, v)
+          else backingVector.Add v
+        SubPersistentVector.Create(newBackingVector, startIndex, count + 1)
+  
+      member this.Count = count
+      member this.Item index = 
+        if index >= 0 && index < count then
+          backingVector |> Collection.get (index + startIndex)
+        else failwith "index out of range"
+      member this.GetEnumerator () = 
+        backingVector |> Seq.skip startIndex |> Seq.take count |> Seq.getEnumerator
+  
+      member this.GetEnumerator () = 
+        (this :> IEnumerable<int*'v>).GetEnumerator() :> IEnumerator
+  
+      member this.Keys = seq { 0 .. (count - 1) }
+      member this.Pop () = 
+        if count = 0 then
+          failwith "Can't pop empty vector"
+        else SubPersistentVector.Create(backingVector, startIndex, count - 1)
+  
+      member this.TryGet index = 
+        if index >= 0 && index < count then
+          backingVector |> Collection.tryGet (index + startIndex)
+        else None
+  
+      member this.Update(index, value) =
+        if index >= 0 && index < count then
+          let newBackingVector = backingVector.Update (index, value)
+  
+          if Object.ReferenceEquals(backingVector, newBackingVector) then 
+            (this :> IPersistentVector<'v>)
+          else SubPersistentVector.Create(newBackingVector, startIndex, count)
+        else failwith "index out of range"
+  
+      member this.Values = 
+        backingVector.Values |> Seq.skip startIndex |> Seq.take count
+  
+  let createWithComparer (comparer: IEqualityComparer<'v>) = 
+    let backingVector = PersistentVectorImpl.create comparer
+    HashedTrieBackedPersistentVector.Create backingVector
+      
+  let create () =
+    createWithComparer EqualityComparer.Default
+
+  let add (v: 'v) (vec: IPersistentVector<'v>) = vec.Add v
+
+  let get (index: int) (vec: IPersistentVector<'v>) = vec.Item index
+
+  let pop (vec: IPersistentVector<'v>) = vec.Pop ()
+
+  let tryGet (index: int) (vec: IPersistentVector<'v>) = vec.TryGet index
+
+  let update (index: int) (v: 'v) (vec: IPersistentVector<'v>): IPersistentVector<'v> = 
+    vec.Update (index, v)
+
+  let sub (startIndex: int) (count: int) (vec: IPersistentVector<'v>) : IPersistentVector<'v> =
+    SubPersistentVector.Create (vec, startIndex, count)
