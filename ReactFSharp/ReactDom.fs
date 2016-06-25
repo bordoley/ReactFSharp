@@ -6,7 +6,7 @@ open System.Reactive.Subjects
 
 module FSXObservable = FSharp.Control.Reactive.Observable
 
-type ReactDOMNodeChildren = ICollection<string, ReactDOMNode>
+type ReactDOMNodeChildren = IMap<string, ReactDOMNode>
 
 and [<ReferenceEquality>] internal ReactDOMNode = 
   | ReactStatefulDOMNode of ReactStatefulDOMNode
@@ -43,20 +43,20 @@ and [<ReferenceEquality>] internal ReactNativeDOMNodeGroup = {
 module internal ReactDom =
   let render (element: ReactElement) =
     let rec updateChildrenWith (elements: ReactElementChildren) (nodes: ReactDOMNodeChildren) =
-      let keys = elements.Keys
+      let keys = elements |> Map.keys
 
       keys 
       |> Seq.map (fun key ->
-          let element = elements |> Collection.get key
+          let element = elements |> Map.get key
 
           let node =
-            match (nodes |> Collection.tryGet key) with
+            match (nodes |> Map.tryGet key) with
             | None -> ReactNoneDOMNode |> updateWith element
             | Some node -> node |> updateWith element
           (key, node)
         ) 
       |> Seq.toArray
-      |> Collection.create
+      |> Map.create
 
     and updateWith (element: ReactElement) (tree: ReactDOMNode) = 
       match (tree, element) with
@@ -141,7 +141,7 @@ module internal ReactDom =
 
           | ReactNativeElementGroup ele -> ReactNativeDOMNodeGroup {
               element = ele 
-              children = Collection.empty |> updateChildrenWith ele.children
+              children = Map.empty |> updateChildrenWith ele.children
             }
 
           | ReactNoneElement -> ReactNoneDOMNode

@@ -58,7 +58,7 @@ module private PersistentVectorImpl =
         depth = depth
       }
 
-  let private getTailOffset vec = vec.count - (vec.tail |> Collection.count)
+  let private getTailOffset vec = vec.count - (vec.tail |> Map.count)
 
   let private getDepthFromRoot = function
     | LevelRootNode trie -> trie.depth
@@ -68,7 +68,7 @@ module private PersistentVectorImpl =
 
   let private pushTail (vec: HashedTriePersistentVector<'v>) : RootNode<'v> =
     let tail = vec.tail
-    if (tail |> Collection.count) <> width then failwith "tail wrong size"
+    if (tail |> Map.count) <> width then failwith "tail wrong size"
 
     let depth = getDepthFromRoot vec.root
 
@@ -80,7 +80,7 @@ module private PersistentVectorImpl =
         LeafRootNode (ImmutableArray.createUnsafe [| values; tail |])
 
     | LeafRootNode leafNode ->
-        if (leafNode |> Collection.count) < width then
+        if (leafNode |> Map.count) < width then
           LeafRootNode (leafNode |> ImmutableArray.add tail)
         else
           let oldLeafNode = LeafNode leafNode
@@ -95,15 +95,15 @@ module private PersistentVectorImpl =
         let rec pushTail depth (trie: ImmutableArray<TrieNode<'v>>) =
           let index = computeIndex depth (vec.count - 1)
 
-          match trie |> Collection.tryGet index with
-          | Some (LeafNode leafNode) when (leafNode |> Collection.count) < width ->
+          match trie |> Map.tryGet index with
+          | Some (LeafNode leafNode) when (leafNode |> Map.count) < width ->
               let newLeafNode = LeafNode (leafNode |> ImmutableArray.add tail)
               LevelNode {
                 nodes = trie |> ImmutableArray.cloneAndSet index newLeafNode
                 depth = depth
               }
 
-          | None when (trie |> Collection.count) < width ->
+          | None when (trie |> Map.count) < width ->
               let newNode = newPath (depth - 1) tail
               LevelNode {
                 nodes = trie |> ImmutableArray.add newNode
@@ -136,7 +136,7 @@ module private PersistentVectorImpl =
               LevelRootNode trieNode
 
   let add (v: 'v) (vec: HashedTriePersistentVector<'v>) =
-    if (vec.tail |> Collection.count) < width then {
+    if (vec.tail |> Map.count) < width then {
         vec with
           count = vec.count + 1
           root = vec.root
@@ -152,9 +152,9 @@ module private PersistentVectorImpl =
   let toSeq (vec: HashedTriePersistentVector<'v>) = seq {
     let rec toSeq = function
       | LeafNode leafNode ->
-          leafNode |> Collection.values |> Seq.map Collection.values |> Seq.concat
+          leafNode |> Map.values |> Seq.map Map.values |> Seq.concat
       | LevelNode trieNode ->
-          trieNode.nodes |> Collection.values |> Seq.map toSeq |> Seq.concat
+          trieNode.nodes |> Map.values |> Seq.map toSeq |> Seq.concat
 
     match vec.root with
     | LevelRootNode trieNode ->
@@ -162,10 +162,10 @@ module private PersistentVectorImpl =
     | LeafRootNode leafNode ->
         yield! (LeafNode leafNode) |> toSeq
     | ValuesRootNode values ->
-        yield! values |> Collection.values
+        yield! values |> Map.values
     | NoneRootNode -> ()
 
-    yield! vec.tail |> Collection.values
+    yield! vec.tail |> Map.values
   }
 
   let private leafNodeFor index vec =
@@ -174,10 +174,10 @@ module private PersistentVectorImpl =
     let rec findLeafNode = function
       | LeafNode leafNode ->
           let nodeIndex = computeIndex leafDepth index
-          leafNode |> Collection.tryGet nodeIndex
+          leafNode |> Map.tryGet nodeIndex
       | LevelNode trieNode ->
           let nodeIndex = computeIndex trieNode.depth index
-          match trieNode.nodes |> Collection.tryGet nodeIndex with
+          match trieNode.nodes |> Map.tryGet nodeIndex with
           | Some node -> findLeafNode node
           | _ -> None
 
@@ -201,7 +201,7 @@ module private PersistentVectorImpl =
     match vec |> leafNodeFor index with
     | Some vec ->
         let index = computeIndex 0 index
-        vec |> Collection.tryGet index
+        vec |> Map.tryGet index
     | _ -> None
 
   let get (index: int) (vec: HashedTriePersistentVector<'v>) =
@@ -211,7 +211,7 @@ module private PersistentVectorImpl =
 
   let private doUpdateValuesNode (comparer: IEqualityComparer<'v>) index v (valuesNode: ImmutableArray<'v>) =
     let nodeIndex = computeIndex 0 index
-    let currentValue = valuesNode |> Collection.get nodeIndex
+    let currentValue = valuesNode |> Map.get nodeIndex
 
     if comparer.Equals(currentValue, v) then
       valuesNode
@@ -220,7 +220,7 @@ module private PersistentVectorImpl =
 
   let private doUpdateLeafNode (comparer: IEqualityComparer<'v>) index v (leafNode: ImmutableArray<ImmutableArray<'v>>) =
     let leafIndex = computeIndex leafDepth index
-    let valuesNode = leafNode |> Collection.get leafIndex
+    let valuesNode = leafNode |> Map.get leafIndex
     let newValuesNode = valuesNode |> doUpdateValuesNode comparer index v
 
     if Object.ReferenceEquals(valuesNode, newValuesNode) then
@@ -231,7 +231,7 @@ module private PersistentVectorImpl =
   let rec private doUpdateTrieNode (comparer: IEqualityComparer<'v>) index v (trieNode: LevelNode<'v>) =
     let pos = computeIndex trieNode.depth index
 
-    let currentChildeNodeAtPos = trieNode.nodes |> Collection.get pos
+    let currentChildeNodeAtPos = trieNode.nodes |> Map.get pos
     let newChildNodeAtPos =
       match currentChildeNodeAtPos  with
       | LeafNode leafNode as currentTrieNode ->
@@ -263,7 +263,7 @@ module private PersistentVectorImpl =
       failwith "index out of range"
     elif index >= (getTailOffset vec) then
       let nodeIndex = computeIndex 0 index
-      let currentValue = vec.tail |> Collection.get nodeIndex
+      let currentValue = vec.tail |> Map.get nodeIndex
 
       if vec.comparer.Equals(currentValue, v) then
         vec
@@ -307,13 +307,13 @@ module private PersistentVectorImpl =
 
   let private popTrieRootNodeTail (trieRootNode: LevelNode<'v>) : TrieNode<'v> =
     let rec doPop = function
-      | LeafNode leafNode when (leafNode |> Collection.count) > 1  ->
+      | LeafNode leafNode when (leafNode |> Map.count) > 1  ->
           let newLeafNode = leafNode |> ImmutableArray.pop
           Some (LeafNode newLeafNode)
       | LevelNode trieNode ->
           let childNode = trieNode.nodes |> Vector.last
           match doPop childNode with
-          | None when (trieNode.nodes |> Collection.count) > 1 ->
+          | None when (trieNode.nodes |> Map.count) > 1 ->
               let newTrieNodeNodes = trieNode.nodes |> ImmutableArray.pop
               Some (LevelNode {
                 trieNode with
@@ -339,14 +339,14 @@ module private PersistentVectorImpl =
           trieRootNode with
             nodes = newTrieRootNodeNodes
         }
-    | None when (trieRootNode.nodes |> Collection.count) > 2 ->
+    | None when (trieRootNode.nodes |> Map.count) > 2 ->
         let newTrieRootNodeNodes = trieRootNode.nodes |> ImmutableArray.pop
         LevelNode {
           trieRootNode with
             nodes = newTrieRootNodeNodes
         }
-    | None when (trieRootNode.nodes |> Collection.count) = 1 ->
-        trieRootNode.nodes |> Collection.get 0
+    | None when (trieRootNode.nodes |> Map.count) = 1 ->
+        trieRootNode.nodes |> Map.get 0
     | None -> failwith "should never happen"
 
   let pop (vec: HashedTriePersistentVector<'v>) =
@@ -354,7 +354,7 @@ module private PersistentVectorImpl =
       failwith "Can't pop empty vector"
     elif vec.count = 1 then
         create vec.comparer
-    elif (vec.tail |> Collection.count) > 1 then
+    elif (vec.tail |> Map.count) > 1 then
       let newTail = vec.tail |> ImmutableArray.pop
 
       { vec with
@@ -375,11 +375,11 @@ module private PersistentVectorImpl =
                 LevelRootNode trieNode
 
         | LeafRootNode leafNode ->
-            if ((leafNode |> Collection.count) > 2) then
+            if ((leafNode |> Map.count) > 2) then
               let newLeafNode = leafNode |> ImmutableArray.pop
               LeafRootNode newLeafNode
             else
-              ValuesRootNode (leafNode |> Collection.get 0)
+              ValuesRootNode (leafNode |> Map.get 0)
         | ValuesRootNode valuesNode ->
             NoneRootNode
         | NoneRootNode ->
@@ -412,7 +412,6 @@ module PersistentVector =
         |> Seq.mapi (fun i v -> (i, v))
         |> Seq.getEnumerator
       member this.GetEnumerator () = (this :> IEnumerable<int*'v>).GetEnumerator() :> IEnumerator
-      member this.Keys = seq { 0 .. (backingVector.count - 1) }
       member this.Pop () =
         let newBackingVector = backingVector |> pop
         HashedTrieBackedPersistentVector.Create newBackingVector
@@ -421,7 +420,6 @@ module PersistentVector =
         let newBackingVector = backingVector |> update index value
         if Object.ReferenceEquals(backingVector, newBackingVector) then (this :> IPersistentVector<'v>)
         else HashedTrieBackedPersistentVector.Create newBackingVector
-      member this.Values = backingVector |> toSeq
   
   type private SubPersistentVector<'v>(backingVector, startIndex, count) = 
     static member Create (backingVector: IPersistentVector<'v>, startIndex, count) =
@@ -444,7 +442,7 @@ module PersistentVector =
       member this.Count = count
       member this.Item index = 
         if index >= 0 && index < count then
-          backingVector |> Collection.get (index + startIndex)
+          backingVector |> Map.get (index + startIndex)
         else failwith "index out of range"
       member this.GetEnumerator () = 
         backingVector |> Seq.skip startIndex |> Seq.take count |> Seq.getEnumerator
@@ -452,7 +450,6 @@ module PersistentVector =
       member this.GetEnumerator () = 
         (this :> IEnumerable<int*'v>).GetEnumerator() :> IEnumerator
   
-      member this.Keys = seq { 0 .. (count - 1) }
       member this.Pop () = 
         if count = 0 then
           failwith "Can't pop empty vector"
@@ -460,7 +457,7 @@ module PersistentVector =
   
       member this.TryGet index = 
         if index >= 0 && index < count then
-          backingVector |> Collection.tryGet (index + startIndex)
+          backingVector |> Map.tryGet (index + startIndex)
         else None
   
       member this.Update(index, value) =
@@ -471,9 +468,6 @@ module PersistentVector =
             (this :> IPersistentVector<'v>)
           else SubPersistentVector.Create(newBackingVector, startIndex, count)
         else failwith "index out of range"
-  
-      member this.Values = 
-        backingVector.Values |> Seq.skip startIndex |> Seq.take count
   
   let createWithComparer (comparer: IEqualityComparer<'v>) = 
     let backingVector = PersistentVectorImpl.create comparer

@@ -1,243 +1,448 @@
 ﻿namespace ImmutableCollections
 
 open System
+open System.Collections
 open System.Collections.Generic
 
-module private BitCount =
-  let bitCounts = 
-    let bitCounts = Array.create 65536 0
-    let position1 = ref -1
-    let position2 = ref -1
+type [<ReferenceEquality>] KeyValueComparer<'k, 'v> = {
+  key: IEqualityComparer<'k>
+  value: IEqualityComparer<'v>
+}
 
-    for i in 1 .. 65535 do
-     if !position1 = !position2 then       
-      position1 := 0
-      position2 := i
-
-     bitCounts.[i] <- bitCounts.[!position1] + 1
-     position1 := !position1 + 1
-    bitCounts
-
+module BitCount =
   let inline NumberOfSetBits value =
-    bitCounts.[value &&& 65535] + bitCounts.[(value >>> 16) &&& 65535]
+    let mutable i = value
+    i <- i - ((i >>> 1) &&& 0x55555555u);
+    i <- (i &&& 0x33333333u) + ((i >>> 2) &&& 0x33333333u);
+    let count = (((i + (i >>> 4)) &&& 0x0F0F0F0Fu) * 0x01010101u) >>> 24;
+    (int count)
 
-  let inline mask hash depth = (hash >>> (depth * 5)) &&& 0x01f
-  let inline bitpos hash depth = 1 <<< mask hash (depth * 5)
-  let inline index bitmap bit = NumberOfSetBits(bitmap &&& (bit - 1))
+  let inline mask hash depth = (hash >>> (depth * 5)) &&& 0x3F
+  let inline bitpos hash depth = 1u <<< (mask hash depth)
+  let inline index (bitmap: uint32) (bit: uint32) = 
+    NumberOfSetBits (bitmap &&& (uint32 (bit - 1u)))
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
-module PersistentMapImpl = 
+module private PersistentMapImpl = 
   open BitCount
 
   let private maxArrayMapSize = 16
-  let private bitmapIndexedNodeSize = 32
+  let private width = 32
+
+  type ArrayNode<'k, 'v> = {
+    count: int
+    nodes: ImmutableArray<Option<TrieNode<'k, 'v>>>
+  }
+
+  and TrieNode<'k,'v> = 
+    | ArrayNode of ArrayNode<'k, 'v>
+    | BitmapIndexedNode of BitmapIndexedNode<'k,'v>
+  
+  and BitmapIndexedNodeNode<'k,'v> =
+    | Entry of ('k * 'v)
+    | HashCollisionNode of HashCollisionNode<'k, 'v>
+    | TrieNode of TrieNode<'k, 'v>
+
+  and HashCollisionNode<'k, 'v> = {
+    hash: int
+    nodes: ImmutableArray<'k*'v>
+  }
+  
+  and BitmapIndexedNode<'k,'v> = {
+    bitmap: uint32
+    nodes: ImmutableArray<BitmapIndexedNodeNode<'k,'v>>
+  }
 
   type KeyValueNode<'k, 'v> = {
-    keyHash: int
-    pair: 'k*'v
+    hash: int
+    entry: 'k*'v
   }
-
-  type Node<'k,'v> = 
-    | HashCollisionNode of HashCollisionNode<'k,'v>
-    | BitmapIndexedNode of BitmapIndexedNode<'k,'v>
-
-  and HashCollisionNode<'k,'v> = {
-    keyHash: int
-    pairs: ImmutableArray<'k*'v>
-  }
-
-  and BitmapIndexedNode<'k,'v> = {
-    depth: int
-    bitmap: int
-    nodes: ImmutableArray<Choice<'k * 'v, Node<'k,'v>>>
-  }
-
-  type ArrayMap<'k, 'v> = ImmutableArray<KeyValueNode<'k, 'v>>
   
   type RootNode<'k, 'v> =
-    | BitmapIndexedRootNode of BitmapIndexedNode<'k,'v>
-    | ArrayMapRootNode of ArrayMap<'k, 'v>
+    | TrieRootNode of TrieNode<'k,'v>
+    | ArrayMapRootNode of ImmutableArray<KeyValueNode<'k, 'v>>
     | KeyValueRootNode of KeyValueNode<'k, 'v>
     | NoneRootNode
 
-  type [<ReferenceEquality>] MapComparer<'k, 'v> = {
-    key: IEqualityComparer<'k>
-    value: IEqualityComparer<'v>
-  }
-  
   type [<ReferenceEquality>] HashedTriePersistentMap<'k, 'v> = {
-    comparer: MapComparer<'k, 'v>
+    comparer: KeyValueComparer<'k, 'v>
     count: int
     root: RootNode<'k, 'v>
   }
 
-  let private emptyBitmapIndexedNode () = BitmapIndexedNode {
-    depth = 0
-    bitmap = 0
-    nodes = ImmutableArray.empty ()
-  }
-
-  let create (keyComparer: IEqualityComparer<'v>) (valueComparer: IEqualityComparer<'v>) = {
-    comparer = { key = keyComparer; value = valueComparer }
+  let createWithComparer (comparer: KeyValueComparer<'k, 'v>) = {
+    comparer = comparer
     count = 0
     root = NoneRootNode
   }
 
-  let rec createNode (comparer: MapComparer<'k, 'v>) depth (key1, val1) key2 key2hash val2 =
-    let putInNode k keyHash v = putInNode comparer k keyHash v 
-    let key1hash = comparer.key.GetHashCode(key1)
+  let private emptyBitmapIndexedNode () = {
+    bitmap = (uint32 0)
+    nodes = ImmutableArray.empty ()
+  }
 
-    if key1hash = key2hash then HashCollisionNode {
-        keyHash = key1hash
-        pairs = ImmutableArray.createUnsafe([| (key1, val1); (key2, val2) |])
-      }
-    else 
-      let node = emptyBitmapIndexedNode ()
-      node |> putInNode key1 key1hash val1 |> putInNode key2 key2hash val2
+  let private putInHashCollisionNode 
+      (comparer: KeyValueComparer<'k, 'v>) 
+      (newEntry: 'k * 'v) 
+      (hashCollisionNode: HashCollisionNode<'k, 'v>) =
 
-  and putInNode (comparer: MapComparer<'k, 'v>) (k: 'k) (keyHash: int) (v: 'v) (node: Node<'k, 'v>) = 
-    let putInNode k keyHash v = putInNode comparer k keyHash v 
-    let createNode = createNode comparer
+    let keyComparer = comparer.key
+    let valueComparer = comparer.value
 
-    match node with
-    | BitmapIndexedNode bitmapIndexedNode -> 
-        let bit = bitpos keyHash bitmapIndexedNode.depth
-        let idx = index bitmapIndexedNode.depth bit
-        let bitmapAndBit  = bitmapIndexedNode.bitmap &&& bit
+    let (newKey, newValue) = newEntry
 
-        if bitmapAndBit <> 0 then
-          let childNode = bitmapIndexedNode.nodes |> Collection.get idx
-          let newChildNode = 
-            match childNode with
-            | Choice1Of2 (key, value) when comparer.key.Equals(key, k) ->
-                if comparer.value.Equals (value, v) then childNode
-                else Choice1Of2 (k, v)
-            | Choice1Of2 ((key, value) as kvp1)->
-                Choice2Of2 (createNode (bitmapIndexedNode.depth + 1) kvp1 k keyHash v)
-            | Choice2Of2 childNode ->
-                Choice2Of2 (childNode |> putInNode k keyHash v) 
-
-          if Object.ReferenceEquals(childNode, newChildNode) then 
-            node
-          else BitmapIndexedNode { 
-            bitmapIndexedNode with
-              nodes = bitmapIndexedNode.nodes |> ImmutableArray.cloneAndSet idx childNode
+    let element =
+      hashCollisionNode.nodes |> Seq.tryFind (fun (_, (key, value)) ->  keyComparer.Equals(key, newKey))
+    
+    match element with
+    | Some (index, (key, value)) when valueComparer.Equals(value, newValue) -> 
+        (hashCollisionNode, 0)
+    
+    | Some (index, (key, value)) ->
+        let newHashCollisionNode =
+          { hashCollisionNode with 
+              nodes = hashCollisionNode.nodes |> ImmutableArray.cloneAndSet index newEntry
           }
-        else
-          let n = NumberOfSetBits bitmapIndexedNode.bitmap 
-          if n >= bitmapIndexedNodeSize then
-            node
-          else
-            let newArray = Array.zeroCreate (n + 1)
-            bitmapIndexedNode.nodes.CopyTo (0, newArray, 0, n)
-            bitmapIndexedNode.nodes.CopyTo(idx, newArray, idx+1, n - idx)
-            newArray.[idx] <- Choice1Of2 (k, v)
-                 
-            BitmapIndexedNode { 
-              depth = 0
-              bitmap = bitmapIndexedNode.bitmap ||| bit
-              nodes = ImmutableArray.createUnsafe newArray
-            }  
-    | HashCollisionNode hashCollisionNode -> node
+        (newHashCollisionNode, 0)   
 
+    | _ ->
+      let newHashCollisionNode = 
+        { hashCollisionNode with 
+            nodes = hashCollisionNode.nodes |> ImmutableArray.add newEntry
+        }
+      (newHashCollisionNode, 0)   
 
-  let put (k: 'k) (v: 'v) (map: HashedTriePersistentMap<'k, 'v>) : HashedTriePersistentMap<'k, 'v> =
-    let keyHash = map.comparer.key.GetHashCode(k)
+  let rec private putInBitmapIndexedNode 
+      (comparer: KeyValueComparer<'k, 'v>) 
+      (depth: int)
+      (newHash: int) 
+      (newEntry: 'k * 'v)
+      (bitmapIndexedNode: BitmapIndexedNode<'k, 'v>) : (TrieNode<'k, 'v> * int) =
+
+    let keyComparer = comparer.key
+    let valueComparer = comparer.value
+    let (newKey, newValue) = newEntry
+    
+    let bit = bitpos newHash depth
+    let index = index bitmapIndexedNode.bitmap bit |> int
+    let nodeContainsEntry = (bitmapIndexedNode.bitmap &&& (uint32 bit)) <> 0u
+
+    if nodeContainsEntry then
+      let childNode = bitmapIndexedNode.nodes |> Map.get index
+
+      let (newChildNode, increment) = 
+        match childNode with
+        | Entry (key, value) 
+              when keyComparer.Equals(key, newKey) && valueComparer.Equals(value, newValue) ->
+            (childNode, 0)
+
+        | Entry (key, _) when keyComparer.Equals(key, newKey) -> 
+            (Entry newEntry, 0)
+           
+        | Entry ((key, value) as entry) ->
+            let hash = keyComparer.GetHashCode (key)
+
+            if hash = newHash then
+              let hashCollisionNode = 
+                HashCollisionNode {
+                  hash = hash
+                  nodes = ImmutableArray.createUnsafe [| entry; newEntry|]
+                } 
+
+              (hashCollisionNode , 1)
+            else 
+              let newNode = 
+                let (newNode, _) = 
+                  emptyBitmapIndexedNode ()
+                  |> putInBitmapIndexedNode comparer (depth + 1) hash entry 
+
+                let (newNode, _) = 
+                  newNode 
+                  |> putInTrieNode comparer (depth + 1) newHash newEntry
+                TrieNode newNode
+
+              (newNode, 1)
+
+        | HashCollisionNode hashCollisionNode ->
+            let (newHashCollisionNode, increment) = hashCollisionNode |> putInHashCollisionNode comparer newEntry
+            if Object.ReferenceEquals(hashCollisionNode, newHashCollisionNode) then
+              (childNode, 0)
+            else 
+              (HashCollisionNode newHashCollisionNode, 1)
+
+        | TrieNode trieNode ->
+            let (newTrieNode, increment) = trieNode |> putInTrieNode comparer depth newHash newEntry
+            if Object.ReferenceEquals(trieNode, newTrieNode) then
+              (childNode, 0)
+            else 
+              (TrieNode newTrieNode, increment)
+      
+      if Object.ReferenceEquals(childNode, newChildNode) then
+        (BitmapIndexedNode bitmapIndexedNode, 0)
+      else 
+        let newBitmapIndexedNode = BitmapIndexedNode {
+            bitmap = bitmapIndexedNode.bitmap
+            nodes = bitmapIndexedNode.nodes |> ImmutableArray.cloneAndSet index newChildNode
+          }
+        (newBitmapIndexedNode, increment)
+    else
+      let count = NumberOfSetBits bitmapIndexedNode.bitmap 
+      if count >= width then
+        let newArray = Array.create width Option.None
+
+        let index = mask newHash (depth + 1)
+        let (childBitmapIndexedNode, _) = 
+          (emptyBitmapIndexedNode ()) 
+          |> putInBitmapIndexedNode comparer (depth + 1) newHash newEntry
+
+        newArray.[index] <- Some childBitmapIndexedNode
+
+        for i = 0 to (width - 1) do 
+          if i <> index then
+            let nodeAtIndex =
+              match bitmapIndexedNode.nodes |> Map.get i with
+              | TrieNode trieNode -> Some trieNode
+              | Entry _ as entry -> 
+                  BitmapIndexedNode {
+                    bitmap = bitpos newHash depth |> uint32
+                    nodes = ImmutableArray.createUnsafe [| entry |]
+                  } |> Some
+              | HashCollisionNode _ as hashCollisionNode -> 
+                  BitmapIndexedNode {
+                    bitmap = bitpos newHash depth |> uint32
+                    nodes = ImmutableArray.createUnsafe [| hashCollisionNode |]
+                  } |> Some
+            newArray.[i] <- nodeAtIndex
+
+        let arrayNode = {
+          count = count + 1
+          nodes = ImmutableArray.createUnsafe newArray
+        }
+
+        (ArrayNode arrayNode, 1)
+      else
+        let newArray = Array.zeroCreate (count + 1)
+        bitmapIndexedNode.nodes.CopyTo (0, newArray, 0, count)
+        bitmapIndexedNode.nodes.CopyTo(index, newArray, index + 1, count - index)
+        newArray.[index] <- Entry newEntry
+
+        let newBitmapIndexedNode = BitmapIndexedNode { 
+          bitmap = bitmapIndexedNode.bitmap ||| (uint32 bit)
+          nodes = ImmutableArray.createUnsafe newArray
+        }
+        (newBitmapIndexedNode, 1)
+
+  and private putInArrayNode 
+      (comparer: KeyValueComparer<'k, 'v>)
+      (depth: int) 
+      (hash: int)
+      (newEntry: 'k * 'v) 
+      (arrayNode: ArrayNode<'k, 'v>) =
+    let index = mask hash depth
+    let nodeAtIndex = arrayNode.nodes |> Map.get index
+
+    match nodeAtIndex with
+    | Some trieNode -> 
+        let (newTrieNode, increment) = trieNode |> putInTrieNode comparer depth hash newEntry
+
+        if Object.ReferenceEquals(trieNode, newTrieNode) then (ArrayNode arrayNode, 0) else
+        let newArrayNode = ArrayNode {
+          count = arrayNode.count + increment
+          nodes = arrayNode.nodes |> ImmutableArray.cloneAndSet index (Some newTrieNode)
+        }    
+        (newArrayNode, increment)    
+
+    | None -> 
+        let newNodeAtIndex = BitmapIndexedNode { 
+          bitmap = 0u
+          nodes = ImmutableArray.createUnsafe [| Entry newEntry |]
+        }
+
+        let newArrayNode = ArrayNode {
+          count = arrayNode.count + 1
+          nodes = arrayNode.nodes |> ImmutableArray.cloneAndSet index (Some newNodeAtIndex)
+        }
+
+        (newArrayNode, 1)
+
+  and private putInTrieNode 
+      (comparer: KeyValueComparer<'k, 'v>) 
+      (depth: int)
+      (hash: int)
+      (newEntry: 'k * 'v)
+      (trieNode: TrieNode<'k,'v>) =
+
+    let keyComparer = comparer.key
+    let valueComparer = comparer.value
+    let (newKey, newValue) = newEntry
+
+    let (newTrieNode, increment) as newTrieNodeAndCount =
+      match trieNode with
+      | ArrayNode arrayNode -> 
+          arrayNode |> putInArrayNode comparer depth hash newEntry 
+      | BitmapIndexedNode bitmapIndexedNode -> 
+          bitmapIndexedNode |> putInBitmapIndexedNode comparer depth hash newEntry 
+    
+    match (trieNode, newTrieNode) with
+    | (ArrayNode arrayNode, ArrayNode newArrayNode) 
+          when Object.ReferenceEquals(arrayNode, newArrayNode) ->
+        (trieNode, 0)
+        
+    | (BitmapIndexedNode bitmapIndexedNode, BitmapIndexedNode newBitmapIndexedNode) 
+          when Object.ReferenceEquals(bitmapIndexedNode, newBitmapIndexedNode) ->
+        (trieNode, 0)
+
+    | _ -> newTrieNodeAndCount
+
+  let private putInArrayMap 
+      (comparer: KeyValueComparer<'k, 'v>) 
+      (hash: int)
+      (newEntry: 'k * 'v)
+      (arrayMap: ImmutableArray<KeyValueNode<'k, 'v>>) =
+    let keyComparer = comparer.key
+    let valueComparer = comparer.value
+    let (newKey, newValue) = newEntry
+
+    let element =
+      arrayMap |> Seq.tryFind (
+        fun (_, { hash = hash; entry = (key, _)}) -> 
+          hash = hash && keyComparer.Equals(key, newKey)
+      )
+ 
+    let count = arrayMap |> Map.count
+ 
+    match element with
+    | Some (index, { hash = hash; entry = (key, value)}) 
+          when valueComparer.Equals (value, newValue) -> 
+        (ArrayMapRootNode arrayMap, 0)    
+
+    | Some (index, _) ->
+        let newArray = 
+          arrayMap |> ImmutableArray.cloneAndSet index { hash = hash; entry = newEntry }
+        (ArrayMapRootNode newArray, 0)
+ 
+    | _ when count < maxArrayMapSize ->  
+        let newArray = 
+          arrayMap |> ImmutableArray.add { hash = hash; entry = newEntry }
+ 
+        (ArrayMapRootNode newArray, 1)
+ 
+    | _ ->
+        let reducer trieNode (keyValueNode: KeyValueNode<'k, 'v>) =
+          let (newTrieNode, _) = trieNode |> putInTrieNode comparer 0 keyValueNode.hash keyValueNode.entry
+          newTrieNode
+
+        let (trieNode, _) = 
+          arrayMap |> Map.values 
+          |> Seq.fold reducer (BitmapIndexedNode (emptyBitmapIndexedNode ()))
+          |> putInTrieNode comparer 0 hash newEntry
+
+        (TrieRootNode trieNode, 1)
+
+  let put (newEntry: 'k * 'v) (map: HashedTriePersistentMap<'k, 'v>) : HashedTriePersistentMap<'k, 'v> =
+    let keyComparer = map.comparer.key
+    let valueComparer = map.comparer.value
+
+    let (newKey, newValue) = newEntry
+    let newHash = map.comparer.key.GetHashCode(newKey)
 
     match map.root with
-    | NoneRootNode ->
-        let newRoot = KeyValueRootNode { keyHash = keyHash; pair = (k, v) }
-        { map with count = 1; root = newRoot }
+    | NoneRootNode -> 
+        { map with count = 1; root = KeyValueRootNode { hash = newHash; entry = newEntry } }
     
-    | KeyValueRootNode { keyHash = rootKeyHash; pair = (rootKey, rootValue) }
-          when keyHash = rootKeyHash
-            && map.comparer.key.Equals(k, rootKey)
-            && map.comparer.value.Equals(v, rootValue) ->
+    | KeyValueRootNode { hash = hash; entry = (key, value) }
+          when newHash = hash && keyComparer.Equals(key, newKey) && valueComparer.Equals(value, newValue) ->
         map
 
-    | KeyValueRootNode { keyHash = rootKeyHash; pair = (rootKey, _) }
-          when keyHash = rootKeyHash
-            && map.comparer.key.Equals(k, rootKey) ->
-        let newRoot = KeyValueRootNode { keyHash = keyHash; pair = (k, v) }
-        { map with root = newRoot}
+    | KeyValueRootNode { hash = hash; entry = (key, _) }
+          when hash = newHash && keyComparer.Equals(key, newKey) -> 
+        { map with root = KeyValueRootNode { hash = hash; entry = newEntry } }
 
     | KeyValueRootNode keyValueNode ->
-        let newRootNodes = ImmutableArray.createUnsafe [| keyValueNode; { keyHash = keyHash; pair = (k, v) } |]
-        let newRoot = ArrayMapRootNode newRootNodes
+        let newRootNodes = 
+          ImmutableArray.createUnsafe [| keyValueNode; { hash = newHash; entry = newEntry } |]
 
-        { map with count = 2; root = newRoot }
+        { map with count = 2; root = ArrayMapRootNode newRootNodes }
 
     | ArrayMapRootNode arrayMap ->
-        let index =
-          arrayMap |> Collection.values |> Seq.tryFindIndex (
-            fun { keyHash = itemKeyHash; pair = (itemKey, _)} -> 
-              keyHash = itemKeyHash && map.comparer.key.Equals(k, itemKey)
-          )
-     
-        let count = arrayMap |> Collection.count
-     
-        match index with
-        | Some index ->
-           let keyValueNode = arrayMap |> Collection.get index
-           let (_, itemValue) = keyValueNode.pair
+        let (newRootNode, increment) = arrayMap |> putInArrayMap map.comparer newHash newEntry
 
-           if map.comparer.value.Equals(v, itemValue) then map else 
-           
-           let newArray = arrayMap |> ImmutableArray.cloneAndSet index { 
-             keyValueNode with pair = (k, v) 
-           }
-           let newRoot = ArrayMapRootNode newArray
-     
-           { map with count = 2; root = newRoot }
-     
-        | _ when count < maxArrayMapSize ->  
-            let newArray = arrayMap |> ImmutableArray.add { 
-              keyHash  = keyHash
-              pair = (k, v) 
-            }
-            let newRoot = ArrayMapRootNode newArray
-     
-            { map with count = count + 1; root = newRoot }
-     
-        | _ ->
-            let reducer acc node  = 
-              let (key, value) = node.pair
-              putInNode map.comparer key node.keyHash v acc
-               
-            let mapi = 
-              arrayMap |> Collection.values |> Seq.fold reducer (BitmapIndexedNode {
-                depth = 0
-                bitmap = 0
-                nodes = ImmutableArray.empty ()
-              }) 
+        match (map.root, newRootNode) with
+        | (ArrayMapRootNode arrayMap, ArrayMapRootNode newArrayMap)
+              when Object.ReferenceEquals(arrayMap, newArrayMap) ->
             map
-    | _ -> map
+
+        | _ -> 
+          { map with count = map.count + increment; root = newRootNode }
+
+    | TrieRootNode trieNode -> 
+        let (newTrieNode, increment) = trieNode |> putInTrieNode map.comparer 0 newHash newEntry
+
+        if Object.ReferenceEquals(trieNode, newTrieNode) then
+          map
+        else 
+          { map with 
+              count = map.count + increment
+              root = TrieRootNode newTrieNode 
+          }
+  
+  let remove (key: 'k) (map: HashedTriePersistentMap<'k, 'v>) : HashedTriePersistentMap<'k, 'v> = map
+
+  let tryGet (key: 'k) (map: HashedTriePersistentMap<'k, 'v>) = None
+
+  let toSeq (map: HashedTriePersistentMap<'k, 'v>) : seq<'k * 'v> = Seq.empty
 
 
-(*
 module PersistentMap =
   open PersistentMapImpl
 
-  type private HashedTrieBackedPersistentMap<'k,'v> private (backingCollection) =
-    static member Create (backingCollection: HashedTriePersistentMap<'k,'v>) =
-      (new HashedTrieBackedPersistentMap<'k,'v>(backingCollection) :> IPersistentMap<'k,'v>)
+  type private HashedTrieBackedPersistentMap<'k,'v> private (backingMap) =
+    static member Create (backingMap: HashedTriePersistentMap<'k,'v>) =
+      (new HashedTrieBackedPersistentMap<'k,'v>(backingMap) :> IPersistentMap<'k,'v>)
 
-    inherit IPersistentMap<'k, 'v>  with
-      member this.Count = backingCollection.get
+    interface IPersistentMap<'k, 'v> with
+      member this.Count = backingMap.count
+      member this.GetEnumerator () = backingMap |> toSeq |> Seq.getEnumerator
       member this.GetEnumerator () = 
-      member this.GetEnumerator () = 
-      member this.Item =
-      member this.Keys =
-      member this.Put (k,v) =
-      member this.Remove k =
-      member this.TryGet =
-      member this.Values =
+        (this :> IEnumerable<'k * 'v>).GetEnumerator() :> IEnumerator
+      member this.Item k =
+        match backingMap |> tryGet k with
+        | Some v -> v
+        | None -> failwith "key not found"
+      member this.Put (k, v) = 
+        let newBackingMap = backingMap |> put (k, v)
+        if Object.ReferenceEquals(backingMap, newBackingMap) then 
+          this :> IPersistentMap<'k,'v>
+        else HashedTrieBackedPersistentMap.Create newBackingMap
+      member this.Remove k = 
+        let newBackingMap = backingMap |> remove k
 
-  let createWithComparer (comparer: IEqualityComparer<'v>) = 
-    let backingCollections = HashedTriePe rsistentMap.create capomparer
-    HashedTrieBackedPersistentMap.Create backingCollection
+        if Object.ReferenceEquals(backingMap, newBackingMap) then 
+          this :> IPersistentMap<'k,'v>
+        else HashedTrieBackedPersistentMap.Create newBackingMap
+
+      member this.TryGet k = backingMap |> tryGet k
+
+  let createWithComparer (comparer: KeyValueComparer<'k, 'v>) = 
+    let backingMap = PersistentMapImpl.createWithComparer comparer
+    HashedTrieBackedPersistentMap.Create backingMap
       
-  let create () =
-    createWithComparer EqualityComparer.Default
+  let create () = createWithComparer {
+    key = System.Collections.Generic.EqualityComparer.Default
+    value = System.Collections.Generic.EqualityComparer.Default
+  }
 
-*)
+  let count (map: IPersistentMap<'k, 'v>) =
+    map.Count
+  
+  let get k (map: IPersistentMap<'k, 'v>) =
+    map.Item k
+
+  let put entry (map: IPersistentMap<'k, 'v>) =
+    map.Put entry
+
+  let remove k (map: IPersistentMap<'k, 'v>) =
+    map.Remove k
+
+  let tryGet k (map: IPersistentMap<'k, 'v>) =
+    map.TryGet k

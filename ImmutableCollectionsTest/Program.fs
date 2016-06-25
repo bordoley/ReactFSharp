@@ -15,9 +15,9 @@ let persistentVectorTests n =
 
   let testEnumeration (vec: IPersistentVector<_>) =
     seq{ 0 .. (vec |> Vector.lastIndex) }
-    |> Seq.zip (vec |> Collection.values)
+    |> Seq.zip (vec |> Map.values)
     |> Seq.iter (
-      fun (i, v) -> if i <> v then failwith (sprintf "vec.count = %i, index: %i, actual: %i"  (vec |> Collection.count) i v)
+      fun (i, v) -> if i <> v then failwith (sprintf "vec.count = %i, index: %i, actual: %i"  (vec |> Map.count) i v)
     )
 
   let vec =
@@ -34,7 +34,7 @@ let persistentVectorTests n =
 
   printfn "vecs are equal? %b" (Object.ReferenceEquals (vec, vec2))
 
-  Seq.zip testSeq (vec |> Collection.values)
+  Seq.zip testSeq (vec |> Map.values)
   |> Seq.iter (
       fun (i, v) -> if i <> v then printfn "notEqual %i %i" i v
     )
@@ -49,37 +49,39 @@ let persistentVectorTests n =
   |> Seq.fold (
       fun acc (v: int) -> PersistentVector.update v (n - v) acc
     ) vec
-  |> Collection.values
+  |> Map.values
   |> Seq.iteri (
       fun i v ->
         if (n - i) <> v then printfn "expect %i but was %i" (n - i) v
     )
 
   let mutable empty = vec
-  while (empty |> Collection.count > 0) do
+  while (empty |> Map.count > 0) do
     let prev = empty
     empty <- PersistentVector.pop empty
     //testEnumeration empty
 
 let persistentMapTests n = 
-  let comp = System.Collections.Generic.EqualityComparer.Default
-  let empty = PersistentMapImpl.create comp comp
+  let empty = PersistentMap.create ()
+
   let testSeq = seq { 0 .. n }
 
   let result =
     testSeq |> Seq.fold (fun acc i -> 
-      acc |> PersistentMapImpl.put i i
+      acc |> PersistentMap.put (i, i)
     ) empty
   
   ()
 
+open BitCount
 
 [<EntryPoint>]
 let main argv =
-  let n = 30
+  let n = 100000
 
-  persistentVectorTests n
+  //persistentVectorTests 3000000
   persistentMapTests n
 
   0
+
 

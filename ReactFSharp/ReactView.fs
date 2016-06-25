@@ -30,7 +30,7 @@ and IReactViewGroup =
 
   abstract member Name: string with get
   abstract member UpdateProps: obj -> unit
-  abstract member Children: ICollection<string, ReactView> with get, set
+  abstract member Children: IMap<string, ReactView> with get, set
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ReactView =
@@ -46,7 +46,7 @@ module ReactView =
     | ReactViewNone -> ()
 
   let private removeChildren = function
-    | ReactViewGroup view -> view.Children <- Collection.empty
+    | ReactViewGroup view -> view.Children <- Map.empty
     | _ -> ()
  
   let render
@@ -91,19 +91,19 @@ module ReactView =
             viewWithChildren.UpdateProps node.element.props
 
             let children =
-              node.children |> Collection.map (
+              node.children |> Map.map (
                 fun key node -> 
                   updateWith node 
-                   <| match viewWithChildren.Children |> Collection.tryGet key with
+                   <| match viewWithChildren.Children |> Map.tryGet key with
                       | Some childView -> childView
                       | None -> ReactViewNone
-              ) |> Collection.create
+              ) |> Map.create
           
             let oldChildren = viewWithChildren.Children
             viewWithChildren.Children <- children
          
             for (name, view) in oldChildren do
-              match children |> Collection.tryGet name with
+              match children |> Map.tryGet name with
               | Some _ -> ()
               | None -> dispose view
 
@@ -125,9 +125,9 @@ module ReactView =
             | (ReactNativeDOMNode node, ReactView _) -> ()
             | (ReactNativeDOMNodeGroup node, ReactViewGroup view) ->
                 let children =
-                  node.children |> Collection.map (
+                  node.children |> Map.map (
                     fun key node -> ReactViewNone |> updateWith node
-                  ) |> Collection.create
+                  ) |> Map.create
                 view.Children <- children
             | _ -> failwith "node/view mismatch"
 
