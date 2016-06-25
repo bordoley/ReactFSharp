@@ -415,7 +415,7 @@ module PersistentVector =
       member this.Pop () =
         let newBackingVector = backingVector |> pop
         HashedTrieBackedPersistentVector.Create newBackingVector
-      member this.TryGet index = backingVector |> tryGet index
+      member this.TryItem index = backingVector |> tryGet index
       member this.Update(index, value) =
         let newBackingVector = backingVector |> update index value
         if Object.ReferenceEquals(backingVector, newBackingVector) then (this :> IPersistentVector<'v>)
@@ -455,7 +455,7 @@ module PersistentVector =
           failwith "Can't pop empty vector"
         else SubPersistentVector.Create(backingVector, startIndex, count - 1)
   
-      member this.TryGet index = 
+      member this.TryItem index = 
         if index >= 0 && index < count then
           backingVector |> Map.tryGet (index + startIndex)
         else None
@@ -482,7 +482,7 @@ module PersistentVector =
 
   let pop (vec: IPersistentVector<'v>) = vec.Pop ()
 
-  let tryGet (index: int) (vec: IPersistentVector<'v>) = vec.TryGet index
+  let tryGet (index: int) (vec: IPersistentVector<'v>) = vec.TryItem index
 
   let update (index: int) (v: 'v) (vec: IPersistentVector<'v>): IPersistentVector<'v> = 
     vec.Update (index, v)

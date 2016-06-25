@@ -12,7 +12,7 @@ type ImmutableArray<'v> internal (backingArray: array<'v>) =
     member this.GetEnumerator () = 
       backingArray |> Seq.mapi (fun i v -> (i, v)) |> Seq.getEnumerator
     member this.GetEnumerator () = backingArray.GetEnumerator()
-    member this.TryGet index =
+    member this.TryItem index =
       if index >= 0 && index < backingArray.Length then
         Some backingArray.[index]
       else None
@@ -80,7 +80,7 @@ module ImmutableArray =
           seq { 0 .. (count - 1) } |> Seq.map (fun i -> (i, this.Item i)) |> Seq.getEnumerator
         member this.GetEnumerator () =
           this.GetEnumerator() :> System.Collections.IEnumerator
-        member this.TryGet index =
+        member this.TryItem index =
           if index >= 0 && index < count then
             arr |> Map.tryGet (index + startIndex)
           else None
@@ -99,7 +99,7 @@ module ImmutableArray =
         |> Seq.getEnumerator
       member this.GetEnumerator () =
         this.GetEnumerator() :> System.Collections.IEnumerator
-      member this.TryGet index =
+      member this.TryItem index =
         if index >= 0 && index < this.Count then
           arr |> Map.tryGet (this.Count - index - 1)
         else None

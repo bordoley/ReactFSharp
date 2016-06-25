@@ -421,7 +421,7 @@ module PersistentMap =
           this :> IPersistentMap<'k,'v>
         else HashedTrieBackedPersistentMap.Create newBackingMap
 
-      member this.TryGet k = backingMap |> tryGet k
+      member this.TryItem k = backingMap |> tryGet k
 
   let createWithComparer (comparer: KeyValueComparer<'k, 'v>) = 
     let backingMap = PersistentMapImpl.createWithComparer comparer
@@ -445,4 +445,4 @@ module PersistentMap =
     map.Remove k
 
   let tryGet k (map: IPersistentMap<'k, 'v>) =
-    map.TryGet k
+    map.TryItem k

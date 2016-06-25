@@ -5,7 +5,7 @@ type IMap<'k, 'v> =
 
   abstract member Count: int
   abstract member Item: 'k -> 'v
-  abstract member TryGet: 'k -> Option<'v>
+  abstract member TryItem: 'k -> Option<'v>
 
 type IPersistentMap<'k, 'v> =
   inherit IMap<'k, 'v>

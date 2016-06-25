@@ -78,7 +78,7 @@ module Map =
   open System.Collections.Generic
 
   let tryGet (key: 'k) (collection: IMap<'k, 'v>) =
-    collection.TryGet key
+    collection.TryItem key
 
   let count (collection: IMap<'k, 'v>) =
     collection.Count
@@ -109,7 +109,7 @@ module Map =
         member this.GetEnumerator () =
           backingDictionary |> Seq.map (fun kvp -> (kvp.Key, kvp.Value)) |> Seq.getEnumerator
         member this.GetEnumerator () = (this.GetEnumerator()) :> IEnumerator
-        member this.TryGet key =
+        member this.TryItem key =
           match backingDictionary.TryGetValue(key) with
           | (true, v) -> Some v
           | _ -> None
@@ -124,7 +124,7 @@ module Map =
       member this.Item _ = failwith "key not found"
       member this.GetEnumerator () = (Seq.empty :> IEnumerable<'k*'v>) |> Seq.getEnumerator
       member this.GetEnumerator () = (this.GetEnumerator()) :> IEnumerator
-      member this.TryGet _ = None
+      member this.TryItem _ = None
   }
 
   let map f (collection: IMap<'k, 'v>) =
@@ -160,9 +160,9 @@ module Vector =
             vec |> Seq.skip startIndex |> Seq.take count |> Seq.getEnumerator
           member this.GetEnumerator () =
             this.GetEnumerator() :> IEnumerator
-          member this.TryGet index =
+          member this.TryItem index =
             if index >= 0 && index < count then
-              vec.TryGet (index + startIndex)
+              vec.TryItem (index + startIndex)
             else None
       }
 
@@ -177,9 +177,9 @@ module Vector =
         vec |> Seq.rev |> Seq.getEnumerator
       member this.GetEnumerator () =
         this.GetEnumerator() :> IEnumerator
-      member this.TryGet index =
+      member this.TryItem index =
         if index >= 0 && index < vec.Count then
-          vec.TryGet (vec.Count - index - 1)
+          vec.TryItem (vec.Count - index - 1)
         else None
     }
 
