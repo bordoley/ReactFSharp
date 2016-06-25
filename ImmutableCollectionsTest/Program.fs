@@ -79,8 +79,8 @@ open BitCount
 let main argv =
   let n = 100000
 
-  //persistentVectorTests 3000000
-  persistentMapTests n
+  persistentVectorTests 3000000
+  //persistentMapTests n
 
   0
 

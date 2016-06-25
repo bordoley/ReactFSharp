@@ -53,15 +53,6 @@ module ImmutableArray =
 
     createUnsafe clone
 
-  let cloneAndSet2 (index1, item1) (index2, item2) (arr: ImmutableArray<'v>) =
-    let size = (arr|> Map.count)
-
-    let clone = arr |> toArray
-    clone.[index1] <- item1
-    clone.[index2] <- item2
-
-    createUnsafe clone
-
   let pop (arr: ImmutableArray<'v>) =
     let count = (arr|> Map.count)
     if count > 1 then

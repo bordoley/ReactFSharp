@@ -9,7 +9,7 @@ type [<ReferenceEquality>] KeyValueComparer<'k, 'v> = {
   value: IEqualityComparer<'v>
 }
 
-module BitCount =
+module private BitCount =
   let inline NumberOfSetBits value =
     let mutable i = value
     i <- i - ((i >>> 1) &&& 0x55555555u);

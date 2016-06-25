@@ -1,6 +1,48 @@
 ﻿namespace ImmutableCollections
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+module Array =
+  open System
+
+  let copyTo target (arr: array<'v>) =
+    Array.Copy(arr, 0, target, 0, Math.Min(target.Length, arr.Length))
+
+  let copy (arr: array<'v>) =
+    let newArray = Array.zeroCreate arr.Length
+    arr |> copyTo newArray
+    newArray
+
+  let add (v: 'v) (arr: array<'v>) =
+    let oldSize = arr.Length
+    let newSize = oldSize + 1;
+
+    let newArray = Array.zeroCreate newSize
+    arr |> copyTo newArray
+    newArray.[oldSize] <- v
+
+    newArray
+
+  let cloneAndSet (index: int) (item: 'v) (arr: array<'v>) =
+    let size = arr.Length
+
+    let clone = arr |> copy
+    clone.[index] <- item
+
+    clone
+
+  let lastIndex (arr: array<'v>) = (arr.Length - 1)
+
+  let pop (arr: array<'v>) =
+    let count = arr.Length
+    if count > 1 then
+      let popped = Array.zeroCreate (count - 1)
+      arr |> copyTo popped
+      popped
+    elif count = 1 then
+      Array.empty
+    else failwith "can not pop empty array"
+
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Seq =
   open System.Collections.Generic
 
