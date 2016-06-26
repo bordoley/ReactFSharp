@@ -62,7 +62,7 @@ module PersistentMultiset =
         | Some v -> v
         | _ -> 0
     
-      member this.SetCount (v, itemCount) = 
+      member this.SetItemCount (v, itemCount) = 
         if itemCount < 0 then
           failwith "itemCount must be greater than or equal 0"
 
@@ -99,13 +99,18 @@ module PersistentSetMultimap =
 
     interface IPersistentSetMultimap<'k, 'v> with
       member this.Count = count 
-      member this.GetEnumerator () = map |> Seq.map (fun (k, v) -> (k, (v :> IImmutableSet<'v>))) |> Seq.getEnumerator
-      member this.GetEnumerator () = ((this :> seq<'k * IImmutableSet<'v>>).GetEnumerator()) :> IEnumerator
+      member this.GetEnumerator () = 
+        map |> Seq.map (
+          fun (k, values) -> values |> Seq.map (fun v -> (k, v))
+        ) 
+        |> Seq.concat
+        |> Seq.getEnumerator
+      member this.GetEnumerator () = ((this :> seq<'k *'v>).GetEnumerator()) :> IEnumerator
       member this.Item k = 
         match map |> ImmutableMap.tryGet k with
         | Some v -> (v :> IImmutableSet<'v>)
         | None -> ImmutableSet.empty
-
+      member this.Item k = ((this :> IPersistentSetMultimap<'k, 'v>).Item k) :> seq<'v>
       member this.Put (k, v) = 
         match map |> ImmutableMap.tryGet k with
         | Some set when set |> ImmutableSet.contains v ->
@@ -144,6 +149,65 @@ module PersistentSetMultimap =
   }
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+module PersistentListMultimap =
+  type private PersistentListMultimapImpl<'k, 'v> private (map: IPersistentMap<'k, 'v list>, count: int) =
+
+    static member Create (map: IPersistentMap<'k, 'v list>, count: int) =
+      (new PersistentListMultimapImpl<'k, 'v>(map, count)) :> IPersistentListMultimap<'k, 'v>
+
+    interface IPersistentListMultimap<'k, 'v> with
+      member this.Count = count 
+      member this.GetEnumerator () =
+        map |> Seq.map (
+          fun (k, values) -> values |> Seq.map (fun v -> (k, v))
+        ) 
+        |> Seq.concat
+        |> Seq.getEnumerator
+      member this.GetEnumerator () = ((this :> seq<'k * 'v>).GetEnumerator()) :> IEnumerator
+      member this.Item k = 
+        match map |> ImmutableMap.tryGet k with
+        | Some v -> v
+        | None -> List.empty
+      member this.Item k = ((this :> IPersistentListMultimap<'k, 'v>).Item k) :> seq<'v>
+      member this.Add (k, v) = 
+        match map |> ImmutableMap.tryGet k with
+        | Some list -> 
+            let newList = v :: list
+            let newMap = map |> PersistentMap.put k newList
+            PersistentListMultimapImpl.Create(newMap, count + 1)
+        | None -> 
+            let newList = v :: []
+            let newMap = map |> PersistentMap.put k newList
+            PersistentListMultimapImpl.Create(newMap, count + 1)
+
+      member this.Pop (k, removeCount) = 
+        match map |> ImmutableMap.tryGet k with
+        | Some list when list.Length > removeCount -> 
+            let numItemsToRemove = list.Length - removeCount
+            let newList =
+              seq { 0 .. (numItemsToRemove - 1) }
+              |> Seq.fold (fun (head :: tail) i -> tail) list
+            let newMap = map |> PersistentMap.put k newList
+            PersistentListMultimapImpl.Create(newMap, count - numItemsToRemove) 
+        | Some list ->
+            let newMap = map |> PersistentMap.remove k
+            PersistentListMultimapImpl.Create(newMap, count - list.Length) 
+        | None -> this :> IPersistentListMultimap<'k, 'v>
+
+  let emptyWithComparer (comparer: KeyValueComparer<'k, 'v>) =
+    let backingMap = PersistentMap.emptyWithComparer {
+      key = comparer.key
+      value = System.Collections.Generic.EqualityComparer.Default
+    }
+    PersistentListMultimapImpl.Create (backingMap, 0)
+
+  let empty () = emptyWithComparer {
+    key = System.Collections.Generic.EqualityComparer.Default
+    value = System.Collections.Generic.EqualityComparer.Default
+  }
+
+(*
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module PersistentVectorMultimap =
   type private PersistentVectorMultimapImpl<'k, 'v> private (map: IPersistentMap<'k, IPersistentVector<'v>>, 
                                                              count: int,
@@ -154,12 +218,18 @@ module PersistentVectorMultimap =
 
     interface IPersistentVectorMultimap<'k, 'v> with
       member this.Count = count 
-      member this.GetEnumerator () = map |> Seq.map (fun (k, v) -> (k, (v :> IImmutableVector<'v>))) |> Seq.getEnumerator
-      member this.GetEnumerator () = ((this :> IEnumerable<'k * IImmutableVector<'v>>).GetEnumerator()) :> IEnumerator
+      member this.GetEnumerator () =
+        map |> Seq.map (
+          fun (k, values) -> values |> Seq.map (fun v -> (k, v))
+        ) 
+        |> Seq.concat
+        |> Seq.getEnumerator
+      member this.GetEnumerator () = ((this :> seq<'k * 'v>).GetEnumerator()) :> IEnumerator
       member this.Item k = 
         match map |> ImmutableMap.tryGet k with
         | Some v -> (v :> IImmutableVector<'v>)
         | None -> ImmutableVector.empty
+      member this.Item k = ((this :> IPersistentVectorMultimap<'k, 'v>).Item k) :> seq<'v>
       member this.Add (k, v) = 
         match map |> ImmutableMap.tryGet k with
         | Some vector -> 
@@ -200,3 +270,5 @@ module PersistentVectorMultimap =
     key = System.Collections.Generic.EqualityComparer.Default
     value = System.Collections.Generic.EqualityComparer.Default
   }
+
+*)

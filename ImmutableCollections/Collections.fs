@@ -78,12 +78,14 @@ module Seq =
     zipAll enumA enumB
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+module ImmutableCollection =
+  let count (collection: IImmutableCollection<_>) =
+    collection.Count
+
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ImmutableMap =
   let tryGet (key: 'k) (collection: IImmutableMap<'k, 'v>) =
     collection.TryItem key
-
-  let count (collection: IImmutableMap<'k, 'v>) =
-    collection.Count
 
   let get (key: 'k) (collection: IImmutableMap<'k, 'v>) =
     collection.Item key
@@ -149,9 +151,9 @@ module ImmutableVector =
   let keys (arr: IImmutableVector<'v>) = seq { 0 .. (arr.Count - 1) }
 
   let sub (startIndex: int) (count: int) (arr: IImmutableVector<'v>) : IImmutableVector<'v> =
-    if startIndex < 0 || startIndex >= (arr |> ImmutableMap.count) then
+    if startIndex < 0 || startIndex >= (arr |> ImmutableCollection.count) then
       failwith "startIndex out of range"
-    elif startIndex + count >= (arr |> ImmutableMap.count) then
+    elif startIndex + count >= (arr |> ImmutableCollection.count) then
       failwith "count out of range"
 
     {
@@ -173,7 +175,7 @@ module ImmutableVector =
 
   let reverse (arr: IImmutableVector<'v>) : IImmutableVector<'v> = {
     new IImmutableVector<'v> with
-      member this.Count = arr |> ImmutableMap.count
+      member this.Count = arr |> ImmutableCollection.count
       member this.Item index =
         if index >= 0 && index < this.Count then
           arr |> ImmutableMap.get (this.Count - index - 1)

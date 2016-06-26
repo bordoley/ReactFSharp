@@ -28,15 +28,15 @@ module ImmutableArray =
   let empty () = new ImmutableArray<'v>([||])
 
   let copyTo target (arr: ImmutableArray<'v>) =
-    arr.CopyTo (0, target, 0, Math.Min(target.Length, arr |> ImmutableMap.count))
+    arr.CopyTo (0, target, 0, Math.Min(target.Length, arr |> ImmutableCollection.count))
 
   let toArray (arr: ImmutableArray<'v>) =
-    let newArray = Array.zeroCreate (arr |> ImmutableMap.count)
+    let newArray = Array.zeroCreate (arr |> ImmutableCollection.count)
     arr |> copyTo newArray
     newArray
 
   let add (v: 'v) (arr: ImmutableArray<'v>) =
-    let oldSize = arr |> ImmutableMap.count
+    let oldSize = arr |> ImmutableCollection.count
     let newSize = oldSize + 1;
 
     let backingArray = Array.zeroCreate newSize
@@ -46,7 +46,7 @@ module ImmutableArray =
     createUnsafe backingArray
 
   let cloneAndSet (index: int) (item: 'v) (arr: ImmutableArray<'v>) =
-    let size = (arr|> ImmutableMap.count)
+    let size = (arr|> ImmutableCollection.count)
 
     let clone = arr |> toArray
     clone.[index] <- item
@@ -54,7 +54,7 @@ module ImmutableArray =
     createUnsafe clone
 
   let pop (arr: ImmutableArray<'v>) =
-    let count = (arr|> ImmutableMap.count)
+    let count = (arr|> ImmutableCollection.count)
     if count > 1 then
       let popped = Array.zeroCreate (count - 1)
       arr |> copyTo popped

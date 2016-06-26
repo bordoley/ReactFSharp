@@ -1,9 +1,13 @@
 ﻿namespace ImmutableCollections
 
-type IImmutableMap<'k, 'v> =
-  inherit seq<'k * 'v>
+type IImmutableCollection<'t> =
+  inherit seq<'t>
 
   abstract member Count: int
+
+type IImmutableMap<'k, 'v> =
+  inherit IImmutableCollection<'k * 'v>
+
   abstract member Item: 'k -> 'v
   abstract member TryItem: 'k -> Option<'v>
 
@@ -15,21 +19,19 @@ type IPersistentMap<'k, 'v> =
 
 
 type IImmutableMultiset<'v> = 
-  inherit seq<'v*int>
+  inherit IImmutableCollection<'v*int>
 
-  abstract member Count: int
   abstract member Item: 'v -> int
 
 type IPersistentMultiset<'v> = 
   inherit IImmutableMultiset<'v>
 
-  abstract member SetCount: 'v * int -> IPersistentMultiset<'v>
+  abstract member SetItemCount: 'v * int -> IPersistentMultiset<'v>
 
 
 type IImmutableSet<'v> =
-  inherit seq<'v>
+  inherit IImmutableCollection<'v>
 
-  abstract member Count: int
   abstract member Item: 'v -> bool
 
 type IPersistentSet<'v> =
@@ -50,17 +52,15 @@ type IPersistentVector<'v> =
   abstract member Update: int * 'v -> IPersistentVector<'v>
 
 
-type ISeqMultimap<'k, 'v> = 
-  inherit seq<'k * seq<'v>>
+type IImmutableMultimap<'k, 'v> = 
+  inherit IImmutableCollection<'k * 'v>
 
-  abstract member Count: int
   abstract member Item: 'k -> seq<'v>
 
 
 type IImmutableSetMultimap<'k, 'v> =
-  inherit seq<'k * IImmutableSet<'v>>
+  inherit IImmutableMultimap<'k, 'v>
 
-  abstract member Count: int
   abstract member Item: 'k -> IImmutableSet<'v>
 
 type IPersistentSetMultimap<'k, 'v> = 
@@ -70,14 +70,38 @@ type IPersistentSetMultimap<'k, 'v> =
   abstract member Remove: 'k * seq<'v> -> IPersistentSetMultimap<'k, 'v>
 
 
-type IImmutableVectorMultimap<'k, 'v> =
-  inherit seq<'k * IImmutableVector<'v>>
+type IImmutableListMultimap<'k, 'v> =
+  inherit IImmutableMultimap<'k, 'v>
 
-  abstract member Count: int
-  abstract member Item: 'k -> IImmutableVector<'v>
+  abstract member Item: 'k -> 'v list
 
-type IPersistentVectorMultimap<'k, 'v> = 
-  inherit IImmutableVectorMultimap<'k, 'v>
+type IPersistentListMultimap<'k, 'v> = 
+  inherit IImmutableListMultimap<'k, 'v>
 
-  abstract member Add: 'k * 'v -> IPersistentVectorMultimap<'k, 'v>
-  abstract member Pop: 'k * int -> IPersistentVectorMultimap<'k, 'v>
+  abstract member Add: 'k * 'v -> IPersistentListMultimap<'k, 'v>
+  abstract member Pop: 'k * int -> IPersistentListMultimap<'k, 'v>
+
+(*
+type IImmutableTable<'row, 'column, 'value> =
+  inherit IImmutableCollection<'row * 'column * 'value>
+
+  abstract member Item: ('row * 'column) -> 'value
+  abstract member TryItem: ('row * 'column) -> Option<'value>
+
+type IPersistentTable<'row, 'column, 'value> =
+  inherit IImmutableTable<'row, 'column, int>
+
+  abstract member Put: ('row * 'column * 'value) -> IPersistentTable<'row, 'column, 'value>
+  abstract member Remove: ('row * 'column) -> IPersistentTable<'row, 'column, 'value>
+
+
+type ICountingTable<'row, 'column> =
+  inherit IImmutableCollection<'row * 'column * int>
+
+  abstract member Item: ('row * 'column) -> int
+
+type IPersistentCountingTable<'row, 'column> =
+  inherit ICountingTable<'row, 'column>
+
+  abstract member SetCount: ('row * 'column * int) -> IPersistentCountingTable<'row, 'column>
+*)
