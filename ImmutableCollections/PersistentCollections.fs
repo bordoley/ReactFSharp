@@ -293,3 +293,103 @@ module PersistentCountingTable =
     row = System.Collections.Generic.EqualityComparer.Default
     column = System.Collections.Generic.EqualityComparer.Default
   }
+
+type [<ReferenceEquality>] TableComparer<'row, 'column, 'value> = {
+  row: IEqualityComparer<'row>
+  column: IEqualityComparer<'column>
+  value: IEqualityComparer<'value>
+}
+
+module PersistentTable =
+  type private PersistentTableImpl<'row, 'column, 'value> private (map: IPersistentMap<'row, IPersistentMap<'column, 'value>>,
+                                                                   count: int,
+                                                                   columnComparer: KeyValueComparer<'column, 'value>) =
+
+    static member Create (map: IPersistentMap<'row, IPersistentMap<'column, 'value>>,
+                          count: int,
+                          columnComparer: KeyValueComparer<'column, 'value>) =
+      (new PersistentTableImpl<'row, 'column, 'value>(map, count, columnComparer)) :> IPersistentTable<'row, 'column, 'value>
+
+    interface IPersistentTable<'row,'column, 'value> with
+      member this.Count = count
+
+      member this.GetEnumerator () =
+        map
+        |> Seq.map (fun (row, values) -> values |> Seq.map (fun (column, value)-> (row, column, value)))
+        |> Seq.concat
+        |> Seq.getEnumerator
+
+      member this.GetEnumerator () = ((this :> seq<'row * 'column * 'value>).GetEnumerator()) :> IEnumerator
+
+      member this.Item (rowKey, columnKey) = 
+        let row = map |> ImmutableMap.get rowKey 
+        row |> ImmutableMap.get columnKey
+
+      member this.TryItem (rowKey, columnKey) = 
+        match map |> ImmutableMap.tryGet rowKey with
+        | None -> None
+        | Some row -> row |> ImmutableMap.tryGet columnKey
+      
+      member this.Put (rowKey, columnKey, newValue) =
+        match map |> ImmutableMap.tryGet rowKey with
+        | None -> 
+            let newColumn = 
+              PersistentMap.emptyWithComparer columnComparer
+              |> PersistentMap.put columnKey newValue
+            let newMap = map |> PersistentMap.put rowKey newColumn
+            let newCount = count + 1
+
+            PersistentTableImpl.Create(newMap, newCount, columnComparer)
+
+        | Some column -> 
+            let newColumn = column |> PersistentMap.put columnKey newValue
+
+            if Object.ReferenceEquals(column, newColumn) then
+              this :> IPersistentTable<'row, 'column, 'value>
+            else
+              let newMap = map |> PersistentMap.put rowKey newColumn
+              let newCount = count + 1
+              PersistentTableImpl.Create(newMap, newCount, columnComparer)                
+
+       member this.Remove (rowKey, columnKey) =
+         match map |> ImmutableMap.tryGet rowKey with
+         | None -> 
+             this :> IPersistentTable<'row, 'column, 'value>
+         | Some column -> 
+             let newColumn = column |> PersistentMap.remove columnKey
+
+             if Object.ReferenceEquals(column, newColumn) then
+               this :> IPersistentTable<'row, 'column, 'value>
+
+             else if newColumn |> ImmutableCollection.isEmpty then
+               let newMap = map |> PersistentMap.remove rowKey
+               let newCount = count - 1
+               PersistentTableImpl.Create(newMap, newCount, columnComparer)
+
+             else 
+               let newMap = map |> PersistentMap.put rowKey newColumn
+               let newCount = count - 1
+               PersistentTableImpl.Create(newMap, newCount, columnComparer)
+
+  let emptyWithComparer (comparer: TableComparer<'row, 'column, 'value>) =
+    let rowComparer = {
+      key = comparer.row
+      value = EqualityComparer.Default
+    }
+
+    let columnComparer = {
+      key = comparer.column
+      value = comparer.value
+    }
+
+    let backingMap = PersistentMap.emptyWithComparer {
+      key = comparer.row
+      value = EqualityComparer.Default
+    }
+    PersistentTableImpl.Create (backingMap, 0, columnComparer)
+ 
+  let empty () = emptyWithComparer {
+    row = EqualityComparer.Default
+    column = EqualityComparer.Default
+    value = EqualityComparer.Default
+  }

@@ -85,8 +85,8 @@ type IPersistentListMultimap<'k, 'v> =
 type IImmutableTable<'row, 'column, 'value> =
   inherit IImmutableCollection<'row * 'column * 'value>
 
-  abstract member Item: ('row * 'column) -> 'value
-  abstract member TryItem: ('row * 'column) -> Option<'value>
+  abstract member Item: 'row * 'column -> 'value
+  abstract member TryItem: 'row * 'column -> Option<'value>
 
 type IPersistentTable<'row,'column, 'value> =
   inherit IImmutableTable<'row, 'column, 'value>
