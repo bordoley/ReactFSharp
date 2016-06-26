@@ -42,6 +42,12 @@ module Array =
       Array.empty
     else failwith "can not pop empty array"
 
+  let remove index (arr: array<'v>) =
+    let newArray = Array.zeroCreate (arr.Length - 1)
+    Array.Copy(arr, 0, newArray, 0, index)
+    Array.Copy(arr, (index + 1), newArray, index, (arr.Length - index - 1))
+    newArray
+
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Seq =
   open System.Collections.Generic

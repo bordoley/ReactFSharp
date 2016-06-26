@@ -68,19 +68,31 @@ let persistentMapTests n =
 
   let result =
     testSeq |> Seq.fold (fun acc i -> 
-      acc |> PersistentMap.put (i, i)
+      acc |> PersistentMap.put (100 * i, i)
     ) empty
-  
+
+  testSeq 
+  |> Seq.iter (fun i ->
+      let v = result |> PersistentMap.get (100 * i)
+      if (i <> v) then failwith (sprintf "expected %i got %i" i v)
+    )
+
+  let result2 =
+    testSeq |> Seq.map (fun i -> n - i) |> Seq.fold (fun acc i -> 
+      acc |> PersistentMap.remove i
+    ) result
+
+   
   ()
 
 open BitCount
 
 [<EntryPoint>]
 let main argv =
-  let n = 100000
+  let n = 1000000
 
-  persistentVectorTests 3000000
-  //persistentMapTests n
+  //persistentVectorTests 3000000
+  persistentMapTests n
 
   0
 
