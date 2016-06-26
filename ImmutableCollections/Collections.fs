@@ -82,25 +82,25 @@ module ImmutableCollection =
   let count (collection: IImmutableCollection<_>) =
     collection.Count
 
-[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
-module ImmutableMap =
-  let tryGet (key: 'k) (collection: IImmutableMap<'k, 'v>) =
-    collection.TryItem key
-
-  let get (key: 'k) (collection: IImmutableMap<'k, 'v>) =
-    collection.Item key
-
-  let isEmpty (collection: IImmutableMap<'k, 'v>) =
+  let isEmpty (collection: IImmutableCollection<_>) =
     collection.Count = 0
 
-  let isNotEmpty (collection: IImmutableMap<'k, 'v>) =
+  let isNotEmpty (collection: IImmutableCollection<_>) =
     collection.Count <> 0
 
-  let keys (collection: IImmutableMap<'k, 'v>) =
-    collection |> Seq.map (fun (key, _) -> key)
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+module ImmutableMap =
+  let tryGet (key: 'k) (map: IImmutableMap<'k, 'v>) =
+    map.TryItem key
 
-  let values (collection: IImmutableMap<'k, 'v>) =
-    collection |> Seq.map (fun (k, v) -> v)
+  let get (key: 'k) (map: IImmutableMap<'k, 'v>) =
+    map.Item key
+
+  let keys (map: IImmutableMap<'k, 'v>) =
+    map |> Seq.map (fun (key, _) -> key)
+
+  let values (map: IImmutableMap<'k, 'v>) =
+    map |> Seq.map (fun (k, v) -> v)
 
   let createWithComparer (comparer: IEqualityComparer<'k>) (entries: seq<'k * 'v>) =
     let backingDictionary = new Dictionary<'k, 'v>(comparer)
@@ -131,8 +131,8 @@ module ImmutableMap =
       member this.TryItem _ = None
   }
 
-  let map f (collection: IImmutableMap<'k, 'v>) =
-    collection |> Seq.map (fun (k, v) -> (k, f k v))
+  let map f (map: IImmutableMap<'k, 'v>) =
+    map |> Seq.map (fun (k, v) -> (k, f k v))
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ImmutableVector =
@@ -224,3 +224,7 @@ module ImmutableSet =
 
   let contains v (set: IImmutableSet<'v>) =
     set.Item v
+
+module ImmutableMultiset =
+  let get (item: 'v) (multiset: IImmutableMultiset<'v>) =
+    multiset.Item item

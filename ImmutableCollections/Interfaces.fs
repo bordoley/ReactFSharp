@@ -81,27 +81,26 @@ type IPersistentListMultimap<'k, 'v> =
   abstract member Add: 'k * 'v -> IPersistentListMultimap<'k, 'v>
   abstract member Pop: 'k * int -> IPersistentListMultimap<'k, 'v>
 
-(*
+
 type IImmutableTable<'row, 'column, 'value> =
   inherit IImmutableCollection<'row * 'column * 'value>
 
   abstract member Item: ('row * 'column) -> 'value
   abstract member TryItem: ('row * 'column) -> Option<'value>
 
-type IPersistentTable<'row, 'column, 'value> =
-  inherit IImmutableTable<'row, 'column, int>
+type IPersistentTable<'row,'column, 'value> =
+  inherit IImmutableTable<'row, 'column, 'value>
 
-  abstract member Put: ('row * 'column * 'value) -> IPersistentTable<'row, 'column, 'value>
-  abstract member Remove: ('row * 'column) -> IPersistentTable<'row, 'column, 'value>
+  abstract member Put: 'row * 'column * 'value -> IPersistentTable<'row, 'column, 'value>
+  abstract member Remove: 'row * 'column -> IPersistentTable<'row, 'column, 'value>
 
 
-type ICountingTable<'row, 'column> =
+type IImmutableCountingTable<'row, 'column> =
   inherit IImmutableCollection<'row * 'column * int>
 
-  abstract member Item: ('row * 'column) -> int
+  abstract member Item: 'row * 'column -> int
 
 type IPersistentCountingTable<'row, 'column> =
-  inherit ICountingTable<'row, 'column>
+  inherit IImmutableCountingTable<'row, 'column>
 
-  abstract member SetCount: ('row * 'column * int) -> IPersistentCountingTable<'row, 'column>
-*)
+  abstract member SetItemCount: 'row * 'column * int -> IPersistentCountingTable<'row, 'column>
