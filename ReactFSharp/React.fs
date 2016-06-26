@@ -5,7 +5,7 @@ open System
 
 module FSXObservable = FSharp.Control.Reactive.Observable
 
-type ReactElementChildren = IMap<string, ReactElement>
+type ReactElementChildren = IImmutableMap<string, ReactElement>
 
 and [<ReferenceEquality>] ReactElement = 
   | ReactStatefulElement of ReactStatefulElement
@@ -92,4 +92,4 @@ module Operators =
   let (>>=) (comp : ReactComponent<'Props>) (props : 'Props) = ReactElement.create props comp
 
   [<CompiledName("CreateChildren")>]
-  let (~%%) (children: seq<string * ReactElement>) = Map.create children
+  let (~%%) (children: seq<string * ReactElement>) = ImmutableMap.create children

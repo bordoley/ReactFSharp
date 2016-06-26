@@ -442,7 +442,7 @@ module PersistentVector =
       member this.Count = count
       member this.Item index = 
         if index >= 0 && index < count then
-          backingVector |> Map.get (index + startIndex)
+          backingVector |> ImmutableMap.get (index + startIndex)
         else failwith "index out of range"
       member this.GetEnumerator () = 
         backingVector |> Seq.skip startIndex |> Seq.take count |> Seq.getEnumerator
@@ -457,7 +457,7 @@ module PersistentVector =
   
       member this.TryItem index = 
         if index >= 0 && index < count then
-          backingVector |> Map.tryGet (index + startIndex)
+          backingVector |> ImmutableMap.tryGet (index + startIndex)
         else None
   
       member this.Update(index, value) =
@@ -469,12 +469,12 @@ module PersistentVector =
           else SubPersistentVector.Create(newBackingVector, startIndex, count)
         else failwith "index out of range"
   
-  let createWithComparer (comparer: IEqualityComparer<'v>) = 
+  let emptyWithComparer (comparer: IEqualityComparer<'v>) = 
     let backingVector = PersistentVectorImpl.create comparer
     HashedTrieBackedPersistentVector.Create backingVector
       
-  let create () =
-    createWithComparer EqualityComparer.Default
+  let empty () =
+    emptyWithComparer EqualityComparer.Default
 
   let add (v: 'v) (vec: IPersistentVector<'v>) = vec.Add v
 

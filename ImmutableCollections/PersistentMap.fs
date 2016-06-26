@@ -471,13 +471,13 @@ module PersistentMap =
 
       member this.TryItem k = backingMap |> tryGet k
 
-  let createWithComparer (comparer: KeyValueComparer<'k, 'v>) =
+  let emptyWithComparer (comparer: KeyValueComparer<'k, 'v>) =
     let backingMap = PersistentMapImpl.createWithComparer comparer
     HashedTrieBackedPersistentMap.Create backingMap
 
-  let create () = createWithComparer {
-    key = System.Collections.Generic.EqualityComparer.Default
-    value = System.Collections.Generic.EqualityComparer.Default
+  let empty () = emptyWithComparer {
+    key = EqualityComparer.Default
+    value = EqualityComparer.Default
   }
 
   let count (map: IPersistentMap<'k, 'v>) =
@@ -486,8 +486,8 @@ module PersistentMap =
   let get k (map: IPersistentMap<'k, 'v>) =
     map.Item k
 
-  let put entry (map: IPersistentMap<'k, 'v>) =
-    map.Put entry
+  let put k v (map: IPersistentMap<'k, 'v>) =
+    map.Put (k, v)
 
   let remove k (map: IPersistentMap<'k, 'v>) =
     map.Remove k

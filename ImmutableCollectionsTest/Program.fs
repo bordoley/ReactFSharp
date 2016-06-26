@@ -7,17 +7,17 @@ open System
 let persistentVectorTests n = 
   let testSeq = seq { 0 .. n }
 
-  let empty1 = PersistentVector.create ()
+  let empty1 = PersistentVector.empty ()
 
-  let empty2 = PersistentVector.create ()
+  let empty2 = PersistentVector.empty ()
 
   printfn "empty are equal? %b" (Object.ReferenceEquals (empty1, empty2))
 
   let testEnumeration (vec: IPersistentVector<_>) =
-    seq{ 0 .. (vec |> Vector.lastIndex) }
-    |> Seq.zip (vec |> Map.values)
+    seq{ 0 .. (vec |> ImmutableVector.lastIndex) }
+    |> Seq.zip (vec |> ImmutableMap.values)
     |> Seq.iter (
-      fun (i, v) -> if i <> v then failwith (sprintf "vec.count = %i, index: %i, actual: %i"  (vec |> Map.count) i v)
+      fun (i, v) -> if i <> v then failwith (sprintf "vec.count = %i, index: %i, actual: %i"  (vec |> ImmutableMap.count) i v)
     )
 
   let vec =
@@ -34,7 +34,7 @@ let persistentVectorTests n =
 
   printfn "vecs are equal? %b" (Object.ReferenceEquals (vec, vec2))
 
-  Seq.zip testSeq (vec |> Map.values)
+  Seq.zip testSeq (vec |> ImmutableMap.values)
   |> Seq.iter (
       fun (i, v) -> if i <> v then printfn "notEqual %i %i" i v
     )
@@ -49,26 +49,26 @@ let persistentVectorTests n =
   |> Seq.fold (
       fun acc (v: int) -> PersistentVector.update v (n - v) acc
     ) vec
-  |> Map.values
+  |> ImmutableMap.values
   |> Seq.iteri (
       fun i v ->
         if (n - i) <> v then printfn "expect %i but was %i" (n - i) v
     )
 
   let mutable empty = vec
-  while (empty |> Map.count > 0) do
+  while (empty |> ImmutableMap.count > 0) do
     let prev = empty
     empty <- PersistentVector.pop empty
     //testEnumeration empty
 
 let persistentMapTests n = 
-  let empty = PersistentMap.create ()
+  let empty = PersistentMap.empty ()
 
   let testSeq = seq { 0 .. n }
 
   let result =
     testSeq |> Seq.fold (fun acc i -> 
-      acc |> PersistentMap.put (100 * i, i)
+      acc |> PersistentMap.put (100 * i) i
     ) empty
 
   testSeq 

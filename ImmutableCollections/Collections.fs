@@ -1,9 +1,11 @@
 ﻿namespace ImmutableCollections
 
+open System
+open System.Collections
+open System.Collections.Generic
+
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Array =
-  open System
-
   let copyTo target (arr: array<'v>) =
     Array.Copy(arr, 0, target, 0, Math.Min(target.Length, arr.Length))
 
@@ -50,8 +52,6 @@ module Array =
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Seq =
-  open System.Collections.Generic
-
   let getEnumerator (seq: seq<_>) =
     seq.GetEnumerator()
 
@@ -78,30 +78,26 @@ module Seq =
     zipAll enumA enumB
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
-module Map =
-  open System
-  open System.Collections
-  open System.Collections.Generic
-
-  let tryGet (key: 'k) (collection: IMap<'k, 'v>) =
+module ImmutableMap =
+  let tryGet (key: 'k) (collection: IImmutableMap<'k, 'v>) =
     collection.TryItem key
 
-  let count (collection: IMap<'k, 'v>) =
+  let count (collection: IImmutableMap<'k, 'v>) =
     collection.Count
 
-  let get (key: 'k) (collection: IMap<'k, 'v>) =
+  let get (key: 'k) (collection: IImmutableMap<'k, 'v>) =
     collection.Item key
 
-  let isEmpty (collection: IMap<'k, 'v>) =
+  let isEmpty (collection: IImmutableMap<'k, 'v>) =
     collection.Count = 0
 
-  let isNotEmpty (collection: IMap<'k, 'v>) =
+  let isNotEmpty (collection: IImmutableMap<'k, 'v>) =
     collection.Count <> 0
 
-  let keys (collection: IMap<'k, 'v>) =
+  let keys (collection: IImmutableMap<'k, 'v>) =
     collection |> Seq.map (fun (key, _) -> key)
 
-  let values (collection: IMap<'k, 'v>) =
+  let values (collection: IImmutableMap<'k, 'v>) =
     collection |> Seq.map (fun (k, v) -> v)
 
   let createWithComparer (comparer: IEqualityComparer<'k>) (entries: seq<'k * 'v>) =
@@ -109,7 +105,7 @@ module Map =
     entries |> Seq.iter (fun (k, v) -> backingDictionary.Add(k, v))
 
     {
-      new IMap<'k, 'v> with
+      new IImmutableMap<'k, 'v> with
         member this.Count = backingDictionary.Count
         member this.Item key = backingDictionary.Item key
         member this.GetEnumerator () =
@@ -125,88 +121,104 @@ module Map =
     createWithComparer EqualityComparer.Default entries
 
   let empty = {
-    new IMap<'k, 'v> with
+    new IImmutableMap<'k, 'v> with
       member this.Count = 0
-      member this.Item _ = failwith "key not found"
       member this.GetEnumerator () = (Seq.empty :> IEnumerable<'k*'v>) |> Seq.getEnumerator
       member this.GetEnumerator () = (this.GetEnumerator()) :> IEnumerator
+      member this.Item _ = failwith "key not found"
       member this.TryItem _ = None
   }
 
-  let map f (collection: IMap<'k, 'v>) =
+  let map f (collection: IImmutableMap<'k, 'v>) =
     collection |> Seq.map (fun (k, v) -> (k, f k v))
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
-module Vector =
-  open System
-  open System.Collections
-  open System.Collections.Generic
+module ImmutableVector =
+  let empty = 
+    { new IImmutableVector<'v> with
+        member this.Count = 0
+        member this.GetEnumerator () = (Seq.empty :> IEnumerable<int*'v>) |> Seq.getEnumerator
+        member this.GetEnumerator () = (this.GetEnumerator()) :> IEnumerator
+        member this.Item index = failwith "index out of range"
+        member this.TryItem index = None
+    }
 
-  let toArray (vec: IVector<'v>) =
-    Array.init vec.Count (fun i -> vec |> Map.get i)
+  let toArray (vec: IImmutableVector<'v>) =
+    Array.init vec.Count (fun i -> vec |> ImmutableMap.get i)
 
-  let keys (arr: IVector<'v>) = seq { 0 .. (arr.Count - 1) }
+  let keys (arr: IImmutableVector<'v>) = seq { 0 .. (arr.Count - 1) }
 
-  let sub (startIndex: int) (count: int) (vec: IVector<'v>) : IVector<'v> =
-    if startIndex < 0 || startIndex >= vec.Count then
+  let sub (startIndex: int) (count: int) (arr: IImmutableVector<'v>) : IImmutableVector<'v> =
+    if startIndex < 0 || startIndex >= (arr |> ImmutableMap.count) then
       failwith "startIndex out of range"
-    elif startIndex + count > vec.Count then
+    elif startIndex + count >= (arr |> ImmutableMap.count) then
       failwith "count out of range"
-    elif startIndex = 0 && count = vec.Count then 
-      vec
-    else
-      {
-        new IVector<'v> with
-          member this.Count = count
-          member this.Item index =
-            if index >= 0 && index < count then
-              vec.Item (index + startIndex)
-            else failwith "index out of range"
-          member this.GetEnumerator () =
-            vec |> Seq.skip startIndex |> Seq.take count |> Seq.getEnumerator
-          member this.GetEnumerator () =
-            this.GetEnumerator() :> IEnumerator
-          member this.TryItem index =
-            if index >= 0 && index < count then
-              vec.TryItem (index + startIndex)
-            else None
-      }
 
-  let reverse (vec: IVector<'v>) : IVector<'v> = {
-    new IVector<'v> with
-      member this.Count = vec.Count
+    {
+      new IImmutableVector<'v> with
+        member this.Count = count
+        member this.Item index =
+          if index >= 0 && index < count then
+            arr |> ImmutableMap.get (index + startIndex)
+          else failwith "index out of range"
+        member this.GetEnumerator () =
+          seq { 0 .. (count - 1) } |> Seq.map (fun i -> (i, this.Item i)) |> Seq.getEnumerator
+        member this.GetEnumerator () =
+          this.GetEnumerator() :> System.Collections.IEnumerator
+        member this.TryItem index =
+          if index >= 0 && index < count then
+            arr |> ImmutableMap.tryGet (index + startIndex)
+          else None
+    }
+
+  let reverse (arr: IImmutableVector<'v>) : IImmutableVector<'v> = {
+    new IImmutableVector<'v> with
+      member this.Count = arr |> ImmutableMap.count
       member this.Item index =
-        if index >= 0 && index < vec.Count then
-          vec.Item (vec.Count - index - 1)
+        if index >= 0 && index < this.Count then
+          arr |> ImmutableMap.get (this.Count - index - 1)
         else failwith "index out of range"
       member this.GetEnumerator () =
-        vec |> Seq.rev |> Seq.getEnumerator
+        seq { 0 .. (this.Count - 1) }
+        |> Seq.map (fun i -> (i, this.Item (this.Count - i - 1)))
+        |> Seq.getEnumerator
       member this.GetEnumerator () =
-        this.GetEnumerator() :> IEnumerator
+        this.GetEnumerator() :> System.Collections.IEnumerator
       member this.TryItem index =
-        if index >= 0 && index < vec.Count then
-          vec.TryItem (vec.Count - index - 1)
+        if index >= 0 && index < this.Count then
+          arr |> ImmutableMap.tryGet (this.Count - index - 1)
         else None
     }
 
-  let lastIndex (vec: IVector<'v>) =
+  let lastIndex (vec: IImmutableVector<'v>) =
     (vec.Count - 1)
 
-  let last (vec: IVector<'v>) =
-    vec |> Map.get (lastIndex vec)
+  let last (vec: IImmutableVector<'v>) =
+    vec |> ImmutableMap.get (lastIndex vec)
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
-module Set =
-  let createWithComparer (comparer: System.Collections.Generic.IEqualityComparer<'v>) (items: seq<'v>): ISet<'v> =
+module ImmutableSet =
+  let createWithComparer (comparer: IEqualityComparer<'v>) (items: seq<'v>): IImmutableSet<'v> =
     let backingDictionary = new System.Collections.Generic.Dictionary<'v, 'v>(comparer)
     items |> Seq.iter (fun v -> backingDictionary.Add(v, v))
 
-    { new ISet<'v> with
+    { new IImmutableSet<'v> with
         member this.Count = backingDictionary.Count
-        member this.Item v = backingDictionary.ContainsKey v
         member this.GetEnumerator () = backingDictionary.Keys |> Seq.getEnumerator
-        member this.GetEnumerator () = (this.GetEnumerator()) :> System.Collections.IEnumerator
+        member this.GetEnumerator () = (this.GetEnumerator()) :> IEnumerator
+        member this.Item v = backingDictionary.ContainsKey v
     }
 
   let create (items: seq<'k>) =
-    createWithComparer System.Collections.Generic.EqualityComparer.Default items
+    createWithComparer EqualityComparer.Default items
+
+  let empty = 
+    { new IImmutableSet<'v> with 
+        member this.Count = 0
+        member this.GetEnumerator () = (Seq.empty :> seq<'v>) |> Seq.getEnumerator
+        member this.GetEnumerator () = (this.GetEnumerator()) :> IEnumerator
+        member this.Item v = false
+    }
+
+  let contains v (set: IImmutableSet<'v>) =
+    set.Item v

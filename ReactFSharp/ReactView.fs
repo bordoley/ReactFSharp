@@ -30,7 +30,7 @@ and IReactViewGroup =
 
   abstract member Name: string with get
   abstract member UpdateProps: obj -> unit
-  abstract member Children: IMap<string, ReactView> with get, set
+  abstract member Children: IImmutableMap<string, ReactView> with get, set
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ReactView =
@@ -46,7 +46,7 @@ module ReactView =
     | ReactViewNone -> ()
 
   let private removeChildren = function
-    | ReactViewGroup view -> view.Children <- Map.empty
+    | ReactViewGroup view -> view.Children <- ImmutableMap.empty
     | _ -> ()
  
   let render
@@ -91,19 +91,19 @@ module ReactView =
             viewWithChildren.UpdateProps node.element.props
 
             let children =
-              node.children |> Map.map (
+              node.children |> ImmutableMap.map (
                 fun key node -> 
                   updateWith node 
-                   <| match viewWithChildren.Children |> Map.tryGet key with
+                   <| match viewWithChildren.Children |> ImmutableMap.tryGet key with
                       | Some childView -> childView
                       | None -> ReactViewNone
-              ) |> Map.create
+              ) |> ImmutableMap.create
           
             let oldChildren = viewWithChildren.Children
             viewWithChildren.Children <- children
          
             for (name, view) in oldChildren do
-              match children |> Map.tryGet name with
+              match children |> ImmutableMap.tryGet name with
               | Some _ -> ()
               | None -> dispose view
 
@@ -125,9 +125,9 @@ module ReactView =
             | (ReactNativeDOMNode node, ReactView _) -> ()
             | (ReactNativeDOMNodeGroup node, ReactViewGroup view) ->
                 let children =
-                  node.children |> Map.map (
+                  node.children |> ImmutableMap.map (
                     fun key node -> ReactViewNone |> updateWith node
-                  ) |> Map.create
+                  ) |> ImmutableMap.create
                 view.Children <- children
             | _ -> failwith "node/view mismatch"
 

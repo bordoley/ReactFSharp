@@ -42,6 +42,7 @@
     <Compile Include="ImmutableArray.fs" />
     <Compile Include="PersistentVector.fs" />
     <Compile Include="PersistentMap.fs" />
+    <Compile Include="PersistentCollections.fs" />
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\FSharp\Microsoft.Portable.FSharp.Targets" />
