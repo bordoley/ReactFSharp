@@ -300,6 +300,7 @@ type [<ReferenceEquality>] TableComparer<'row, 'column, 'value> = {
   value: IEqualityComparer<'value>
 }
 
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module PersistentTable =
   type private PersistentTableImpl<'row, 'column, 'value> private (map: IPersistentMap<'row, IPersistentMap<'column, 'value>>,
                                                                    count: int,
