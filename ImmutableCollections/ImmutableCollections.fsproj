@@ -38,8 +38,8 @@
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Interfaces.fs" />
+    <Compile Include="BaseImplementations.fs" />
     <Compile Include="Collections.fs" />
-    <Compile Include="ImmutableArray.fs" />
     <Compile Include="PersistentVector.fs" />
     <Compile Include="PersistentMap.fs" />
     <Compile Include="PersistentCollections.fs" />

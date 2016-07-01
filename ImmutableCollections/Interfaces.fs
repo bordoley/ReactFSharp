@@ -1,12 +1,11 @@
 ﻿namespace ImmutableCollections
 
-type IImmutableCollection<'t> =
-  inherit seq<'t>
-
-  abstract member Count: int
+open System.Collections
+open System.Collections.Generic
 
 type IImmutableMap<'k, 'v> =
-  inherit IImmutableCollection<'k * 'v>
+  inherit ICollection
+  inherit IReadOnlyCollection<'k * 'v>
 
   abstract member Item: 'k -> 'v
   abstract member TryItem: 'k -> Option<'v>
@@ -19,7 +18,8 @@ type IPersistentMap<'k, 'v> =
 
 
 type IImmutableMultiset<'v> = 
-  inherit IImmutableCollection<'v*int>
+  inherit ICollection
+  inherit IReadOnlyCollection<'v * int>
 
   abstract member Item: 'v -> int
 
@@ -30,7 +30,8 @@ type IPersistentMultiset<'v> =
 
 
 type IImmutableSet<'v> =
-  inherit IImmutableCollection<'v>
+  inherit ICollection
+  inherit IReadOnlyCollection<'v>
 
   abstract member Item: 'v -> bool
 
@@ -44,6 +45,8 @@ type IPersistentSet<'v> =
 type IImmutableVector<'v> =
   inherit IImmutableMap<int, 'v> 
 
+  abstract member CopyTo: int * array<'v> * int * int -> unit
+
 type IPersistentVector<'v> = 
   inherit IImmutableVector<'v>
 
@@ -53,7 +56,8 @@ type IPersistentVector<'v> =
 
 
 type IImmutableMultimap<'k, 'v> = 
-  inherit IImmutableCollection<'k * 'v>
+  inherit ICollection
+  inherit IReadOnlyCollection<'k * 'v>
 
   abstract member Item: 'k -> seq<'v>
 
@@ -83,12 +87,13 @@ type IPersistentListMultimap<'k, 'v> =
 
 
 type IImmutableTable<'row, 'column, 'value> =
-  inherit IImmutableCollection<'row * 'column * 'value>
+  inherit ICollection
+  inherit IReadOnlyCollection<'row * 'column * 'value>
 
   abstract member Item: 'row * 'column -> 'value
   abstract member TryItem: 'row * 'column -> Option<'value>
 
-type IPersistentTable<'row,'column, 'value> =
+type IPersistentTable<'row, 'column, 'value> =
   inherit IImmutableTable<'row, 'column, 'value>
 
   abstract member Put: 'row * 'column * 'value -> IPersistentTable<'row, 'column, 'value>
@@ -96,7 +101,8 @@ type IPersistentTable<'row,'column, 'value> =
 
 
 type IImmutableCountingTable<'row, 'column> =
-  inherit IImmutableCollection<'row * 'column * int>
+  inherit ICollection
+  inherit IReadOnlyCollection<'row * 'column * int>
 
   abstract member Item: 'row * 'column -> int
 

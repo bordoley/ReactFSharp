@@ -395,83 +395,77 @@ module private PersistentVectorImpl =
 module PersistentVector =
   open PersistentVectorImpl
 
-  type private HashedTrieBackedPersistentVector<'v> private (backingVector) =
-    static member Create (backingVector: HashedTriePersistentVector<'v>) =
-      (new HashedTrieBackedPersistentVector<'v>(backingVector) :> IPersistentVector<'v>)
-  
-    interface IPersistentVector<'v> with
-      member this.Add v = 
-        let newBackingVector = backingVector |> add v
-        if Object.ReferenceEquals(backingVector, newBackingVector) then (this :> IPersistentVector<'v>)
-        else HashedTrieBackedPersistentVector.Create newBackingVector
-      member this.Count = backingVector.count
-      member this.Item index = backingVector |> get index
-      member this.GetEnumerator () = 
-        backingVector 
-        |> toSeq 
-        |> Seq.mapi (fun i v -> (i, v))
-        |> Seq.getEnumerator
-      member this.GetEnumerator () = (this :> IEnumerable<int*'v>).GetEnumerator() :> IEnumerator
-      member this.Pop () =
-        let newBackingVector = backingVector |> pop
-        HashedTrieBackedPersistentVector.Create newBackingVector
-      member this.TryItem index = backingVector |> tryGet index
-      member this.Update(index, value) =
-        let newBackingVector = backingVector |> update index value
-        if Object.ReferenceEquals(backingVector, newBackingVector) then (this :> IPersistentVector<'v>)
-        else HashedTrieBackedPersistentVector.Create newBackingVector
-  
-  type private SubPersistentVector<'v>(backingVector, startIndex, count) = 
-    static member Create (backingVector: IPersistentVector<'v>, startIndex, count) =
-      if startIndex < 0 || startIndex >= backingVector.Count then 
-        failwith "startindex out of range"
-      elif startIndex + count > backingVector.Count then 
-        failwith "count out of range"
-      elif startIndex = 0 && count = backingVector.Count then 
-        backingVector
-      else (new SubPersistentVector<'v>(backingVector, startIndex, count) :> IPersistentVector<'v>)
-  
-    interface IPersistentVector<'v> with
-      member this.Add v = 
-        let index = startIndex + count
-        let newBackingVector =
-          if index < backingVector.Count then backingVector.Update (index, v)
-          else backingVector.Add v
-        SubPersistentVector.Create(newBackingVector, startIndex, count + 1)
-  
-      member this.Count = count
-      member this.Item index = 
-        if index >= 0 && index < count then
-          backingVector |> ImmutableMap.get (index + startIndex)
-        else failwith "index out of range"
-      member this.GetEnumerator () = 
-        backingVector |> Seq.skip startIndex |> Seq.take count |> Seq.getEnumerator
-  
-      member this.GetEnumerator () = 
-        (this :> IEnumerable<int*'v>).GetEnumerator() :> IEnumerator
-  
-      member this.Pop () = 
-        if count = 0 then
-          failwith "Can't pop empty vector"
-        else SubPersistentVector.Create(backingVector, startIndex, count - 1)
-  
-      member this.TryItem index = 
-        if index >= 0 && index < count then
-          backingVector |> ImmutableMap.tryGet (index + startIndex)
-        else None
-  
-      member this.Update(index, value) =
-        if index >= 0 && index < count then
-          let newBackingVector = backingVector.Update (index, value)
-  
-          if Object.ReferenceEquals(backingVector, newBackingVector) then 
-            (this :> IPersistentVector<'v>)
-          else SubPersistentVector.Create(newBackingVector, startIndex, count)
-        else failwith "index out of range"
+  let rec private createInternal (backingVector: HashedTriePersistentVector<'v>) =
+    ({ new PersistentVectorBase<'v> () with
+        override this.Add v = 
+          let newBackingVector = backingVector |> add v
+          if Object.ReferenceEquals(backingVector, newBackingVector) then (this :> IPersistentVector<'v>)
+          else createInternal newBackingVector
+        override this.Count = backingVector.count
+        override this.Item index = backingVector |> get index
+        override this.GetEnumerator () = 
+          backingVector 
+          |> toSeq 
+          |> Seq.mapi (fun i v -> (i, v))
+          |> Seq.getEnumerator
+        override this.Pop () =
+          let newBackingVector = backingVector |> pop
+          createInternal newBackingVector
+        override this.TryItem index = backingVector |> tryGet index
+        override this.Update(index, value) =
+          let newBackingVector = backingVector |> update index value
+          if Object.ReferenceEquals(backingVector, newBackingVector) then (this :> IPersistentVector<'v>)
+          else createInternal newBackingVector
+    }) :> IPersistentVector<'v>
+
+  let rec sub startIndex count (backingVector: IPersistentVector<'v>) =
+    if startIndex < 0 || startIndex >= backingVector.Count then 
+      failwith "startindex out of range"
+    elif startIndex + count > backingVector.Count then 
+      failwith "count out of range"
+    elif startIndex = 0 && count = backingVector.Count then 
+      backingVector
+    else 
+      // FIXME: Add some heuristics to determine if we should instead copy to a new vector
+      ({ new PersistentVectorBase<'v> () with
+          member this.Add v = 
+            let index = startIndex + count
+            let newBackingVector =
+              if index < backingVector.Count then backingVector.Update (index, v)
+              else backingVector.Add v
+            newBackingVector |> sub startIndex (count + 1)
+      
+          member this.Count = count
+          member this.Item index = 
+            if index >= 0 && index < count then
+              backingVector |> ImmutableMap.get (index + startIndex)
+            else failwith "index out of range"
+          member this.GetEnumerator () = 
+            backingVector |> Seq.skip startIndex |> Seq.take count |> Seq.getEnumerator
+     
+          member this.Pop () = 
+            if count = 0 then
+              failwith "Can't pop empty vector"
+            else backingVector |> sub startIndex (count - 1)
+      
+          member this.TryItem index = 
+            if index >= 0 && index < count then
+              backingVector |> ImmutableMap.tryGet (index + startIndex)
+            else None
+      
+          member this.Update(index, value) =
+            if index >= 0 && index < count then
+              let newBackingVector = backingVector.Update (index, value)
+      
+              if Object.ReferenceEquals(backingVector, newBackingVector) then 
+                (this :> IPersistentVector<'v>)
+              else newBackingVector |> sub startIndex count
+            else failwith "index out of range"
+      }) :> IPersistentVector<'v>
   
   let emptyWithComparer (comparer: IEqualityComparer<'v>) = 
     let backingVector = PersistentVectorImpl.create comparer
-    HashedTrieBackedPersistentVector.Create backingVector
+    createInternal backingVector
       
   let empty () =
     emptyWithComparer EqualityComparer.Default
@@ -486,6 +480,3 @@ module PersistentVector =
 
   let update (index: int) (v: 'v) (vec: IPersistentVector<'v>): IPersistentVector<'v> = 
     vec.Update (index, v)
-
-  let sub (startIndex: int) (count: int) (vec: IPersistentVector<'v>) : IPersistentVector<'v> =
-    SubPersistentVector.Create (vec, startIndex, count)

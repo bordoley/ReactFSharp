@@ -17,7 +17,7 @@ let persistentVectorTests n =
     seq{ 0 .. (vec |> ImmutableVector.lastIndex) }
     |> Seq.zip (vec |> ImmutableMap.values)
     |> Seq.iter (
-      fun (i, v) -> if i <> v then failwith (sprintf "vec.count = %i, index: %i, actual: %i"  (vec |> ImmutableCollection.count) i v)
+      fun (i, v) -> if i <> v then failwith (sprintf "vec.count = %i, index: %i, actual: %i"  (vec |> Collection.count) i v)
     )
 
   let vec =
@@ -56,7 +56,7 @@ let persistentVectorTests n =
     )
 
   let mutable empty = vec
-  while (empty |> ImmutableCollection.count > 0) do
+  while (empty |> Collection.count > 0) do
     let prev = empty
     empty <- PersistentVector.pop empty
     //testEnumeration empty

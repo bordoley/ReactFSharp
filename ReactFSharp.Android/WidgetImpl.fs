@@ -75,7 +75,7 @@ module internal WidgetImpl =
 
     updateProps props
 
-    let children = ref ImmutableMap.empty
+    let children = ref (ImmutableMap.empty ())
 
     ReactViewGroup { new obj()
         interface IReactViewGroup with 

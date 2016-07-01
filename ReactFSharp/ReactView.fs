@@ -46,7 +46,7 @@ module ReactView =
     | ReactViewNone -> ()
 
   let private removeChildren = function
-    | ReactViewGroup view -> view.Children <- ImmutableMap.empty
+    | ReactViewGroup view -> view.Children <- ImmutableMap.empty ()
     | _ -> ()
  
   let render

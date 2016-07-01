@@ -141,7 +141,7 @@ module internal ReactDom =
 
           | ReactNativeElementGroup ele -> ReactNativeDOMNodeGroup {
               element = ele 
-              children = ImmutableMap.empty |> updateChildrenWith ele.children
+              children = ImmutableMap.empty () |> updateChildrenWith ele.children
             }
 
           | ReactNoneElement -> ReactNoneDOMNode

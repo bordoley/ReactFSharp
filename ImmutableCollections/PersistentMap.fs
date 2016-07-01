@@ -444,36 +444,33 @@ module private PersistentMapImpl =
 module PersistentMap =
   open PersistentMapImpl
 
-  type private HashedTrieBackedPersistentMap<'k,'v> private (backingMap) =
-    static member Create (backingMap: HashedTriePersistentMap<'k,'v>) =
-      (new HashedTrieBackedPersistentMap<'k,'v>(backingMap) :> IPersistentMap<'k,'v>)
-
-    interface IPersistentMap<'k, 'v> with
-      member this.Count = backingMap.count
-      member this.GetEnumerator () = backingMap |> toSeq |> Seq.getEnumerator
-      member this.GetEnumerator () =
-        (this :> IEnumerable<'k * 'v>).GetEnumerator() :> IEnumerator
-      member this.Item k =
-        match backingMap |> tryGet k with
-        | Some v -> v
-        | None -> failwith "key not found"
-      member this.Put (k, v) =
-        let newBackingMap = backingMap |> put (k, v)
-        if Object.ReferenceEquals(backingMap, newBackingMap) then
-          this :> IPersistentMap<'k,'v>
-        else HashedTrieBackedPersistentMap.Create newBackingMap
-      member this.Remove k =
-        let newBackingMap = backingMap |> remove k
-
-        if Object.ReferenceEquals(backingMap, newBackingMap) then
-          this :> IPersistentMap<'k,'v>
-        else HashedTrieBackedPersistentMap.Create newBackingMap
-
-      member this.TryItem k = backingMap |> tryGet k
+  let rec private createInternal (backingMap: HashedTriePersistentMap<'k,'v>) =
+    ({ new PersistentMapBase<'k, 'v> () with
+        member this.Count = backingMap.count
+        member this.GetEnumerator () = backingMap |> toSeq |> Seq.getEnumerator
+  
+        member this.Item k =
+          match backingMap |> tryGet k with
+          | Some v -> v
+          | None -> failwith "key not found"
+        member this.Put (k, v) =
+          let newBackingMap = backingMap |> put (k, v)
+          if Object.ReferenceEquals(backingMap, newBackingMap) then
+            this :> IPersistentMap<'k,'v>
+          else createInternal newBackingMap
+        member this.Remove k =
+          let newBackingMap = backingMap |> remove k
+  
+          if Object.ReferenceEquals(backingMap, newBackingMap) then
+            this :> IPersistentMap<'k,'v>
+          else createInternal newBackingMap
+  
+        member this.TryItem k = backingMap |> tryGet k
+    }) :> IPersistentMap<'k, 'v>
 
   let emptyWithComparer (comparer: KeyValueComparer<'k, 'v>) =
     let backingMap = PersistentMapImpl.createWithComparer comparer
-    HashedTrieBackedPersistentMap.Create backingMap
+    createInternal backingMap
 
   let empty () = emptyWithComparer {
     key = EqualityComparer.Default
