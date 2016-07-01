@@ -121,7 +121,7 @@ module ImmutableMap =
   let create (entries: seq<'k * 'v>) =
     createWithComparer EqualityComparer.Default entries
 
-  let empty () = 
+  let empty () =
     ({
       new ImmutableMapBase<'k, 'v>() with
         member this.Count = 0
@@ -133,49 +133,71 @@ module ImmutableMap =
   let map f (map: IImmutableMap<'k, 'v>) =
     map |> Seq.map (fun (k, v) -> (k, f k v))
 
+  let toReadOnlyDictionary (map: IImmutableMap<'k, 'v>) =
+    { new IReadOnlyDictionary<'k, 'v> with
+        member this.ContainsKey key =
+          match map.TryItem key with
+          | Some _ -> true
+          | None -> false
+        member this.Count = map.Count
+        member this.GetEnumerator() =
+          map |> Seq.map (fun (k, v) -> new KeyValuePair<'k, 'v>(k, v)) |> Seq.getEnumerator
+        member this.GetEnumerator() =
+          (this |> Seq.getEnumerator) :> IEnumerator
+        member this.Item with get k = map.Item k
+        member this.Keys =  map |> Seq.map (fun (k, _) -> k)
+        member this.TryGetValue(key, valueRef) =
+          match map.TryItem key with
+          | Some value ->
+              valueRef <- value
+              true
+          | None -> false
+        member this.Values = map |> Seq.map (fun (_, v) -> v)
+    }
+
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ImmutableVector =
-  let empty () = 
+  let empty () =
     ({ new ImmutableVectorBase<'v>() with
         override this.Count = 0
         override this.GetEnumerator () = (Seq.empty :> IEnumerable<int*'v>) |> Seq.getEnumerator
         override this.Item index = failwith "index out of range"
         override this.TryItem index = None
         override this.CopyTo (array, index) = ()
-        override this.CopyTo (sourceIndex: int, 
-                              destinationArray: array<'v>, 
-                              destinationIndex: int, 
+        override this.CopyTo (sourceIndex: int,
+                              destinationArray: array<'v>,
+                              destinationIndex: int,
                               length: int) = ()
     }) :> IImmutableVector<'v>
 
-  let keys (arr: IImmutableVector<'v>) = seq { 0 .. (arr.Count - 1) }
+  let keys (vec: IImmutableVector<'v>) = seq { 0 .. (vec.Count - 1) }
 
-  let sub (startIndex: int) (count: int) (arr: IImmutableVector<'v>) : IImmutableVector<'v> =
-    if startIndex < 0 || startIndex >= (arr |> Collection.count) then
+  let sub (startIndex: int) (count: int) (vec: IImmutableVector<'v>) : IImmutableVector<'v> =
+    if startIndex < 0 || startIndex >= (vec |> Collection.count) then
       failwith "startIndex out of range"
-    elif startIndex + count >= (arr |> Collection.count) then
+    elif startIndex + count >= (vec |> Collection.count) then
       failwith "count out of range"
 
     ({ new ImmutableVectorBase<'v>() with
         override this.Count = count
         override this.Item index =
           if index >= 0 && index < count then
-            arr |> ImmutableMap.get (index + startIndex)
+            vec |> ImmutableMap.get (index + startIndex)
           else failwith "index out of range"
         override this.GetEnumerator () =
           seq { 0 .. (count - 1) } |> Seq.map (fun i -> (i, this.Item i)) |> Seq.getEnumerator
         override this.TryItem index =
           if index >= 0 && index < count then
-            arr |> ImmutableMap.tryGet (index + startIndex)
+            vec |> ImmutableMap.tryGet (index + startIndex)
           else None
     }) :> IImmutableVector<'v>
 
-  let reverse (arr: IImmutableVector<'v>) : IImmutableVector<'v> = 
+  let reverse (vec: IImmutableVector<'v>) : IImmutableVector<'v> =
     ({ new ImmutableVectorBase<'v>() with
-        override this.Count = arr |> Collection.count
+        override this.Count = vec |> Collection.count
         override this.Item index =
           if index >= 0 && index < this.Count then
-            arr |> ImmutableMap.get (this.Count - index - 1)
+            vec |> ImmutableMap.get (this.Count - index - 1)
           else failwith "index out of range"
         override this.GetEnumerator () =
           seq { 0 .. (this.Count - 1) }
@@ -183,7 +205,7 @@ module ImmutableVector =
           |> Seq.getEnumerator
         member this.TryItem index =
           if index >= 0 && index < this.Count then
-            arr |> ImmutableMap.tryGet (this.Count - index - 1)
+            vec |> ImmutableMap.tryGet (this.Count - index - 1)
           else None
       }) :> IImmutableVector<'v>
 
@@ -193,11 +215,11 @@ module ImmutableVector =
   let last (vec: IImmutableVector<'v>) =
     vec |> ImmutableMap.get (lastIndex vec)
 
-  let createUnsafe (backingArray: array<'v>) : IImmutableVector<'v> = 
+  let createUnsafe (backingArray: array<'v>) : IImmutableVector<'v> =
     ({ new ImmutableVectorBase<'v>() with
         override this.Count = backingArray.Length
         override this.Item index = backingArray.[index]
-        override this.GetEnumerator () = 
+        override this.GetEnumerator () =
           backingArray |> Seq.mapi (fun i v -> (i, v)) |> Seq.getEnumerator
         override this.TryItem index =
           if index >= 0 && index < backingArray.Length then
@@ -213,42 +235,51 @@ module ImmutableVector =
   let create (items: seq<'v>) : IImmutableVector<'v> =
     items |> Seq.toArray |> createUnsafe
 
-  let copyTo target (arr: IImmutableVector<'v>) =
-    arr.CopyTo (0, target, 0, Math.Min(target.Length, arr |> Collection.count))
+  let copyTo target (vec: IImmutableVector<'v>) =
+    vec.CopyTo (0, target, 0, Math.Min(target.Length, vec |> Collection.count))
 
-  let toArray (arr: IImmutableVector<'v>) =
-    let newArray = Array.zeroCreate (arr |> Collection.count)
-    arr |> copyTo newArray
+  let toArray (vec: IImmutableVector<'v>) =
+    let newArray = Array.zeroCreate (vec |> Collection.count)
+    vec |> copyTo newArray
     newArray
 
-  let add (v: 'v) (arr: IImmutableVector<'v>) =
-    let oldSize = arr |> Collection.count
+  let add (v: 'v) (vec: IImmutableVector<'v>) =
+    let oldSize = vec |> Collection.count
     let newSize = oldSize + 1;
 
     let backingArray = Array.zeroCreate newSize
-    arr |> copyTo backingArray
+    vec |> copyTo backingArray
     backingArray.[oldSize] <- v
 
     createUnsafe backingArray
 
-  let cloneAndSet (index: int) (item: 'v) (arr: IImmutableVector<'v>) =
-    let size = (arr|> Collection.count)
+  let cloneAndSet (index: int) (item: 'v) (vec: IImmutableVector<'v>) =
+    let size = vec|> Collection.count
 
-    let clone = arr |> toArray
+    let clone = vec |> toArray
     clone.[index] <- item
 
     createUnsafe clone
 
-  let pop (arr: IImmutableVector<'v>) =
-    let count = (arr|> Collection.count)
+  let pop (vec: IImmutableVector<'v>) =
+    let count = vec|> Collection.count
     if count > 1 then
       let popped = Array.zeroCreate (count - 1)
-      arr |> copyTo popped
+      vec |> copyTo popped
       popped  |> createUnsafe
     elif count = 1 then
       empty ()
     else failwith "can not pop empty array"
 
+  let toReadOnlyList (vec: IImmutableVector<'v>) =
+    { new IReadOnlyList<'v> with
+        member this.Count = vec.Count
+        member this.Item with get i = vec.Item i
+        member this.GetEnumerator() =
+          vec |> Seq.map (fun (_, v) -> v) |> Seq.getEnumerator
+        member this.GetEnumerator() =
+          (this |> Seq.getEnumerator) :> IEnumerator
+    }
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ImmutableSet =
@@ -265,8 +296,8 @@ module ImmutableSet =
   let create (items: seq<'k>) =
     createWithComparer EqualityComparer.Default items
 
-  let empty () = 
-    ({ new ImmutableSetBase<'v> () with 
+  let empty () =
+    ({ new ImmutableSetBase<'v> () with
         member this.Count = 0
         member this.GetEnumerator () = (Seq.empty :> seq<'v>) |> Seq.getEnumerator
         member this.Item v = false
