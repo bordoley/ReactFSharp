@@ -20,11 +20,15 @@ let persistentVectorTests n =
       fun (i, v) -> if i <> v then failwith (sprintf "vec.count = %i, index: %i, actual: %i"  (vec |> Collection.count) i v)
     )
 
+  Console.WriteLine(System.DateTime.Now.ToLongTimeString())
   let vec =
     testSeq
     |> Seq.fold (
         fun acc i -> acc |> PersistentVector.add i
       ) empty1
+  Console.WriteLine(System.DateTime.Now.ToLongTimeString())
+  let transVec = PersistentVector.create testSeq
+  Console.WriteLine(System.DateTime.Now.ToLongTimeString())
 
   let vec2 =
     testSeq
@@ -89,7 +93,7 @@ open BitCount
 let main argv =
   let n = 1000000
 
-  persistentVectorTests 65568
+  persistentVectorTests 30000000
   //persistentMapTests n
 
   0

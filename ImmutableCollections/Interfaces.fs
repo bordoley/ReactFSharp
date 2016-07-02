@@ -51,8 +51,15 @@ type IPersistentVector<'v> =
   inherit IImmutableVector<'v>
 
   abstract member Add: 'v -> IPersistentVector<'v>
+  abstract member Mutate: unit -> ITransientVector<'v>
   abstract member Pop: unit -> IPersistentVector<'v>
   abstract member Update: int * 'v -> IPersistentVector<'v>
+
+and ITransientVector<'v> =
+  abstract member Add: 'v -> ITransientVector<'v>
+  abstract member Persist: unit -> IPersistentVector<'v>
+  abstract member Pop: unit -> ITransientVector<'v>
+  abstract member Update: int * 'v -> ITransientVector<'v>
 
 
 type IImmutableMultimap<'k, 'v> = 

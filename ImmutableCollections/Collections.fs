@@ -9,11 +9,6 @@ module Array =
   let copyTo target (arr: array<'v>) =
     Array.Copy(arr, 0, target, 0, Math.Min(target.Length, arr.Length))
 
-  let copy (arr: array<'v>) =
-    let newArray = Array.zeroCreate arr.Length
-    arr |> copyTo newArray
-    newArray
-
   let add (v: 'v) (arr: array<'v>) =
     let oldSize = arr.Length
     let newSize = oldSize + 1;
@@ -27,7 +22,7 @@ module Array =
   let cloneAndSet (index: int) (item: 'v) (arr: array<'v>) =
     let size = arr.Length
 
-    let clone = arr |> copy
+    let clone = arr |> Array.copy
     clone.[index] <- item
 
     clone

@@ -28,20 +28,19 @@ module private PersistentVectorImpl =
     owner: obj
     nodes: array<TrieNode<'v>>
   }
-  
+
   type [<ReferenceEquality>] HashedTriePersistentVector<'v> = {
     comparer: IEqualityComparer<'v>
     count: int
-    owner: obj
     root: Option<TrieNode<'v>>
     tail: array<'v>
   }
 
-  let private bits = 5
-  let private width = 1 <<< bits
+  let bits = 5
+  let width = 1 <<< bits
   let private mask = width - 1
 
-  let private computeIndex depth index =
+  let computeIndex depth index =
     let level = depth * bits
     let ret = (index >>> level) &&& mask
     ret
@@ -49,7 +48,6 @@ module private PersistentVectorImpl =
   let create (comparer: IEqualityComparer<'v>) = {
     comparer = comparer
     count = 0
-    owner = Unchecked.defaultof<obj>
     root = None
     tail = Array.empty
   }
@@ -62,57 +60,57 @@ module private PersistentVectorImpl =
 
     match vec.root with
     | None -> ValuesNode {
-        owner = vec.owner
+        owner = Unchecked.defaultof<obj>
         values = tail
       }
     | Some node ->
-        let rec pushTailIntoTrie = function
+        let rec pushTailIntoTrie tail = function
           | ValuesNode valuesNode as node -> LeafNode {
-                owner = vec.owner
-                valueNodes = [| valuesNode; { owner = vec.owner; values = tail } |]
+                owner = Unchecked.defaultof<obj>
+                valueNodes = [| valuesNode; tail |]
               }
           | LeafNode leafNode as node->
               if leafNode.valueNodes.Length < width then
                 LeafNode {
-                  owner = vec.owner
-                  valueNodes = leafNode.valueNodes |> Array.add { owner = vec.owner; values = tail }
+                  owner = Unchecked.defaultof<obj>
+                  valueNodes = leafNode.valueNodes |> Array.add tail
                 }
-              else   
+              else
                 LevelNode {
                   depth = 2
-                  owner = vec.owner
-                  nodes = [| node; ValuesNode { owner = vec.owner; values = tail } |]
-                }  
+                  owner = Unchecked.defaultof<obj>
+                  nodes = [| node; ValuesNode tail |]
+                }
           | LevelNode levelNode as node ->
               let index = computeIndex levelNode.depth (vec.count - 1)
 
               // node is full
-              if levelNode.nodes.Length = width && index < (width - 1) then 
+              if levelNode.nodes.Length = width && index < (width - 1) then
                 LevelNode {
                   depth = levelNode.depth + 1
-                  owner = vec.owner
-                  nodes = [| node; ValuesNode { owner = vec.owner; values = tail } |]
+                  owner = Unchecked.defaultof<obj>
+                  nodes = [| node; ValuesNode tail |]
                 }
               else
-            
+
               match levelNode.nodes |> Array.tryItem index with
               | Some childAtIndex ->
-                  let newChildAtIndex = childAtIndex |> pushTailIntoTrie
+                  let newChildAtIndex = childAtIndex |> pushTailIntoTrie tail
                   LevelNode {
                     depth = levelNode.depth
-                    owner = vec.owner
+                    owner = Unchecked.defaultof<obj>
                     nodes = levelNode.nodes |> Array.cloneAndSet index newChildAtIndex
                   }
               | None ->
                   let newLevelNode = {
                     depth = levelNode.depth
-                    owner = vec.owner
-                    nodes = levelNode.nodes |> Array.add (ValuesNode { owner = vec.owner; values = tail })
+                    owner = Unchecked.defaultof<obj>
+                    nodes = levelNode.nodes |> Array.add (ValuesNode tail)
                   }
 
                   LevelNode newLevelNode
 
-        node|> pushTailIntoTrie
+        node|> pushTailIntoTrie { owner = Unchecked.defaultof<obj>; values = tail }
 
   let add (v: 'v) (vec: HashedTriePersistentVector<'v>) =
     if vec.tail.Length < width then {
@@ -130,7 +128,7 @@ module private PersistentVectorImpl =
   let toSeq (vec: HashedTriePersistentVector<'v>) = seq {
     let rec toSeq = function
       | ValuesNode valuesNode -> valuesNode.values |> Seq.ofArray
-      | LeafNode leafNode -> 
+      | LeafNode leafNode ->
           leafNode.valueNodes |> Seq.map (fun n -> n.values) |> Seq.concat
       | LevelNode trieNode ->
           trieNode.nodes |> Seq.map toSeq |> Seq.concat
@@ -142,22 +140,22 @@ module private PersistentVectorImpl =
 
     yield! vec.tail
   }
- 
-  let private leafNodeFor index vec =
-    let tailOffset = getTailOffset vec
 
-    let rec findLeafNode = function
-      | ValuesNode valuesNode -> Some valuesNode.values
+  let rec findValuesNode index = function
+      | ValuesNode valuesNode -> Some valuesNode
       | LeafNode leafNode ->
           let nodeIndex = computeIndex 1 index
           match leafNode.valueNodes |> Array.tryItem nodeIndex with
-          | Some valuesNode -> Some valuesNode.values
+          | Some valuesNode -> Some valuesNode
           | _ -> None
       | LevelNode trieNode ->
           let nodeIndex = computeIndex trieNode.depth index
           match trieNode.nodes |> Array.tryItem nodeIndex with
-          | Some node -> node |> findLeafNode
+          | Some node -> node |> findValuesNode index
           | _ -> None
+
+  let private arrayFor index vec =
+    let tailOffset = getTailOffset vec
 
     if index < 0 || index >= vec.count then
       None
@@ -165,11 +163,12 @@ module private PersistentVectorImpl =
       Some vec.tail
     else
       match vec.root with
-      | Some node -> node |> findLeafNode
+      | Some node ->
+          node |> findValuesNode index |> Option.map (fun v -> v.values)
       | None -> None
 
   let tryGet (index: int) (vec: HashedTriePersistentVector<'v>) =
-    match vec |> leafNodeFor index with
+    match vec |> arrayFor index with
     | Some node ->
         let index = computeIndex 0 index
         node |> Array.tryItem index
@@ -193,7 +192,7 @@ module private PersistentVectorImpl =
         let newTail = vec.tail |> Array.cloneAndSet nodeIndex v
         { vec with tail = newTail }
     else
-      let rec doUpdate node = 
+      let rec doUpdate node =
         match node with
         | ValuesNode valuesNode ->
             let index = computeIndex 0 index
@@ -202,7 +201,7 @@ module private PersistentVectorImpl =
             if vec.comparer.Equals(currentValue, v) then
               node
             else ValuesNode {
-              owner = vec.owner
+              owner = Unchecked.defaultof<obj>
               values = valuesNode.values |> Array.cloneAndSet index v
             }
         | LeafNode leafNode ->
@@ -214,17 +213,17 @@ module private PersistentVectorImpl =
 
             if vec.comparer.Equals(currentValue, v) then
               node
-            else 
+            else
               let newValuesNode = {
-                owner = vec.owner
+                owner = Unchecked.defaultof<obj>
                 values = valuesNode.values |> Array.cloneAndSet valueIndex v
               }
 
               LeafNode {
-                owner = vec.owner
+                owner = Unchecked.defaultof<obj>
                 valueNodes = leafNode.valueNodes |> Array.cloneAndSet leafIndex newValuesNode
               }
-        | LevelNode levelNode -> 
+        | LevelNode levelNode ->
             let index = computeIndex levelNode.depth index
             let childAtIndex = levelNode.nodes.[index]
             let newChildAtIndex = childAtIndex |> doUpdate
@@ -233,7 +232,7 @@ module private PersistentVectorImpl =
               node
             else LevelNode {
               depth = levelNode.depth
-              owner = vec.owner
+              owner = Unchecked.defaultof<obj>
               nodes = levelNode.nodes |> Array.cloneAndSet index newChildAtIndex
             }
 
@@ -258,59 +257,296 @@ module private PersistentVectorImpl =
       }
     else
       let index = vec.count - 2
-      let newTail = vec |> leafNodeFor index |> Option.get    
+      let newTail = vec |> arrayFor index |> Option.get
 
       let rec popTail = function
-        | ValuesNode valuesNode -> None      
+        | ValuesNode valuesNode -> None
         | LeafNode leafNode when leafNode.valueNodes.Length > 2 ->
-            LeafNode { owner = vec.owner; valueNodes = leafNode.valueNodes |> Array.pop } |> Some
+            LeafNode {
+              owner = Unchecked.defaultof<obj>
+              valueNodes = leafNode.valueNodes |> Array.pop
+            } |> Some
         | LeafNode leafNode ->
-            ValuesNode { owner = vec.owner; values = leafNode.valueNodes.[0].values } |> Some
+            ValuesNode leafNode.valueNodes.[0] |> Some
         | LevelNode levelNode ->
             let levelIndex = levelNode.nodes.Length - 1
 
             match popTail levelNode.nodes.[levelIndex] with
-            | Some newNodeAtIndex -> 
-                LevelNode { 
-                  depth = levelNode.depth; 
-                  owner = vec.owner; 
+            | Some newNodeAtIndex ->
+                LevelNode {
+                  depth = levelNode.depth
+                  owner = Unchecked.defaultof<obj>
                   nodes = levelNode.nodes |> Array.cloneAndSet levelIndex newNodeAtIndex
                 } |> Some
-            | None when levelNode.nodes.Length > 2 -> 
-                LevelNode { 
-                  depth = levelNode.depth; 
-                  owner = vec.owner; 
-                  nodes = levelNode.nodes |> Array.pop 
+            | None when levelNode.nodes.Length > 2 ->
+                LevelNode {
+                  depth = levelNode.depth
+                  owner = Unchecked.defaultof<obj>
+                  nodes = levelNode.nodes |> Array.pop
                 } |> Some
             | None -> levelNode.nodes.[0] |> Some
-    
+
       let currentRoot = vec.root |> Option.get
       let newRoot = currentRoot |> popTail
 
       { vec with
-          owner = vec.owner
           count = vec.count - 1
           root = newRoot
           tail = newTail
       }
 
+module TransientVector =
+  let add v (vec: ITransientVector<'v>) =
+    vec.Add v
+
+  let persist (vec: ITransientVector<'v>) =
+    vec.Persist()
+
+  let pop (vec: ITransientVector<'v>) =
+    vec.Pop()
+
+  let update index value (vec: ITransientVector<'v>) =
+    vec.Update(index, value)
+
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module PersistentVector =
   open PersistentVectorImpl
 
-  let rec private createInternal (backingVector: HashedTriePersistentVector<'v>) =
+  let mutate (vec: IPersistentVector<'v>) =
+    vec.Mutate ()
+
+  let rec private createTransient (backingVector: HashedTriePersistentVector<'v>) =
+    // A unique object use to identify this transient vector as the owner of a node.
+    let owner = new Object()
+
+    let mutable editable = true
+
+    let mutable count = backingVector.count
+
+    let mutable root =
+      match backingVector.root with
+      | Some(ValuesNode valuesNode) -> Some <| ValuesNode {
+            owner = owner
+            values = valuesNode.values |> Array.copy
+          }
+      | Some(LeafNode leafNode) -> Some <| LeafNode {
+            owner = owner
+            valueNodes = leafNode.valueNodes |> Array.copy
+          }
+      | Some(LevelNode levelNode) -> Some <| LevelNode {
+            depth = levelNode.depth
+            owner = owner
+            nodes = levelNode.nodes |> Array.copy
+          }
+      | None -> None
+
+    let mutable tail =
+      let newTail = Array.zeroCreate width
+      backingVector.tail |> Array.copyTo newTail
+      newTail
+
+    let getTailOffset () =
+      if count < width then 0
+      else ((count - 1) >>> bits) <<< bits
+
+    let ensureEditable node =
+      match node with
+      | ValuesNode valuesNode when valuesNode.owner = owner -> node
+      | ValuesNode valuesNode -> ValuesNode {
+            owner = owner
+            values = valuesNode.values |> Array.copy
+          }
+      | LeafNode leafNode when leafNode.owner = owner -> node
+      | LeafNode leafNode -> LeafNode {
+            owner = owner
+            valueNodes = leafNode.valueNodes |> Array.copy
+          }
+      | LevelNode levelNode when levelNode.owner = owner -> node
+      | LevelNode levelNode -> LevelNode {
+            depth = levelNode.depth
+            owner = owner
+            nodes = levelNode.nodes |> Array.copy
+          }
+
+    let rec doUpdate index value node =
+      let node = ensureEditable node
+
+      match node with
+      | ValuesNode valuesNode ->
+          let index = computeIndex 0 index
+          valuesNode.values.[index] <- value
+      | LeafNode leafNode ->
+          let leafIndex = computeIndex 1 index
+          let valuesNode = leafNode.valueNodes.[leafIndex]
+          let valuesIndex = computeIndex 0 index
+          valuesNode.values.[valuesIndex] <- value
+      | LevelNode levelNode ->
+          let nodeIndex = computeIndex levelNode.depth index
+          let node = levelNode.nodes.[nodeIndex]
+          levelNode.nodes.[nodeIndex] <- node |> doUpdate index value
+
+      node
+
+    let rec pushTail (tail: ValuesNode<'v>) node =
+      match node with
+      | ValuesNode valuesNode -> LeafNode {
+            owner = owner
+            valueNodes = [| valuesNode; tail |]
+          }
+      | LeafNode leafNode ->
+          if leafNode.valueNodes.Length < width then
+            LeafNode {
+              owner = owner
+              valueNodes = leafNode.valueNodes |> Array.add tail
+            }
+          else
+            LevelNode {
+              depth = 2
+              owner = owner
+              nodes = [| node; ValuesNode tail |]
+            }
+      | LevelNode levelNode ->
+          let index = computeIndex levelNode.depth (count - 1)
+
+          // node is full
+          if levelNode.nodes.Length = width && index < (width - 1) then
+            LevelNode {
+              depth = levelNode.depth + 1
+              owner = owner
+              nodes = [| node; ValuesNode tail |]
+            }
+          else
+
+          match levelNode.nodes |> Array.tryItem index with
+          | Some childAtIndex ->
+              let newChildAtIndex = childAtIndex |> pushTail tail
+              levelNode.nodes.[index] <- newChildAtIndex
+
+              node
+          | None ->
+              let newLevelNode = {
+                levelNode with
+                  nodes = levelNode.nodes |> Array.add (ValuesNode tail)
+              }
+
+              LevelNode newLevelNode
+
+    let rec popTail node =
+      let node = ensureEditable node
+
+      match node with
+      | ValuesNode valuesNode -> None
+      | LeafNode leafNode when leafNode.valueNodes.Length > 2 ->
+          LeafNode {
+            owner = owner
+            valueNodes = leafNode.valueNodes |> Array.pop
+          } |> Some
+      | LeafNode leafNode ->
+          ValuesNode leafNode.valueNodes.[0] |> Some
+      | LevelNode levelNode ->
+          let levelIndex = levelNode.nodes.Length - 1
+
+          match popTail levelNode.nodes.[levelIndex] with
+          | Some newNodeAtIndex ->
+              levelNode.nodes.[levelIndex] <- newNodeAtIndex
+              Some node
+          | None when levelNode.nodes.Length > 2 ->
+              LevelNode {
+                depth = levelNode.depth
+                owner = owner
+                nodes = levelNode.nodes |> Array.pop
+              } |> Some
+          | None -> levelNode.nodes.[0] |> Some
+
+    { new ITransientVector<'v>  with
+        member this.Add v =
+          if not editable then failwith "TransientVector has already been persisted"
+
+          let tailOffset = getTailOffset ()
+
+          if (count - tailOffset) < width then
+            tail.[count - tailOffset] <- v
+          else
+            let tailNode = { owner = owner; values = tail }
+
+            tail <- Array.zeroCreate width
+            tail.[0] <- v
+
+            let newRoot =
+              match root with
+              | None -> ValuesNode tailNode
+              | Some node -> node |> pushTail tailNode
+
+            root <- Some newRoot
+
+          count <- count + 1
+
+          this
+
+        member this.Persist () =
+          editable <- false
+
+          let backingVector = {
+            comparer = backingVector.comparer
+            count = count
+            root = root
+            tail =
+              let trimmedTail = Array.zeroCreate (count - getTailOffset ())
+              Array.Copy (tail, 0, trimmedTail, 0, trimmedTail.Length)
+              trimmedTail
+          }
+
+          createInternal backingVector
+
+        member this.Pop () =
+          if not editable then failwith "TransientVector has already been persisted"
+
+          let tailOffset = getTailOffset ()
+
+          if count = 0 then
+            failwith "Can't pop empty vector"
+
+          elif count > tailOffset then
+            tail.[count - tailOffset - 1] <- Unchecked.defaultof<'v>
+
+          else
+            let rootNode = root |> Option.get
+            let newTailNode = rootNode |> findValuesNode (count - 2) |> Option.get
+            tail <- newTailNode.values
+
+          this
+
+        member this.Update (index, value) =
+          if not editable then failwith "TransientVector has already been persisted"
+
+          let tailOffset = getTailOffset ()
+
+          if index >= count || index < 0 then
+            failwith "index out of range"
+          elif index >= tailOffset then
+            tail.[index - tailOffset] <- value
+          else
+            let rootNode = root |> Option.get
+            let newRootNode = rootNode |> doUpdate index value
+            root <- Some newRootNode
+
+          this
+    }
+
+  and private createInternal (backingVector: HashedTriePersistentVector<'v>) =
     ({ new PersistentVectorBase<'v> () with
-        override this.Add v = 
+        override this.Add v =
           let newBackingVector = backingVector |> add v
           if Object.ReferenceEquals(backingVector, newBackingVector) then (this :> IPersistentVector<'v>)
           else createInternal newBackingVector
         override this.Count = backingVector.count
         override this.Item index = backingVector |> get index
-        override this.GetEnumerator () = 
-          backingVector 
-          |> toSeq 
+        override this.GetEnumerator () =
+          backingVector
+          |> toSeq
           |> Seq.mapi (fun i v -> (i, v))
           |> Seq.getEnumerator
+        override this.Mutate () = createTransient backingVector
         override this.Pop () =
           let newBackingVector = backingVector |> pop
           createInternal newBackingVector
@@ -321,57 +557,21 @@ module PersistentVector =
           else createInternal newBackingVector
     }) :> IPersistentVector<'v>
 
-  let rec sub startIndex count (backingVector: IPersistentVector<'v>) =
-    if startIndex < 0 || startIndex >= backingVector.Count then 
-      failwith "startindex out of range"
-    elif startIndex + count > backingVector.Count then 
-      failwith "count out of range"
-    elif startIndex = 0 && count = backingVector.Count then 
-      backingVector
-    else 
-      // FIXME: Add some heuristics to determine if we should instead copy to a new vector
-      ({ new PersistentVectorBase<'v> () with
-          member this.Add v = 
-            let index = startIndex + count
-            let newBackingVector =
-              if index < backingVector.Count then backingVector.Update (index, v)
-              else backingVector.Add v
-            newBackingVector |> sub startIndex (count + 1)
-      
-          member this.Count = count
-          member this.Item index = 
-            if index >= 0 && index < count then
-              backingVector |> ImmutableMap.get (index + startIndex)
-            else failwith "index out of range"
-          member this.GetEnumerator () = 
-            backingVector |> Seq.skip startIndex |> Seq.take count |> Seq.getEnumerator
-     
-          member this.Pop () = 
-            if count = 0 then
-              failwith "Can't pop empty vector"
-            else backingVector |> sub startIndex (count - 1)
-      
-          member this.TryItem index = 
-            if index >= 0 && index < count then
-              backingVector |> ImmutableMap.tryGet (index + startIndex)
-            else None
-      
-          member this.Update(index, value) =
-            if index >= 0 && index < count then
-              let newBackingVector = backingVector.Update (index, value)
-      
-              if Object.ReferenceEquals(backingVector, newBackingVector) then 
-                (this :> IPersistentVector<'v>)
-              else newBackingVector |> sub startIndex count
-            else failwith "index out of range"
-      }) :> IPersistentVector<'v>
-  
-  let emptyWithComparer (comparer: IEqualityComparer<'v>) = 
+  and emptyWithComparer (comparer: IEqualityComparer<'v>) =
     let backingVector = PersistentVectorImpl.create comparer
     createInternal backingVector
-      
-  let empty () =
+
+  and empty () =
     emptyWithComparer EqualityComparer.Default
+
+  let createWithComparer (comparer: IEqualityComparer<'v>) (values: seq<'v>) =
+    let empty = emptyWithComparer comparer |> mutate
+    values
+    |> Seq.fold (fun (acc: ITransientVector<'v>) i -> acc.Add i) empty
+    |> TransientVector.persist
+
+  let create (values: seq<'v>) =
+    createWithComparer EqualityComparer.Default values
 
   let add (v: 'v) (vec: IPersistentVector<'v>) = vec.Add v
 
@@ -379,7 +579,54 @@ module PersistentVector =
 
   let pop (vec: IPersistentVector<'v>) = vec.Pop ()
 
+  let rec sub startIndex count (backingVector: IPersistentVector<'v>) =
+    if startIndex < 0 || startIndex >= backingVector.Count then
+      failwith "startindex out of range"
+    elif startIndex + count > backingVector.Count then
+      failwith "count out of range"
+    elif startIndex = 0 && count = backingVector.Count then
+      backingVector
+    else
+      // FIXME: Add some heuristics to determine if we should instead copy to a new vector
+      ({ new PersistentVectorBase<'v> () with
+          member this.Add v =
+            let index = startIndex + count
+            let newBackingVector =
+              if index < backingVector.Count then backingVector.Update (index, v)
+              else backingVector.Add v
+            newBackingVector |> sub startIndex (count + 1)
+
+          member this.Count = count
+          member this.Item index =
+            if index >= 0 && index < count then
+              backingVector |> ImmutableMap.get (index + startIndex)
+            else failwith "index out of range"
+          member this.GetEnumerator () =
+            backingVector |> Seq.skip startIndex |> Seq.take count |> Seq.getEnumerator
+
+          member this.Mutate () = failwith "implement me"
+
+          member this.Pop () =
+            if count = 0 then
+              failwith "Can't pop empty vector"
+            else backingVector |> sub startIndex (count - 1)
+
+          member this.TryItem index =
+            if index >= 0 && index < count then
+              backingVector |> ImmutableMap.tryGet (index + startIndex)
+            else None
+
+          member this.Update(index, value) =
+            if index >= 0 && index < count then
+              let newBackingVector = backingVector.Update (index, value)
+
+              if Object.ReferenceEquals(backingVector, newBackingVector) then
+                (this :> IPersistentVector<'v>)
+              else newBackingVector |> sub startIndex count
+            else failwith "index out of range"
+      }) :> IPersistentVector<'v>
+
   let tryGet (index: int) (vec: IPersistentVector<'v>) = vec.TryItem index
 
-  let update (index: int) (v: 'v) (vec: IPersistentVector<'v>): IPersistentVector<'v> = 
+  let update (index: int) (v: 'v) (vec: IPersistentVector<'v>): IPersistentVector<'v> =
     vec.Update (index, v)

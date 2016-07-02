@@ -90,11 +90,13 @@ type private PersistentVectorBase<'v> () =
   inherit ImmutableVectorBase<'v>()
 
   abstract Add: 'v -> IPersistentVector<'v>
+  abstract Mutate: unit -> ITransientVector<'v>
   abstract Pop: unit -> IPersistentVector<'v>
   abstract Update: int * 'v -> IPersistentVector<'v>
 
   interface IPersistentVector<'v> with
     member this.Add v = this.Add v
+    member this.Mutate () = this.Mutate ()
     member this.Pop () = this.Pop ()
     member this.Update(index, value) = this.Update(index, value)
 
