@@ -40,9 +40,9 @@
     <Compile Include="Interfaces.fs" />
     <Compile Include="BaseImplementations.fs" />
     <Compile Include="Collections.fs" />
-    <Compile Include="PersistentVector.fs" />
     <Compile Include="PersistentMap.fs" />
     <Compile Include="PersistentCollections.fs" />
+    <Compile Include="PersistentVector.fs" />
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\FSharp\Microsoft.Portable.FSharp.Targets" />

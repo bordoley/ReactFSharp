@@ -8,33 +8,38 @@ open System.Collections.Generic
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module private PersistentVectorImpl =
-  type[<ReferenceEquality>] TrieNode<'v> =
-    | LeafNode of array<array<'v>>
+  type [<ReferenceEquality>] TrieNode<'v> =
+    | ValuesNode of ValuesNode<'v>
+    | LeafNode of LeafNode<'v>
     | LevelNode of LevelNode<'v>
-  
-  and [<ReferenceEquality>] LevelNode<'v> = {
-    nodes: array<TrieNode<'v>>
-    depth: int
+
+  and ValuesNode<'v> = {
+    owner: obj
+    values: array<'v>
   }
-  
-  type [<ReferenceEquality>] RootNode<'v> =
-    | LevelRootNode of LevelNode<'v>
-    | LeafRootNode of array<array<'v>>
-    | ValuesRootNode of array<'v>
-    | NoneRootNode
+
+  and LeafNode<'v> = {
+    owner: obj
+    valueNodes: array<ValuesNode<'v>>
+  }
+
+  and LevelNode<'v> = {
+    depth: int
+    owner: obj
+    nodes: array<TrieNode<'v>>
+  }
   
   type [<ReferenceEquality>] HashedTriePersistentVector<'v> = {
     comparer: IEqualityComparer<'v>
     count: int
-    root: RootNode<'v>
+    owner: obj
+    root: Option<TrieNode<'v>>
     tail: array<'v>
   }
 
   let private bits = 5
   let private width = 1 <<< bits
   let private mask = width - 1
-
-  let private leafDepth = 1
 
   let private computeIndex depth index =
     let level = depth * bits
@@ -44,141 +49,114 @@ module private PersistentVectorImpl =
   let create (comparer: IEqualityComparer<'v>) = {
     comparer = comparer
     count = 0
-    root = NoneRootNode
+    owner = Unchecked.defaultof<obj>
+    root = None
     tail = Array.empty
   }
 
-  let rec private newPath depth (tail: array<'v>) =
-    if depth = leafDepth then
-      LeafNode [| tail |]
-    else
-      let child = newPath (depth - 1) tail
-      LevelNode {
-        nodes = [| child |]
-        depth = depth
-      }
-
   let private getTailOffset vec = vec.count - vec.tail.Length
 
-  let private getDepthFromRoot = function
-    | LevelRootNode trie -> trie.depth
-    | LeafRootNode _ -> leafDepth
-    | ValuesRootNode _ -> 0
-    | NoneRootNode -> 0
-
-  let private pushTail (vec: HashedTriePersistentVector<'v>) : RootNode<'v> =
+  let private pushTail (vec: HashedTriePersistentVector<'v>) : TrieNode<'v> =
     let tail = vec.tail
     if tail.Length <> width then failwith "tail wrong size"
 
-    let depth = getDepthFromRoot vec.root
-
     match vec.root with
-    | NoneRootNode ->
-        ValuesRootNode tail
-
-    | ValuesRootNode values ->
-        LeafRootNode [| values; tail |]
-
-    | LeafRootNode leafNode ->
-        if leafNode.Length < width then
-          LeafRootNode (leafNode |> Array.add tail)
-        else
-          let oldLeafNode = LeafNode leafNode
-          let newLeafNode = LeafNode [| tail |]
-
-          LevelRootNode {
-            nodes = [| oldLeafNode; newLeafNode |]
-            depth = depth + 1
-          }
-
-    | LevelRootNode trie ->
-        let rec pushTail depth (trie: array<TrieNode<'v>>) =
-          let index = computeIndex depth (vec.count - 1)
-
-          match trie |> Array.tryItem index with
-          | Some (LeafNode leafNode) when leafNode.Length < width ->
-              let newLeafNode = LeafNode (leafNode |> Array.add tail)
-              LevelNode {
-                nodes = trie |> Array.cloneAndSet index newLeafNode
-                depth = depth
+    | None -> ValuesNode {
+        owner = vec.owner
+        values = tail
+      }
+    | Some node ->
+        let rec pushTailIntoTrie = function
+          | ValuesNode valuesNode as node -> LeafNode {
+                owner = vec.owner
+                valueNodes = [| valuesNode; { owner = vec.owner; values = tail } |]
               }
+          | LeafNode leafNode as node->
+              if leafNode.valueNodes.Length < width then
+                LeafNode {
+                  owner = vec.owner
+                  valueNodes = leafNode.valueNodes |> Array.add { owner = vec.owner; values = tail }
+                }
+              else   
+                LevelNode {
+                  depth = 2
+                  owner = vec.owner
+                  nodes = [| node; ValuesNode { owner = vec.owner; values = tail } |]
+                }  
+          | LevelNode levelNode as node ->
+              let index = computeIndex levelNode.depth (vec.count - 1)
 
-          | None when trie.Length < width ->
-              let newNode = newPath (depth - 1) tail
-              LevelNode {
-                nodes = trie |> Array.add newNode
-                depth = depth
-              }
+              // node is full
+              if levelNode.nodes.Length = width && index < (width - 1) then 
+                LevelNode {
+                  depth = levelNode.depth + 1
+                  owner = vec.owner
+                  nodes = [| node; ValuesNode { owner = vec.owner; values = tail } |]
+                }
+              else
+            
+              match levelNode.nodes |> Array.tryItem index with
+              | Some childAtIndex ->
+                  let newChildAtIndex = childAtIndex |> pushTailIntoTrie
+                  LevelNode {
+                    depth = levelNode.depth
+                    owner = vec.owner
+                    nodes = levelNode.nodes |> Array.cloneAndSet index newChildAtIndex
+                  }
+              | None ->
+                  let newLevelNode = {
+                    depth = levelNode.depth
+                    owner = vec.owner
+                    nodes = levelNode.nodes |> Array.add (ValuesNode { owner = vec.owner; values = tail })
+                  }
 
-          | Some (LevelNode trieNode) ->
-              let newTrieNode = pushTail (depth - 1) trieNode.nodes
-              LevelNode {
-                nodes = trie |> Array.cloneAndSet index newTrieNode
-                depth = depth
-              }
+                  LevelNode newLevelNode
 
-          | _ -> failwith "node is full"
-
-        let shift = depth * bits
-
-        if ((vec.count - 1) >>> bits) >= (1 <<< shift) then
-          let oldRootNode = LevelNode trie
-          LevelRootNode {
-            nodes = [| oldRootNode; (newPath depth tail) |]
-            depth = depth + 1
-          }
-        else
-          match pushTail depth trie.nodes with
-          | LeafNode leafNode ->
-              failwith "how can this happen?"
-              LeafRootNode leafNode
-          | LevelNode trieNode ->
-              LevelRootNode trieNode
+        node|> pushTailIntoTrie
 
   let add (v: 'v) (vec: HashedTriePersistentVector<'v>) =
     if vec.tail.Length < width then {
         vec with
           count = vec.count + 1
-          root = vec.root
           tail = vec.tail |> Array.add v
       }
     else {
         vec with
           count = vec.count + 1
-          root = pushTail vec
+          root = vec |> pushTail |> Some
           tail = [| v |]
       }
 
   let toSeq (vec: HashedTriePersistentVector<'v>) = seq {
     let rec toSeq = function
-      | LeafNode leafNode ->
-            leafNode |> Seq.concat
+      | ValuesNode valuesNode -> valuesNode.values |> Seq.ofArray
+      | LeafNode leafNode -> 
+          leafNode.valueNodes |> Seq.map (fun n -> n.values) |> Seq.concat
       | LevelNode trieNode ->
           trieNode.nodes |> Seq.map toSeq |> Seq.concat
 
     match vec.root with
-    | LevelRootNode trieNode ->
-        yield! (LevelNode trieNode) |> toSeq
-    | LeafRootNode leafNode ->
-        yield! (LeafNode leafNode) |> toSeq
-    | ValuesRootNode values ->
-        yield! values
-    | NoneRootNode -> ()
+    | Some root ->
+        yield! root |> toSeq
+    | None -> ()
 
     yield! vec.tail
   }
-
+ 
   let private leafNodeFor index vec =
     let tailOffset = getTailOffset vec
 
     let rec findLeafNode = function
+      | ValuesNode valuesNode -> Some valuesNode.values
       | LeafNode leafNode ->
-          let nodeIndex = computeIndex leafDepth index
-          leafNode |> Array.tryItem nodeIndex
+          let nodeIndex = computeIndex 1 index
+          match leafNode.valueNodes |> Array.tryItem nodeIndex with
+          | Some valuesNode -> Some valuesNode.values
+          | _ -> None
       | LevelNode trieNode ->
           let nodeIndex = computeIndex trieNode.depth index
           match trieNode.nodes |> Array.tryItem nodeIndex with
-          | Some node -> findLeafNode node
+          | Some node -> node |> findLeafNode
           | _ -> None
 
     if index < 0 || index >= vec.count then
@@ -187,76 +165,20 @@ module private PersistentVectorImpl =
       Some vec.tail
     else
       match vec.root with
-      | LevelRootNode trieNode ->
-          (LevelNode trieNode) |> findLeafNode
-      | LeafRootNode leafNode ->
-          (LeafNode leafNode) |> findLeafNode
-      | ValuesRootNode values ->
-          Some values
-      | NoneRootNode ->
-          None
+      | Some node -> node |> findLeafNode
+      | None -> None
 
   let tryGet (index: int) (vec: HashedTriePersistentVector<'v>) =
-    let v = vec |> leafNodeFor index
     match vec |> leafNodeFor index with
-    | Some vec ->
+    | Some node ->
         let index = computeIndex 0 index
-        vec |> Array.tryItem index
+        node |> Array.tryItem index
     | _ -> None
 
   let get (index: int) (vec: HashedTriePersistentVector<'v>) =
     match vec |> tryGet index with
     | Some v -> v
     | _ -> failwith "index out of bounds"
-
-  let private doUpdateValuesNode (comparer: IEqualityComparer<'v>) index v (valuesNode: array<'v>) =
-    let nodeIndex = computeIndex 0 index
-    let currentValue = valuesNode.[nodeIndex]
-
-    if comparer.Equals(currentValue, v) then
-      valuesNode
-    else
-      valuesNode |> Array.cloneAndSet nodeIndex v
-
-  let private doUpdateLeafNode (comparer: IEqualityComparer<'v>) index v (leafNode: array<array<'v>>) =
-    let leafIndex = computeIndex leafDepth index
-    let valuesNode = leafNode.[leafIndex]
-    let newValuesNode = valuesNode |> doUpdateValuesNode comparer index v
-
-    if Object.ReferenceEquals(valuesNode, newValuesNode) then
-      leafNode
-    else
-      leafNode |> Array.cloneAndSet leafIndex newValuesNode
-
-  let rec private doUpdateTrieNode (comparer: IEqualityComparer<'v>) index v (trieNode: LevelNode<'v>) =
-    let pos = computeIndex trieNode.depth index
-
-    let currentChildeNodeAtPos = trieNode.nodes.[pos]
-    let newChildNodeAtPos =
-      match currentChildeNodeAtPos  with
-      | LeafNode leafNode as currentTrieNode ->
-          let newLeafNode = leafNode |> doUpdateLeafNode comparer index v
-
-          if Object.ReferenceEquals(leafNode, newLeafNode) then
-            currentTrieNode
-          else
-            LeafNode newLeafNode
-
-      | LevelNode childTrieNode as currentTrieNode ->
-          let newChildTrieNode = childTrieNode |> doUpdateTrieNode comparer index v
-
-          if Object.ReferenceEquals(childTrieNode, newChildTrieNode) then
-            currentTrieNode
-          else
-            LevelNode newChildTrieNode
-
-    if Object.ReferenceEquals(currentChildeNodeAtPos, newChildNodeAtPos) then
-      trieNode
-    else
-      {
-        depth = trieNode.depth
-        nodes = (trieNode.nodes |> Array.cloneAndSet pos newChildNodeAtPos)
-      }
 
   let update (index: int) (v: 'v) (vec: HashedTriePersistentVector<'v>): HashedTriePersistentVector<'v> =
     if index >= vec.count || index < 0 then
@@ -271,83 +193,56 @@ module private PersistentVectorImpl =
         let newTail = vec.tail |> Array.cloneAndSet nodeIndex v
         { vec with tail = newTail }
     else
-      let newRoot =
-        match vec.root with
-        | LevelRootNode trieNode as currentRootNode ->
-            let newTrieNode = trieNode |> doUpdateTrieNode vec.comparer index v
+      let rec doUpdate node = 
+        match node with
+        | ValuesNode valuesNode ->
+            let index = computeIndex 0 index
+            let currentValue = valuesNode.values.[index]
 
-            if Object.ReferenceEquals(trieNode, newTrieNode) then
-              currentRootNode
-            else
-              LevelRootNode newTrieNode
+            if vec.comparer.Equals(currentValue, v) then
+              node
+            else ValuesNode {
+              owner = vec.owner
+              values = valuesNode.values |> Array.cloneAndSet index v
+            }
+        | LeafNode leafNode ->
+            let leafIndex = computeIndex 1 index
+            let valuesNode = leafNode.valueNodes.[leafIndex]
 
-        | LeafRootNode leafNode as currentRootNode ->
-            let newLeafNode = leafNode |> doUpdateLeafNode vec.comparer index v
+            let valueIndex = computeIndex 0 index
+            let currentValue = valuesNode.values.[valueIndex]
 
-            if Object.ReferenceEquals(leafNode, newLeafNode) then
-              currentRootNode
-            else
-              LeafRootNode newLeafNode
+            if vec.comparer.Equals(currentValue, v) then
+              node
+            else 
+              let newValuesNode = {
+                owner = vec.owner
+                values = valuesNode.values |> Array.cloneAndSet valueIndex v
+              }
 
-        | ValuesRootNode valuesNode as currentRootNode ->
-            let newValuesNode = valuesNode |> doUpdateValuesNode vec.comparer index v
+              LeafNode {
+                owner = vec.owner
+                valueNodes = leafNode.valueNodes |> Array.cloneAndSet leafIndex newValuesNode
+              }
+        | LevelNode levelNode -> 
+            let index = computeIndex levelNode.depth index
+            let childAtIndex = levelNode.nodes.[index]
+            let newChildAtIndex = childAtIndex |> doUpdate
 
-            if Object.ReferenceEquals(valuesNode, newValuesNode) then
-              currentRootNode
-            else
-              ValuesRootNode newValuesNode
+            if Object.ReferenceEquals(childAtIndex, newChildAtIndex) then
+              node
+            else LevelNode {
+              depth = levelNode.depth
+              owner = vec.owner
+              nodes = levelNode.nodes |> Array.cloneAndSet index newChildAtIndex
+            }
 
-        | NoneRootNode ->
-            failwith "something went wrong"
-
-      if Object.ReferenceEquals(vec.root, newRoot) then
+      let currentRoot = vec.root |> Option.get
+      let newRoot = currentRoot |> doUpdate
+      if Object.ReferenceEquals(currentRoot, newRoot) then
         vec
       else
-        { vec with root = newRoot }
-
-  let private popTrieRootNodeTail (trieRootNode: LevelNode<'v>) : TrieNode<'v> =
-    let rec doPop = function
-      | LeafNode leafNode when leafNode.Length > 1  ->
-          let newLeafNode = leafNode |> Array.pop
-          Some (LeafNode newLeafNode)
-      | LevelNode trieNode ->
-          let childNode = trieNode.nodes |> Array.last
-          match doPop childNode with
-          | None when trieNode.nodes.Length > 1 ->
-              let newTrieNodeNodes = trieNode.nodes |> Array.pop
-              Some (LevelNode {
-                trieNode with
-                  nodes = newTrieNodeNodes
-              })
-          | Some newChildNode ->
-              let subidx = trieNode.nodes |> Array.lastIndex
-              let newTrieNodeNodes = trieNode.nodes |> Array.cloneAndSet subidx newChildNode
-              Some (LevelNode {
-                trieNode with
-                  nodes = newTrieNodeNodes
-              })
-          | None -> None
-      | _ -> None
-
-    let childNode = trieRootNode.nodes |> Array.last
-    let newChildNode = doPop childNode
-    match newChildNode with
-    | Some childNode ->
-        let subidx = trieRootNode.nodes |> Array.lastIndex
-        let newTrieRootNodeNodes = trieRootNode.nodes |> Array.cloneAndSet subidx childNode
-        LevelNode {
-          trieRootNode with
-            nodes = newTrieRootNodeNodes
-        }
-    | None when trieRootNode.nodes.Length > 2 ->
-        let newTrieRootNodeNodes = trieRootNode.nodes |> Array.pop
-        LevelNode {
-          trieRootNode with
-            nodes = newTrieRootNodeNodes
-        }
-    | None when trieRootNode.nodes.Length = 1 ->
-        trieRootNode.nodes.[0]
-    | None -> failwith "should never happen"
+        { vec with root = Some newRoot }
 
   let pop (vec: HashedTriePersistentVector<'v>) =
     if vec.count = 0 then
@@ -363,29 +258,37 @@ module private PersistentVectorImpl =
       }
     else
       let index = vec.count - 2
-      let newTail = vec |> leafNodeFor index |> Option.get
+      let newTail = vec |> leafNodeFor index |> Option.get    
 
-      let newRoot =
-        match vec.root with
-        | LevelRootNode trieNode ->
-            match trieNode |> popTrieRootNodeTail with
-            | LeafNode leafNode ->
-                LeafRootNode leafNode
-            | LevelNode trieRootNode ->
-                LevelRootNode trieNode
+      let rec popTail = function
+        | ValuesNode valuesNode -> None      
+        | LeafNode leafNode when leafNode.valueNodes.Length > 2 ->
+            LeafNode { owner = vec.owner; valueNodes = leafNode.valueNodes |> Array.pop } |> Some
+        | LeafNode leafNode ->
+            ValuesNode { owner = vec.owner; values = leafNode.valueNodes.[0].values } |> Some
+        | LevelNode levelNode ->
+            let levelIndex = levelNode.nodes.Length - 1
 
-        | LeafRootNode leafNode ->
-            if (leafNode.Length > 2) then
-              let newLeafNode = leafNode |> Array.pop
-              LeafRootNode newLeafNode
-            else
-              ValuesRootNode (leafNode.[0])
-        | ValuesRootNode valuesNode ->
-            NoneRootNode
-        | NoneRootNode ->
-            failwith "Something went wrong"
+            match popTail levelNode.nodes.[levelIndex] with
+            | Some newNodeAtIndex -> 
+                LevelNode { 
+                  depth = levelNode.depth; 
+                  owner = vec.owner; 
+                  nodes = levelNode.nodes |> Array.cloneAndSet levelIndex newNodeAtIndex
+                } |> Some
+            | None when levelNode.nodes.Length > 2 -> 
+                LevelNode { 
+                  depth = levelNode.depth; 
+                  owner = vec.owner; 
+                  nodes = levelNode.nodes |> Array.pop 
+                } |> Some
+            | None -> levelNode.nodes.[0] |> Some
+    
+      let currentRoot = vec.root |> Option.get
+      let newRoot = currentRoot |> popTail
 
       { vec with
+          owner = vec.owner
           count = vec.count - 1
           root = newRoot
           tail = newTail

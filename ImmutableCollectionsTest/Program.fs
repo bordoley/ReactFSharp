@@ -81,8 +81,6 @@ let persistentMapTests n =
     testSeq |> Seq.map (fun i -> n - i) |> Seq.fold (fun acc i -> 
       acc |> PersistentMap.remove i
     ) result
-
-   
   ()
 
 open BitCount
@@ -91,8 +89,8 @@ open BitCount
 let main argv =
   let n = 1000000
 
-  //persistentVectorTests 3000000
-  persistentMapTests n
+  persistentVectorTests 65568
+  //persistentMapTests n
 
   0
 
