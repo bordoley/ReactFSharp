@@ -159,6 +159,8 @@ type private ImmutableSetMultimapBase<'k, 'v> () =
 
   abstract member Item: 'k -> IImmutableSet<'v>
 
+  default this.Item k  = (this.Item k) :> seq<'v>
+
   interface IImmutableSetMultimap<'k, 'v> with
     member this.Item k = this.Item k
 
@@ -166,10 +168,12 @@ type private ImmutableSetMultimapBase<'k, 'v> () =
 type private PersistentSetMultimapBase<'k, 'v> () = 
   inherit ImmutableSetMultimapBase<'k, 'v>()
 
+  abstract member Mutate: unit -> ITransientSetMultimap<'k, 'v>
   abstract member Put: 'k * 'v -> IPersistentSetMultimap<'k, 'v>
   abstract member Remove: 'k * seq<'v> -> IPersistentSetMultimap<'k, 'v>
 
   interface IPersistentSetMultimap<'k, 'v> with
+    member this.Mutate () = this.Mutate ()
     member this.Put (k, v) = this.Put (k, v)
     member this.Remove (k, values) = this.Remove(k, values)
 
@@ -179,6 +183,8 @@ type private ImmutableListMultimapBase<'k, 'v> () =
 
   abstract member Item: 'k -> 'v list
 
+  default this.Item k  = (this.Item k) :> seq<'v>
+
   interface IImmutableListMultimap<'k, 'v> with
     member this.Item k = this.Item k
 
@@ -187,10 +193,12 @@ type private PersistentListMultimapBase<'k, 'v> () =
   inherit ImmutableListMultimapBase<'k, 'v> ()
 
   abstract member Add: 'k * 'v -> IPersistentListMultimap<'k, 'v>
+  abstract member Mutate: unit -> ITransientListMultimap<'k, 'v>
   abstract member Pop: 'k * int -> IPersistentListMultimap<'k, 'v>
 
   interface IPersistentListMultimap<'k, 'v> with
     member this.Add (k, v) = this.Add (k, v)
+    member this.Mutate () = this.Mutate ()
     member this.Pop (k, count) = this.Pop (k, count)
 
 [<AbstractClass>]
@@ -208,10 +216,12 @@ type private ImmutableTableBase<'row, 'column, 'value> () =
 type private PersistentTableBase<'row, 'column, 'value> () =
   inherit ImmutableTableBase<'row, 'column, 'value> ()
 
+  abstract member Mutate: unit -> ITransientTable<'row, 'column, 'value>
   abstract member Put: 'row * 'column * 'value -> IPersistentTable<'row, 'column, 'value>
   abstract member Remove: 'row * 'column -> IPersistentTable<'row, 'column, 'value>
 
   interface IPersistentTable<'row, 'column, 'value> with
+    member this.Mutate () = this.Mutate ()
     member this.Put (r, c, v) = this.Put (r, c, v)
     member this.Remove (r, c) = this.Remove (r, c)
 
@@ -228,7 +238,9 @@ type private ImmutableCountingTableBase<'row, 'column> () =
 type private PersistentCountingTableBase<'row, 'column> () =
   inherit ImmutableCountingTableBase<'row, 'column> ()
 
+  abstract member Mutate: unit -> ITransientCountingTable<'row, 'column>
   abstract member SetItemCount: 'row * 'column * int -> IPersistentCountingTable<'row, 'column>
 
   interface IPersistentCountingTable<'row, 'column> with
+    member this.Mutate () = this.Mutate ()
     member this.SetItemCount (r, c, count) = this.SetItemCount (r, c, count) 

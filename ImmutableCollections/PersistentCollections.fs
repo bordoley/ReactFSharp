@@ -143,7 +143,7 @@ module PersistentSetMultimap =
           match map |> ImmutableMap.tryGet k with
           | Some v -> (v :> IImmutableSet<'v>)
           | None -> ImmutableSet.empty ()
-        override this.Item k = ((this :> IPersistentSetMultimap<'k, 'v>).Item k) :> seq<'v>
+        override this.Mutate () = failwith "Not Implemented"
         override this.Put (k, v) =
           match map |> ImmutableMap.tryGet k with
           | Some set when set |> ImmutableSet.contains v ->
@@ -196,7 +196,6 @@ module PersistentListMultimap =
           match map |> ImmutableMap.tryGet k with
           | Some v -> v
           | None -> List.empty
-        override this.Item k = ((this :> IPersistentListMultimap<'k, 'v>).Item k) :> seq<'v>
         override this.Add (k, v) =
           match map |> ImmutableMap.tryGet k with
           | Some list ->
@@ -207,6 +206,7 @@ module PersistentListMultimap =
               let newList = v :: []
               let newMap = map |> PersistentMap.put k newList
               createInternal newMap (count + 1)
+        override this.Mutate () = failwith "Not Implemented"
         override this.Pop (k, removeCount) =
           match map |> ImmutableMap.tryGet k with
           | Some list when list.Length > removeCount ->
@@ -259,6 +259,8 @@ module PersistentCountingTable =
           | None -> 0
           | Some column -> column |> ImmutableMultiset.get columnKey
   
+        override this.Mutate () = failwith "Not Implemented"
+
         override this.SetItemCount (rowKey, columnKey, itemCount) =
           if itemCount < 0 then
             failwith "itemCount must be greater than or equal 0"
@@ -324,6 +326,8 @@ module PersistentTable =
           let row = map |> ImmutableMap.get rowKey 
           row |> ImmutableMap.get columnKey
   
+        override this.Mutate () = failwith "Not Implemented"
+
         override this.TryItem (rowKey, columnKey) = 
           match map |> ImmutableMap.tryGet rowKey with
           | None -> None
