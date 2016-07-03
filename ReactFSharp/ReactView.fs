@@ -17,7 +17,7 @@ type [<ReferenceEquality>] ReactView =
 and IReactStatefulView = 
   inherit IDisposable
 
-  abstract member Id: int with get
+  abstract member Id: obj
 
 and IReactView =
   inherit IDisposable
@@ -36,7 +36,7 @@ and IReactViewGroup =
 module ReactView =
   type ViewProvider = {
     createView: string -> obj -> ReactView
-    createStatefulView: (int * IObservable<ReactView>) -> ReactView
+    createStatefulView: (obj * IObservable<ReactView>) -> ReactView
   }
 
   let dispose = function
@@ -63,12 +63,12 @@ module ReactView =
           view |> updateWith node.child
 
       | (ReactStatefulDOMNode node, ReactStatefulView statefulView) 
-          when (node.element.comp :> obj).GetHashCode() = statefulView.Id -> view
+          when node.id = statefulView.Id -> view
 
       | (ReactStatefulDOMNode node, _) ->
           view |> dispose
 
-          let id = (node.element.comp :> obj).GetHashCode()
+          let id = node.id
 
           let state = 
             node.state

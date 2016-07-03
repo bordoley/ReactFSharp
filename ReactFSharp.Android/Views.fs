@@ -21,7 +21,7 @@ module AndroidReactView =
     | ReactViewGroup child -> Some (child :?> AndroidReactView).View
     | _ -> None
 
-  let private statefulViewProvider (context: Android.Content.Context) (id:int, state: IObservable<ReactView>) = 
+  let private statefulViewProvider (context: Android.Content.Context) (id: obj, state: IObservable<ReactView>) = 
     let view = new FrameLayout(context);
     view.LayoutParameters <- new ViewGroup.LayoutParams(-2, -2)
 

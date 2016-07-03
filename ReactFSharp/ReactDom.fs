@@ -18,6 +18,7 @@ and [<ReferenceEquality>] internal ReactDOMNode =
 and [<ReferenceEquality>] internal ReactStatefulDOMNode = 
   {
     element: ReactStatefulElement
+    id: obj
     updateProps: obj -> unit
     state: IObservable<ReactDOMNode>
     dispose: unit -> unit 
@@ -63,17 +64,13 @@ module internal ReactDom =
       | (ReactStatefulDOMNode node, ReactStatefulElement ele) 
           when Object.ReferenceEquals(node.element.comp, ele.comp) && node.element.props = ele.props -> tree
 
-      | (ReactStatefulDOMNode node, ReactStatefulElement ele) 
-          when Object.ReferenceEquals(node.element.comp, ele.comp) ->
-            let element: ReactStatefulElement = {
-              comp = node.element.comp
-              props = ele.props
-            }
-
-            node.updateProps ele.props
+      | (ReactStatefulDOMNode node, ReactStatefulElement element) 
+          when Object.ReferenceEquals(node.element.comp, element.comp) ->
+            node.updateProps element.props
 
             ReactStatefulDOMNode {
               element = element
+              id = node.id
               updateProps = node.updateProps
               state = node.state
               dispose = node.dispose
@@ -125,6 +122,7 @@ module internal ReactDom =
 
             ReactStatefulDOMNode {
               element = ele
+              id = new obj()
               updateProps = updateProps
               state = state |> FSXObservable.asObservable
               dispose = dispose

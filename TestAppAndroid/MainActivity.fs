@@ -19,12 +19,12 @@ module FSXObservable = FSharp.Control.Reactive.Observable
 module Views =
   let StatefulButton = ReactStatefulComponent (fun props ->
     let action = new Event<unit>()
-  
+     
     let reducer (state, _) = state + 1
   
     let render (props, state: int) = 
       Widgets.Button >>= { 
-        layoutParams = ViewGroupLayoutParams(300, 100)
+        layoutParams = ViewGroupLayoutParams(-1, -2)
         text = sprintf "count %i" state
         onClick = Some action.Trigger
       }
