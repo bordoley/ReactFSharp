@@ -6,20 +6,34 @@ open System.Collections.Generic
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module PersistentSet =
-  let rec private createInternal (map: IPersistentMap<'v, 'v>) =
+  let rec private createTransient (map: ITransientMap<'v, 'v>) =
+    { new ITransientSet<'v> with 
+        member this.Persist () =
+          map.Persist() |> createInternal
+        member this.Put v =
+          map.Put (v, v) |> ignore
+          this
+        member this.Remove v =
+          map.Remove v |> ignore
+          this
+    }
+
+  and private createInternal (map: IPersistentMap<'v, 'v>) =
     ({ new PersistentSetBase<'v> () with
-        member this.Count = (map :> IImmutableMap<'v, 'v>).Count 
-        member this.GetEnumerator () =
+        override this.Count = (map :> IImmutableMap<'v, 'v>).Count 
+        override this.GetEnumerator () =
           map |> Seq.map (fun (k, v) -> k) |> Seq.getEnumerator
-        member this.Item v =
+        override this.Item v =
           match map.TryItem v with
           | Some _ -> true
           | _ -> false
-        member this.Put v =
+        override this.Mutate () = 
+          map |> PersistentMap.mutate |> createTransient
+        override this.Put v =
           let newMap = map.Put (v,v)
           if (Object.ReferenceEquals(map, newMap)) then (this :> IPersistentSet<'v>)
           else createInternal map
-        member this.Remove v =
+        override this.Remove v =
           let newMap = map.Remove v
           if (Object.ReferenceEquals(map, newMap)) then (this :> IPersistentSet<'v>)
           else createInternal map   
@@ -43,16 +57,31 @@ module PersistentSet =
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module PersistentMultiset =
-  let rec private createInternal (map: IPersistentMap<'v, int>) (count: int) =
+  let rec private createTransient (map: ITransientMap<'v, int>) =
+    { new ITransientMultiset<'v> with 
+        member this.Persist () =
+          map.Persist() |> createInternal
+        member this.SetItemCount (v, itemCount) = 
+          if itemCount < 0 then
+            failwith "itemCount must be greater than or equal 0"
+          if itemCount = 0 then
+            map.Remove v |> ignore
+          else 
+            map.Put (v, itemCount) |> ignore
+          this
+    }
+ 
+   and private createInternal (map: IPersistentMap<'v, int>) =
     ({ new PersistentMultisetBase<'v>() with
-        member this.Count = count
-        member this.GetEnumerator () = map |> Seq.getEnumerator
-        member this.Item v =
+        override this.Count = map.Count
+        override this.GetEnumerator () = map |> Seq.getEnumerator
+        override this.Item v =
           match map |> PersistentMap.tryGet v with
           | Some v -> v
           | _ -> 0
-  
-        member this.SetItemCount (v, itemCount) =
+        override this.Mutate () = 
+          map |> PersistentMap.mutate |> createTransient
+        override this.SetItemCount (v, itemCount) =
           if itemCount < 0 then
             failwith "itemCount must be greater than or equal 0"
   
@@ -64,9 +93,7 @@ module PersistentMultiset =
           if Object.ReferenceEquals(map, newMap) then
             this :> IPersistentMultiset<'v>
           else
-            let currentItemCount = (this :> IPersistentMultiset<'v>).Item v
-            let newCount = count + (itemCount - currentItemCount)
-            createInternal map newCount
+            createInternal map 
     }) :> IPersistentMultiset<'v>
 
   let emptyWithComparer (comparer: IEqualityComparer<'v>) : IPersistentMultiset<'v> =
@@ -75,7 +102,7 @@ module PersistentMultiset =
         key = comparer
         value = EqualityComparer.Default
       }
-    createInternal backingMap 0
+    createInternal backingMap
 
   let empty () = emptyWithComparer System.Collections.Generic.EqualityComparer.Default
 
@@ -159,18 +186,18 @@ module PersistentSetMultimap =
 module PersistentListMultimap =
   let rec private createInternal (map: IPersistentMap<'k, 'v list>) (count: int) =
     ({ new PersistentListMultimapBase<'k, 'v> () with
-        member this.Count = count
-        member this.GetEnumerator () =
+        override this.Count = count
+        override this.GetEnumerator () =
           map
           |> Seq.map (fun (k, values) -> values |> Seq.map (fun v -> (k, v)))
           |> Seq.concat
           |> Seq.getEnumerator
-        member this.Item k =
+        override this.Item k =
           match map |> ImmutableMap.tryGet k with
           | Some v -> v
           | None -> List.empty
-        member this.Item k = ((this :> IPersistentListMultimap<'k, 'v>).Item k) :> seq<'v>
-        member this.Add (k, v) =
+        override this.Item k = ((this :> IPersistentListMultimap<'k, 'v>).Item k) :> seq<'v>
+        override this.Add (k, v) =
           match map |> ImmutableMap.tryGet k with
           | Some list ->
               let newList = v :: list
@@ -180,7 +207,7 @@ module PersistentListMultimap =
               let newList = v :: []
               let newMap = map |> PersistentMap.put k newList
               createInternal newMap (count + 1)
-        member this.Pop (k, removeCount) =
+        override this.Pop (k, removeCount) =
           match map |> ImmutableMap.tryGet k with
           | Some list when list.Length > removeCount ->
               let numItemsToRemove = list.Length - removeCount
@@ -219,20 +246,20 @@ module PersistentCountingTable =
       (count: int)
       (comparer: CountingTableComparer<'row, 'column>) =
     ({ new PersistentCountingTableBase<'row, 'column> () with
-        member this.Count = count
+        override this.Count = count
   
-        member this.GetEnumerator () =
+        override this.GetEnumerator () =
           map
           |> Seq.map (fun (row, values) -> values |> Seq.map (fun (column, count)-> (row, column, count)))
           |> Seq.concat
           |> Seq.getEnumerator
   
-        member this.Item (rowKey, columnKey) =
+        override this.Item (rowKey, columnKey) =
           match map |> ImmutableMap.tryGet rowKey with
           | None -> 0
           | Some column -> column |> ImmutableMultiset.get columnKey
   
-        member this.SetItemCount (rowKey, columnKey, itemCount) =
+        override this.SetItemCount (rowKey, columnKey, itemCount) =
           if itemCount < 0 then
             failwith "itemCount must be greater than or equal 0"
   
@@ -285,24 +312,24 @@ module PersistentTable =
       (count: int)
       (columnComparer: KeyValueComparer<'column, 'value>) =
     ({ new PersistentTableBase<'row, 'column, 'value> () with
-        member this.Count = count
+        override this.Count = count
   
-        member this.GetEnumerator () =
+        override this.GetEnumerator () =
           map
           |> Seq.map (fun (row, values) -> values |> Seq.map (fun (column, value)-> (row, column, value)))
           |> Seq.concat
           |> Seq.getEnumerator
 
-        member this.Item (rowKey, columnKey) = 
+        override this.Item (rowKey, columnKey) = 
           let row = map |> ImmutableMap.get rowKey 
           row |> ImmutableMap.get columnKey
   
-        member this.TryItem (rowKey, columnKey) = 
+        override this.TryItem (rowKey, columnKey) = 
           match map |> ImmutableMap.tryGet rowKey with
           | None -> None
           | Some row -> row |> ImmutableMap.tryGet columnKey
         
-        member this.Put (rowKey, columnKey, newValue) =
+        override this.Put (rowKey, columnKey, newValue) =
           match map |> ImmutableMap.tryGet rowKey with
           | None -> 
               let newColumn = 
@@ -323,7 +350,7 @@ module PersistentTable =
                 let newCount = count + 1
                 createInternal newMap newCount columnComparer                
   
-         member this.Remove (rowKey, columnKey) =
+         override this.Remove (rowKey, columnKey) =
            match map |> ImmutableMap.tryGet rowKey with
            | None -> 
                this :> IPersistentTable<'row, 'column, 'value>

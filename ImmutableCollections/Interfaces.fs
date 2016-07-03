@@ -13,8 +13,15 @@ type IImmutableMap<'k, 'v> =
 type IPersistentMap<'k, 'v> =
   inherit IImmutableMap<'k, 'v>
 
+  abstract member Mutate: unit -> ITransientMap<'k, 'v>
   abstract member Put: 'k * 'v -> IPersistentMap<'k, 'v>
   abstract member Remove: 'k -> IPersistentMap<'k, 'v>
+
+and ITransientMap<'k, 'v> =
+
+  abstract member Persist: unit -> IPersistentMap<'k, 'v>
+  abstract member Put: 'k * 'v -> ITransientMap<'k, 'v>
+  abstract member Remove: 'k -> ITransientMap<'k, 'v>
 
 
 type IImmutableMultiset<'v> = 
@@ -26,9 +33,15 @@ type IImmutableMultiset<'v> =
 type IPersistentMultiset<'v> = 
   inherit IImmutableMultiset<'v>
 
+  abstract member Mutate: unit -> ITransientMultiset<'v>
   abstract member SetItemCount: 'v * int -> IPersistentMultiset<'v>
 
+and ITransientMultiset<'v> = 
 
+  abstract member Persist: unit -> IPersistentMultiset<'v>
+  abstract member SetItemCount: 'v * int -> ITransientMultiset<'v>
+
+   
 type IImmutableSet<'v> =
   inherit ICollection
   inherit IReadOnlyCollection<'v>
@@ -38,8 +51,15 @@ type IImmutableSet<'v> =
 type IPersistentSet<'v> =
   inherit IImmutableSet<'v>
 
+  abstract member Mutate: unit -> ITransientSet<'v>
   abstract member Put: 'v -> IPersistentSet<'v>
   abstract member Remove: 'v -> IPersistentSet<'v>
+
+and ITransientSet<'v> =
+
+  abstract member Persist: unit -> IPersistentSet<'v>
+  abstract member Put: 'v -> ITransientSet<'v>
+  abstract member Remove: 'v -> ITransientSet<'v>
 
 
 type IImmutableVector<'v> =
@@ -56,6 +76,7 @@ type IPersistentVector<'v> =
   abstract member Update: int * 'v -> IPersistentVector<'v>
 
 and ITransientVector<'v> =
+
   abstract member Add: 'v -> ITransientVector<'v>
   abstract member Persist: unit -> IPersistentVector<'v>
   abstract member Pop: unit -> ITransientVector<'v>

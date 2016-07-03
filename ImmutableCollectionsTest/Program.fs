@@ -75,10 +75,21 @@ let persistentMapTests n =
       acc |> PersistentMap.put (100 * i) i
     ) empty
 
+  let transient =
+    testSeq 
+    |> Seq.fold (fun acc i -> acc |> TransientMap.put (100 * i) i) (empty |> PersistentMap.mutate) 
+    |> TransientMap.persist
+
   testSeq 
   |> Seq.iter (fun i ->
       let v = result |> PersistentMap.get (100 * i)
       if (i <> v) then failwith (sprintf "expected %i got %i" i v)
+    )
+
+  testSeq 
+  |> Seq.iter (fun i ->
+      let v = transient |> PersistentMap.get (100 * i)
+      if (i <> v) then failwith (sprintf "transientmap expected %i got %i" i v)
     )
 
   let result2 =
@@ -87,14 +98,12 @@ let persistentMapTests n =
     ) result
   ()
 
-open BitCount
-
 [<EntryPoint>]
 let main argv =
-  let n = 1000000
+  let n = 10000000
 
   persistentVectorTests 30000000
-  //persistentMapTests n
+  persistentMapTests n
 
   0
 

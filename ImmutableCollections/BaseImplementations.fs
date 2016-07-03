@@ -51,10 +51,12 @@ type private ImmutableMapBase<'k, 'v> () =
 type private PersistentMapBase<'k, 'v> () =
   inherit ImmutableMapBase<'k, 'v>()
 
+  abstract Mutate: unit -> ITransientMap<'k, 'v>
   abstract Put: 'k * 'v -> IPersistentMap<'k, 'v>
   abstract Remove: 'k -> IPersistentMap<'k, 'v>
 
   interface IPersistentMap<'k, 'v> with
+    member this.Mutate () = this.Mutate ()
     member this.Put (k, v) = this.Put (k, v)
     member this.Remove key = this.Remove key
 
@@ -113,10 +115,12 @@ type private ImmutableSetBase<'v> () =
 type private PersistentSetBase<'v> () =
   inherit ImmutableSetBase<'v> ()
 
+  abstract member Mutate: unit -> ITransientSet<'v>
   abstract member Put: 'v -> IPersistentSet<'v>
   abstract member Remove: 'v -> IPersistentSet<'v>
 
   interface IPersistentSet<'v>  with
+    member this.Mutate () = this.Mutate ()
     member this.Put v = this.Put v
     member this.Remove v = this.Remove v
 
@@ -133,9 +137,11 @@ type private ImmutableMultisetBase<'v> () =
 type private PersistentMultisetBase<'v> () = 
   inherit ImmutableMultisetBase<'v>()
 
+  abstract member Mutate: unit -> ITransientMultiset<'v>
   abstract member SetItemCount: 'v * int -> IPersistentMultiset<'v>
 
   interface IPersistentMultiset<'v> with
+    member this.Mutate () = this.Mutate ()
     member this.SetItemCount (v, count) = this.SetItemCount(v, count)
 
 [<AbstractClass>]

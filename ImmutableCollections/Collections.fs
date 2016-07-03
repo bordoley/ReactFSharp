@@ -119,10 +119,10 @@ module ImmutableMap =
   let empty () =
     ({
       new ImmutableMapBase<'k, 'v>() with
-        member this.Count = 0
-        member this.GetEnumerator () = (Seq.empty :> IEnumerable<'k*'v>) |> Seq.getEnumerator
-        member this.Item _ = failwith "key not found"
-        member this.TryItem _ = None
+        override this.Count = 0
+        override this.GetEnumerator () = (Seq.empty :> IEnumerable<'k*'v>) |> Seq.getEnumerator
+        override this.Item _ = failwith "key not found"
+        override this.TryItem _ = None
     }) :> IImmutableMap<'k, 'v>
 
   let map f (map: IImmutableMap<'k, 'v>) =
@@ -198,7 +198,7 @@ module ImmutableVector =
           seq { 0 .. (this.Count - 1) }
           |> Seq.map (fun i -> (i, this.Item (this.Count - i - 1)))
           |> Seq.getEnumerator
-        member this.TryItem index =
+        override this.TryItem index =
           if index >= 0 && index < this.Count then
             vec |> ImmutableMap.tryGet (this.Count - index - 1)
           else None
@@ -293,9 +293,9 @@ module ImmutableSet =
 
   let empty () =
     ({ new ImmutableSetBase<'v> () with
-        member this.Count = 0
-        member this.GetEnumerator () = (Seq.empty :> seq<'v>) |> Seq.getEnumerator
-        member this.Item v = false
+        override this.Count = 0
+        override this.GetEnumerator () = (Seq.empty :> seq<'v>) |> Seq.getEnumerator
+        override this.Item v = false
     }) :> IImmutableSet<'v>
 
   let contains v (set: IImmutableSet<'v>) =
