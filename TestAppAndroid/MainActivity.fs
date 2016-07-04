@@ -60,26 +60,26 @@ type MainActivity () =
     }
   )
 
-  let MyStatefulComponent = ReactStatefulComponent (fun props -> 
-    let action = new Event<unit>()
-     
+  let MyStatefulComponent = 
     let reducer state _ = state + 1
+
+    let shouldUpdate old updated = true
+
+    let action = new Event<unit>()
 
     let render (props, state: int) = MyComponent >>= {
       onClick = action.Trigger
       count = state
       layoutParameters = new FrameLayout.LayoutParams(-1, -1)
     }
-
+  
     let actions = 
       action.Publish
       |> FSXObservable.observeOn (System.Reactive.Concurrency.NewThreadScheduler())
 
-    let shouldUpdate (props, state: int) = true
+    ReactStatefulComponent
+      (ReactComponent.stateReducing render reducer shouldUpdate 0 actions)
 
-    ReactComponent.stateReducing render reducer shouldUpdate 0 actions props
-  )
- 
   override this.OnCreate (bundle) =
     base.OnCreate (bundle)
 

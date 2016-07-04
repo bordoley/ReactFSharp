@@ -104,26 +104,22 @@ module internal ReactDom =
 
           match ele with
           | ReactStatefulElement ele ->
-            let subject = new Subject<obj>();
+            let props = new BehaviorSubject<obj>(ele.props);
             let state = 
-              (ele.comp (subject |> FSXObservable.asObservable))
+              (ele.comp (props |> FSXObservable.asObservable))
               |> Observable.scan reducer ReactNoneDOMNode
               |> FSXObservable.multicast (new BehaviorSubject<ReactDOMNode>(ReactNoneDOMNode))
             
             let connection = state.Connect()
                 
             let dispose () =
-              subject.OnCompleted()
+              props.OnCompleted()
               connection.Dispose()
-             
-            let updateProps = subject.OnNext
-
-            updateProps ele.props
 
             ReactStatefulDOMNode {
               element = ele
               id = new obj()
-              updateProps = updateProps
+              updateProps = props.OnNext
               state = state |> FSXObservable.asObservable
               dispose = dispose
             }

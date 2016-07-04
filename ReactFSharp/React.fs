@@ -2,6 +2,7 @@
 
 open ImmutableCollections
 open System
+open System.Reactive.Linq
 
 module FSXObservable = FSharp.Control.Reactive.Observable
 
@@ -46,22 +47,42 @@ and ReactStatelessComponent<'Props> = ('Props -> ReactElement)
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ReactComponent =
+  open FSXObservable
   let stateReducing 
       (render: ('Props * 'State) -> ReactElement)
       (reducer: 'State -> 'Action -> 'State)
-      (shouldUpdate: ('Props * 'State) -> bool)
-      (initialState: 'State)
-      (actions: IObservable<'Action>)
-      (props: IObservable<'Props>) =
+      (shouldUpdate: ('Props * 'State) -> ('Props * 'State) -> bool)
+      (initialState: 'State) =
+    fun (actions: IObservable<'Action>) (props: IObservable<'Props>) ->
+      let state = 
+        actions     
+        |> Observable.scan reducer initialState  
+        |> FSXObservable.startWith [initialState]
 
-    let state = 
-      actions     
-      |> Observable.scan reducer initialState  
-      |> FSXObservable.startWith [initialState]
-    
-    FSXObservable.combineLatest props state
-    |> Observable.filter shouldUpdate
-    |> Observable.map render
+      let updatedPropsAndState =
+        FSXObservable.combineLatest props state
+        |> FSXObservable.bufferCountSkip 2 1
+        |> Observable.map (fun list -> (list.[0], list.[1]))
+        |> Observable.filter (fun (o, n) -> shouldUpdate o n)
+        |> Observable.map (fun (o, n) -> n)
+
+      let elements = 
+        props
+        |> FSXObservable.first 
+        |> FSXObservable.map (fun props -> (props, initialState))
+        |> FSXObservable.concat updatedPropsAndState
+        |> Observable.map render
+        
+      elements
+
+
+
+
+
+
+
+
+
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ReactElement = 
