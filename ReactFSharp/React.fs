@@ -48,17 +48,19 @@ and ReactStatelessComponent<'Props> = ('Props -> ReactElement)
 module ReactComponent =
   let stateReducing 
       (render: ('Props * 'State) -> ReactElement)
-      (reducer: ('State * 'Action) -> 'State)
+      (reducer: 'State -> 'Action -> 'State)
+      (shouldUpdate: ('Props * 'State) -> bool)
       (initialState: 'State)
       (actions: IObservable<'Action>)
       (props: IObservable<'Props>) =
 
     let state = 
       actions     
-      |> Observable.scan (fun acc action -> reducer (acc, action)) initialState  
+      |> Observable.scan reducer initialState  
       |> FSXObservable.startWith [initialState]
     
-    FSXObservable.combineLatest props state 
+    FSXObservable.combineLatest props state
+    |> Observable.filter shouldUpdate
     |> Observable.map render
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]

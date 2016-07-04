@@ -52,7 +52,6 @@ type MainActivity () =
 
           ("textView", Components.TextView >>= {
               TextView.defaultProps with
-                alpha = 0.5f
                 clickable = false
                 layoutParameters = new LinearLayout.LayoutParams(-1, -1)
                 text = sprintf "count %i" props.count
@@ -64,7 +63,7 @@ type MainActivity () =
   let MyStatefulComponent = ReactStatefulComponent (fun props -> 
     let action = new Event<unit>()
      
-    let reducer (state, _) = state + 1
+    let reducer state _ = state + 1
 
     let render (props, state: int) = MyComponent >>= {
       onClick = action.Trigger
@@ -76,7 +75,9 @@ type MainActivity () =
       action.Publish
       |> FSXObservable.observeOn (System.Reactive.Concurrency.NewThreadScheduler())
 
-    ReactComponent.stateReducing render reducer 0 actions props
+    let shouldUpdate (props, state: int) = true
+
+    ReactComponent.stateReducing render reducer shouldUpdate 0 actions props
   )
  
   override this.OnCreate (bundle) =
