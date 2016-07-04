@@ -52,8 +52,9 @@ module ReactComponent =
       (render: ('Props * 'State) -> ReactElement)
       (reducer: 'State -> 'Action -> 'State)
       (shouldUpdate: ('Props * 'State) -> ('Props * 'State) -> bool)
-      (initialState: 'State) =
-    fun (actions: IObservable<'Action>) (props: IObservable<'Props>) ->
+      (initialState: 'State) 
+      (actions: IObservable<'Action>) =
+    let statefulComponent (props: IObservable<'Props>) =
       let state = 
         actions     
         |> Observable.scan reducer initialState  
@@ -74,15 +75,7 @@ module ReactComponent =
         |> Observable.map render
         
       elements
-
-
-
-
-
-
-
-
-
+    ReactStatefulComponent statefulComponent
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ReactElement = 
