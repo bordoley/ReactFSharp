@@ -9,33 +9,16 @@ open React.Android.Views
 module Button =
   let name = "Android.Widget.Button"
 
-  let dispose (view: Button) = 
+  let dispose (view: Button) =
     TextView.dispose view
 
-  let createView (context: Context) (initialProps: obj) = 
-    let view = new Button(context)
+  let setProps (view: Button) (props: ITextViewProps)   =
+    TextView.setProps view props
 
-    let currentProps = ref None
+  let private viewProvider context = new Button(context)
 
-    let updateProps (props: obj) =
-      let props = (props :?> ITextViewProps)
-      let oldProps = !currentProps
-      currentProps := Some props
-
-      view |> TextView.updateWithProps oldProps props
-
-    let dispose () = dispose view
-
-    let reactView: AndroidReactView = {
-      dispose = dispose
-      name = name
-      updateProps = updateProps
-      view = view
-    } 
-
-    updateProps initialProps
-
-    ReactView reactView
+  let createView: Context -> obj -> ReactView =
+    AndroidReactView.createView name viewProvider setProps dispose
 
   let reactComponent = ReactStatelessComponent (fun (props: TextViewProps) -> ReactNativeElement {
     name = name

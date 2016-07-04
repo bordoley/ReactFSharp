@@ -6,7 +6,7 @@ open Android.Views
 
 open System
 
-type IViewProps = 
+type IViewProps =
   abstract member Alpha: float32
   abstract member BackgroundColor: Color
   abstract member BackgroundTintMode: Option<PorterDuff.Mode>
@@ -19,14 +19,14 @@ type IViewProps =
   abstract member PivotY: Single
   abstract member SoundEffectsEnabled: bool
   abstract member TextAlignment: TextAlignment
-  abstract member TextDirection: TextDirection 
+  abstract member TextDirection: TextDirection
   abstract member TransitionName: string
   abstract member TranslationX: Single
-  abstract member TranslationY: Single 
-  abstract member TranslationZ: Single 
+  abstract member TranslationY: Single
+  abstract member TranslationZ: Single
   abstract member Visibility: ViewStates
 
-type ViewProps = 
+type ViewProps =
   {
     // View Props
     alpha: float32
@@ -41,11 +41,11 @@ type ViewProps =
     pivotY: Single
     soundEffectsEnabled: bool
     textAlignment: TextAlignment
-    textDirection: TextDirection 
+    textDirection: TextDirection
     transitionName: string
     translationX: Single
-    translationY: Single 
-    translationZ: Single 
+    translationY: Single
+    translationZ: Single
     visibility: ViewStates
   }
 
@@ -71,10 +71,10 @@ type ViewProps =
     member this.Visibility = this.visibility
 
 module View =
-  type private OnClickListener (onClick) =    
+  type private OnClickListener (onClick) =
     inherit Java.Lang.Object ()
 
-    interface View.IOnClickListener with 
+    interface View.IOnClickListener with
         member this.OnClick view = onClick ()
 
   let defaultProps = {
@@ -112,28 +112,26 @@ module View =
     view.SetOnSystemUiVisibilityChangeListener null
     ()
 
-  let updateWithProps (oldProps: Option<IViewProps>) (newProps: IViewProps) (view: View) =
+  let setProps (view: View) (props: IViewProps) =
+    view.Alpha <- props.Alpha
+    view.SetBackgroundColor props.BackgroundColor
+    props.BackgroundTintMode |> Option.map (fun tint -> view.BackgroundTintMode <- tint) |> ignore
+    view.Clickable <- props.Clickable
+    view.ContentDescription <- props.ContentDescription
+    view.ContextClickable <- props.ContextClickable
+    view.LayoutParameters <- props.LayoutParameters
+    view.PivotX <- props.PivotX
+    view.PivotY <- props.PivotY
+    view.SoundEffectsEnabled <- props.SoundEffectsEnabled
+    view.TextAlignment <- props.TextAlignment
+    view.TextDirection <- props.TextDirection
+    view.TransitionName <- props.TransitionName
+    view.TranslationX <- props.TranslationX
+    view.TranslationY <- props.TranslationY
+    view.TranslationZ <- props.TranslationZ
+    view.Visibility <- props.Visibility
 
-    let layoutParameters = view.LayoutParameters
-    view.Alpha <- newProps.Alpha
-    view.SetBackgroundColor newProps.BackgroundColor
-    newProps.BackgroundTintMode |> Option.map (fun tint -> view.BackgroundTintMode <- tint) |> ignore
-    view.Clickable <- newProps.Clickable
-    view.ContentDescription <- newProps.ContentDescription
-    view.ContextClickable <- newProps.ContextClickable
-    view.LayoutParameters <- newProps.LayoutParameters
-    view.PivotX <- newProps.PivotX
-    view.PivotY <- newProps.PivotY
-    view.SoundEffectsEnabled <- newProps.SoundEffectsEnabled
-    view.TextAlignment <- newProps.TextAlignment
-    view.TextDirection <- newProps.TextDirection
-    view.TransitionName <- newProps.TransitionName
-    view.TranslationX <- newProps.TranslationX
-    view.TranslationY <- newProps.TranslationY
-    view.TranslationZ <- newProps.TranslationZ
-    view.Visibility <- newProps.Visibility
-
-    match newProps.OnClick with 
+    match props.OnClick with
     | Some onClick -> view.SetOnClickListener (new OnClickListener (onClick))
     | None -> view.SetOnClickListener null
 

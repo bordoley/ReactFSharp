@@ -23,13 +23,13 @@ and IReactView =
   inherit IDisposable
 
   abstract member Name: string with get
-  abstract member UpdateProps: obj -> unit
+  abstract member Props: obj with get, set
 
 and IReactViewGroup =
   inherit IDisposable
 
   abstract member Name: string with get
-  abstract member UpdateProps: obj -> unit
+  abstract member Props: obj with get, set
   abstract member Children: IImmutableMap<string, ReactView> with get, set
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
@@ -44,16 +44,11 @@ module ReactView =
     | ReactStatefulView view -> view.Dispose()
     | ReactViewGroup view -> view.Dispose()
     | ReactViewNone -> ()
-
-  let private removeChildren = function
-    | ReactViewGroup view -> view.Children <- ImmutableMap.empty ()
-    | _ -> ()
  
   let render
       (scheduler: IScheduler)
       (viewProvider: ViewProvider) 
       (element: ReactElement) =
-
     let rec updateWith (dom: ReactDOMNode) (view: ReactView) = 
       match (dom, view) with
       | (ReactNoneDOMNode, _) -> 
@@ -81,15 +76,13 @@ module ReactView =
 
           viewProvider.createStatefulView (id, state)
 
-      | (ReactNativeDOMNode node, ReactView statelessView) 
-          when node.element.name = statelessView.Name ->
-            statelessView.UpdateProps node.element.props
+      | (ReactNativeDOMNode node, ReactView reactView) 
+          when node.element.name = reactView.Name ->
+            reactView.Props <- node.element.props
             view
 
       | (ReactNativeDOMNodeGroup node, ReactViewGroup viewWithChildren) 
           when node.element.name = viewWithChildren.Name ->
-
-
             let children =
               node.children |> ImmutableMap.map (
                 fun key node -> 
@@ -104,7 +97,7 @@ module ReactView =
             // Update the props after adding the children. On android this is needed
             // to support the BaselineAlignedChildIndex property
             viewWithChildren.Children <- children
-            viewWithChildren.UpdateProps node.element.props
+            viewWithChildren.Props <- node.element.props
 
             for (name, view) in oldChildren do
               match children |> ImmutableMap.tryGet name with

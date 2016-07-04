@@ -122,55 +122,27 @@ module LinearLayout =
     weightSum = -1.0f
   }
 
-  let updateWithProps (oldProps: Option<ILinearLayoutProps>) (newProps: ILinearLayoutProps) (view: LinearLayout) =
-    React.Android.Views.ViewGroup.updateWithProps 
-      (oldProps |> Option.map (fun props -> props :> IViewGroupProps))
-      newProps view
-    
-    view.BaselineAligned <- newProps.BaselineAligned
+  let setProps (view: LinearLayout) (props: ILinearLayoutProps) =
+    ViewGroup.setProps view props 
 
-    if newProps.BaselineAlignedChildIndex >= 0 then
-      view.BaselineAlignedChildIndex <- newProps.BaselineAlignedChildIndex
+    view.BaselineAligned <- props.BaselineAligned
 
-    view.DividerPadding <- newProps.DividerPadding
-    view.MeasureWithLargestChildEnabled <- newProps.MeasureWithLargestChildEnabled
-    view.Orientation <- newProps.Orientation
-    view.ShowDividers <- newProps.ShowDividers
-    view.WeightSum <- newProps.WeightSum
+    if props.BaselineAlignedChildIndex >= 0 then
+      view.BaselineAlignedChildIndex <- props.BaselineAlignedChildIndex
+
+    view.DividerPadding <- props.DividerPadding
+    view.MeasureWithLargestChildEnabled <- props.MeasureWithLargestChildEnabled
+    view.Orientation <- props.Orientation
+    view.ShowDividers <- props.ShowDividers
+    view.WeightSum <- props.WeightSum
 
   let dispose (view: LinearLayout) = 
     ViewGroup.dispose view
 
-  let createView (context: Context) (initialProps: obj) = 
-    let view = new LinearLayout(context)
+  let private viewProvider context = new LinearLayout(context)
 
-    let currentProps = ref None
-    let children = ref (ImmutableMap.empty ())
-
-    let updateProps (props: obj) =
-      let props = (props :?> ILinearLayoutProps)
-      let oldProps = !currentProps
-      currentProps := Some props
-
-      view |> updateWithProps oldProps props
-
-    let dispose () = dispose view
-
-    let reactView: AndroidReactViewGroup = {
-      dispose = dispose
-      name = name
-      updateProps = updateProps
-      view = view
-      getChildren = fun () -> !children
-      setChildren = 
-        fun newChildren ->
-          let oldChildren = !children
-          view |> ViewGroup.updateChildren oldChildren newChildren
-          children := newChildren
-    }
-
-    updateProps initialProps
-    ReactViewGroup reactView
+  let createView: Context -> obj -> ReactView =
+    AndroidReactView.createViewGroup name viewProvider setProps ViewGroup.updateChildren dispose
 
   let reactComponent = ReactStatelessComponent (fun (props: LinearLayoutComponentProps) -> ReactNativeElementGroup {
     name = name

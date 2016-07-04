@@ -6,6 +6,7 @@ open Android.Graphics
 open Android.Views
 open Android.Widget
 open React
+open React.Android
 open React.Android.Views
 open System
 
@@ -15,7 +16,7 @@ type ITextViewProps =
   abstract member LayoutParameters: FrameLayout.LayoutParams
   abstract member Text: string
 
-type TextViewProps = 
+type TextViewProps =
   {
     // View Props
     alpha: float32
@@ -30,11 +31,11 @@ type TextViewProps =
     pivotY: Single
     soundEffectsEnabled: bool
     textAlignment: TextAlignment
-    textDirection: TextDirection 
+    textDirection: TextDirection
     transitionName: string
     translationX: Single
-    translationY: Single 
-    translationZ: Single 
+    translationY: Single
+    translationZ: Single
     visibility: ViewStates
 
     // TextView Props
@@ -93,40 +94,17 @@ module TextView =
     text = ""
   }
 
-  let dispose (view: TextView) = 
+  let dispose (view: TextView) =
     View.dispose view
 
-  let updateWithProps (oldProps: Option<ITextViewProps>) (newProps: ITextViewProps) (view: TextView) =
-    React.Android.Views.View.updateWithProps 
-      (oldProps |> Option.map (fun props -> props :> IViewProps))
-      newProps view
+  let setProps (view: TextView) (props: ITextViewProps)  =
+    View.setProps view props
+    view.Text <- props.Text
 
-    view.Text <- newProps.Text
+  let private viewProvider context = new TextView(context)
 
-  let createView (context: Context) (initialProps: obj) = 
-    let view = new TextView(context)
-
-    let currentProps = ref None
-
-    let updateProps (props: obj) =
-      let props = (props :?> ITextViewProps)
-      let oldProps = !currentProps
-      currentProps := Some props
-
-      view |> updateWithProps oldProps props
-
-    let dispose () = dispose view
-
-    let reactView: AndroidReactView = {
-      dispose = dispose
-      name = name
-      updateProps = updateProps
-      view = view
-    } 
-
-    updateProps initialProps
-
-    ReactView reactView
+  let createView: Context -> obj -> ReactView =
+    AndroidReactView.createView name viewProvider setProps dispose
 
   let reactComponent = ReactStatelessComponent (fun (props: TextViewProps) -> ReactNativeElement {
     name = name

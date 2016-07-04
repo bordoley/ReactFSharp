@@ -16,15 +16,13 @@ module ViewGroup =
   let dispose (view: ViewGroup) =
     React.Android.Views.View.dispose view
 
-  let updateWithProps (oldProps: Option<IViewGroupProps>) (newProps: IViewGroupProps) (view: ViewGroup) =
-    React.Android.Views.View.updateWithProps 
-      (oldProps |> Option.map (fun props -> props :> IViewProps))
-      newProps view
+  let setProps (view: View) (props: IViewGroupProps)  = 
+    View.setProps view props 
    
   let updateChildren 
+      (view: ViewGroup)
       (oldChildren: IImmutableMap<string, ReactView>)
-      (newChildren: IImmutableMap<string, ReactView>)
-      (view: ViewGroup) =
+      (newChildren: IImmutableMap<string, ReactView>) =
     Seq.zipAll oldChildren newChildren
     |> Seq.iteri (
       fun indx (prev, next) ->
