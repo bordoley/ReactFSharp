@@ -13,7 +13,6 @@ open System
 type ITextViewProps =
   inherit IViewProps
 
-  abstract member LayoutParameters: FrameLayout.LayoutParams
   abstract member Text: string
 
 type TextViewProps =
@@ -25,7 +24,7 @@ type TextViewProps =
     clickable: bool
     contentDescription: string
     contextClickable: bool
-    layoutParameters: FrameLayout.LayoutParams
+    layoutParameters: ViewGroup.LayoutParams
     onClick: Option<unit -> unit>
     padding: Padding
     pivotX: Single
@@ -51,7 +50,7 @@ type TextViewProps =
     member this.Clickable = this.clickable
     member this.ContentDescription = this.contentDescription
     member this.ContextClickable = this.contextClickable
-    member this.LayoutParameters = this.layoutParameters :> ViewGroup.LayoutParams
+    member this.LayoutParameters = this.layoutParameters
     member this.OnClick = this.onClick
     member this.Padding = this.padding
     member this.PivotX = this.pivotX
@@ -66,7 +65,6 @@ type TextViewProps =
     member this.Visibility = this.visibility
 
     // TextView Props
-    member this.LayoutParameters = this.layoutParameters
     member this.Text = this.text
 
 module TextView =
@@ -79,7 +77,7 @@ module TextView =
     clickable = View.defaultProps.clickable
     contentDescription = View.defaultProps.contentDescription
     contextClickable = View.defaultProps.contextClickable
-    layoutParameters = new FrameLayout.LayoutParams(-2, -2)
+    layoutParameters = View.defaultProps.layoutParameters
     onClick = View.defaultProps.onClick
     padding = View.defaultProps.padding
     pivotX = View.defaultProps.pivotX

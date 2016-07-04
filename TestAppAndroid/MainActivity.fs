@@ -17,19 +17,60 @@ open React.Android.Widget
 
 module FSXObservable = FSharp.Control.Reactive.Observable
 
-module Views =
-  let StatefulButton = ReactStatefulComponent (fun props ->
+type MyComponentProps = {
+  onClick: unit -> unit
+  count: int
+  layoutParameters: ViewGroup.LayoutParams
+}
+
+[<Activity (Label = "ReactFSharp", MainLauncher = true)>]
+type MainActivity () =
+  inherit Activity ()
+
+  let MyComponent = ReactStatelessComponent (fun (props: MyComponentProps) ->
+    Components.LinearLayout >>= {
+      props = 
+        { LinearLayout.defaultProps with
+            layoutParameters = props.layoutParameters
+            orientation = Android.Widget.Orientation.Vertical
+        }
+      children = %% 
+        [|
+          ("Toolbar", Components.Toolbar >>= {
+              Toolbar.defaultProps with
+                layoutParameters = new LinearLayout.LayoutParams(-1, -2)
+                subTitle = "a subtitle"
+                title = "React FSharp App"
+            })
+
+          ("button", Components.Button >>= {
+              TextView.defaultProps with
+                layoutParameters = new LinearLayout.LayoutParams(-1, -2)
+                text = "Click on me to increment"
+                onClick = Some props.onClick
+            })
+
+          ("textView", Components.TextView >>= {
+              TextView.defaultProps with
+                alpha = 0.5f
+                clickable = false
+                layoutParameters = new LinearLayout.LayoutParams(-1, -1)
+                text = sprintf "count %i" props.count
+            })
+        |]
+    }
+  )
+
+  let MyStatefulComponent = ReactStatefulComponent (fun props -> 
     let action = new Event<unit>()
      
     let reducer (state, _) = state + 1
-  
-    let render (props, state: int) = 
-      Components.Button >>= 
-        { TextView.defaultProps with
-            layoutParameters = new FrameLayout.LayoutParams(new ViewGroup.LayoutParams(-1, -2))
-            text = sprintf "count %i" state
-            onClick = Some action.Trigger
-        }
+
+    let render (props, state: int) = MyComponent >>= {
+      onClick = action.Trigger
+      count = state
+      layoutParameters = new FrameLayout.LayoutParams(-1, -1)
+    }
 
     let actions = 
       action.Publish
@@ -37,47 +78,14 @@ module Views =
 
     ReactComponent.stateReducing render reducer 0 actions props
   )
-      
-  let MyComponent = ReactStatelessComponent (fun (props: unit) -> 
-    Components.LinearLayout >>= {
-      props = 
-        { LinearLayout.defaultProps with
-            layoutParameters = new LinearLayout.LayoutParams(-1, -1, (float32 0.0))
-            orientation = Android.Widget.Orientation.Vertical
-        }
-      children = %% 
-        [|
-          ("Toolbar", Components.Toolbar >>= {
-              Toolbar.defaultProps with
-                subTitle = "a subtitle"
-                title = "React FSharp App"
-            })
-          ("child1", StatefulButton >>= ())
-          ("child2", StatefulButton >>= ())
-          ("child3", StatefulButton >>= ()) 
-          ("textView", Components.TextView >>= {
-            TextView.defaultProps with
-              alpha = 0.5f
-              backgroundColor = Color.Green
-              clickable = false
-              layoutParameters = new FrameLayout.LayoutParams(-1, -1)
-              text = "This is a text view with some copy in it."
-          })
-        |]
-    }
-  )
-
-[<Activity (Label = "ReactFSharp", MainLauncher = true)>]
-type MainActivity () =
-  inherit Activity ()
-
+ 
   override this.OnCreate (bundle) =
     base.OnCreate (bundle)
 
     let viewProvider = AndroidReactView.createViewProvider (this :> Context) Widgets.views
     let render = AndroidReactView.render viewProvider
 
-    let element = Views.MyComponent >>= ()
+    let element = MyStatefulComponent >>= ()
     let view = render element
 
     match AndroidReactView.getView view with
