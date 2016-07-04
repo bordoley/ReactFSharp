@@ -137,7 +137,7 @@ module AndroidReactView =
 
     let dispose () =
       propsUpdaterSubscription.Dispose()
-      Scheduler.mainLoopScheduler.Schedule(Action(fun () -> disposeView view)) |> ignore
+      disposeView view
 
     {
       dispose = dispose
