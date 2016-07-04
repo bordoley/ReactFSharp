@@ -67,11 +67,19 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Scheduler.fs" />
-    <Compile Include="Views.fs" />
-    <Compile Include="WIdgetProps.fs" />
-    <Compile Include="WidgetImpl.fs" />
-    <Compile Include="Widget.fs" />
+	<Compile Include="Views\AndroidReactView.fs" />	
+    <Compile Include="Views\View.fs" />
+	<Compile Include="Views\ViewGroup.fs" />
+    <Compile Include="Widget\TextView.fs" />
+    <Compile Include="Widget\Button.fs" />
+    <Compile Include="Widget\LinearLayout.fs" />
+	<Compile Include="Widget\Widgets.fs" />	
+    <Compile Include="Widget\Components.fs" />	
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Widget\" />
+    <Folder Include="Views\" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.FSharp.targets" />
 </Project>

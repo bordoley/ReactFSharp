@@ -1,0 +1,179 @@
+﻿namespace React.Android.Widget
+
+open Android.Content
+open Android.Content.Res
+open Android.Graphics
+open Android.Views
+open Android.Widget
+open ImmutableCollections
+open React
+open React.Android.Views
+open System
+
+type ILinearLayoutProps =
+  inherit IViewGroupProps
+
+  abstract member BaselineAligned: bool
+  abstract member BaselineAlignedChildIndex: int
+  abstract member DividerPadding: int
+  abstract member MeasureWithLargestChildEnabled: bool
+  abstract member Orientation: Orientation
+  abstract member ShowDividers: ShowDividers
+  abstract member WeightSum: Single
+
+type LinearLayoutProps = 
+  {
+    // View Props
+    alpha: float32
+    backgroundColor: Color
+    backgroundTintMode: Option<PorterDuff.Mode>
+    clickable: bool
+    contentDescription: string
+    contextClickable: bool
+    layoutParameters: ViewGroup.LayoutParams
+    onClick: Option<unit -> unit>
+    pivotX: Single
+    pivotY: Single
+    soundEffectsEnabled: bool
+    textAlignment: TextAlignment
+    textDirection: TextDirection 
+    transitionName: string
+    translationX: Single
+    translationY: Single 
+    translationZ: Single 
+    visibility: ViewStates
+
+    // LinearLayout Props
+    baselineAligned: bool
+    baselineAlignedChildIndex: int
+    dividerPadding: int
+    measureWithLargestChildEnabled: bool
+    orientation: Orientation
+    showDividers: ShowDividers
+    weightSum: Single
+  }
+
+  interface ILinearLayoutProps with
+    // View Props
+    member this.Alpha = this.alpha
+    member this.BackgroundColor = this.backgroundColor
+    member this.BackgroundTintMode = this.backgroundTintMode
+    member this.Clickable = this.clickable
+    member this.ContentDescription = this.contentDescription
+    member this.ContextClickable = this.contextClickable
+    member this.LayoutParameters = this.layoutParameters
+    member this.OnClick = this.onClick
+    member this.PivotX = this.pivotX
+    member this.PivotY = this.pivotY
+    member this.SoundEffectsEnabled = this.soundEffectsEnabled
+    member this.TextAlignment = this.textAlignment
+    member this.TextDirection = this.textDirection
+    member this.TransitionName = this.transitionName
+    member this.TranslationX = this.translationX
+    member this.TranslationY = this.translationY
+    member this.TranslationZ = this.translationZ
+    member this.Visibility = this.visibility
+
+    // LinearLayout Props
+    member this.BaselineAligned = this.baselineAligned
+    member this.BaselineAlignedChildIndex = this.baselineAlignedChildIndex
+    member this.DividerPadding = this.dividerPadding
+    member this.MeasureWithLargestChildEnabled = this.measureWithLargestChildEnabled
+    member this.Orientation = this.orientation
+    member this.ShowDividers = this.showDividers
+    member this.WeightSum = this.weightSum
+
+type LinearLayoutComponentProps = {
+  props: ILinearLayoutProps
+  children: IImmutableMap<string, ReactElement>
+}
+
+module LinearLayout =
+  let name = "Android.Widget.LinearLayout"
+
+  let defaultProps = {
+    // View Props
+    alpha = View.defaultProps.alpha
+    backgroundColor = View.defaultProps.backgroundColor
+    backgroundTintMode = View.defaultProps.backgroundTintMode
+    clickable = View.defaultProps.clickable
+    contentDescription = View.defaultProps.contentDescription
+    contextClickable = View.defaultProps.contextClickable
+    layoutParameters = new LinearLayout.LayoutParams(-2, -2)
+    onClick = View.defaultProps.onClick
+    pivotX = View.defaultProps.pivotX
+    pivotY = View.defaultProps.pivotY
+    soundEffectsEnabled = View.defaultProps.soundEffectsEnabled
+    textAlignment = View.defaultProps.textAlignment
+    textDirection = View.defaultProps.textDirection
+    transitionName = View.defaultProps.transitionName
+    translationX = View.defaultProps.translationX
+    translationY = View.defaultProps.translationY
+    translationZ = View.defaultProps.translationZ
+    visibility = View.defaultProps.visibility
+
+    // LinearLayout Props
+    baselineAligned = true
+    baselineAlignedChildIndex = -1
+    dividerPadding = 0
+    measureWithLargestChildEnabled = false
+    orientation = Orientation.Horizontal
+    showDividers = ShowDividers.None
+    weightSum = -1.0f
+  }
+
+  let updateWithProps (oldProps: Option<ILinearLayoutProps>) (newProps: ILinearLayoutProps) (view: LinearLayout) =
+    React.Android.Views.ViewGroup.updateWithProps 
+      (oldProps |> Option.map (fun props -> props :> IViewGroupProps))
+      newProps view
+    
+    view.BaselineAligned <- newProps.BaselineAligned
+
+    if newProps.BaselineAlignedChildIndex >= 0 then
+      view.BaselineAlignedChildIndex <- newProps.BaselineAlignedChildIndex
+
+    view.DividerPadding <- newProps.DividerPadding
+    view.MeasureWithLargestChildEnabled <- newProps.MeasureWithLargestChildEnabled
+    view.Orientation <- newProps.Orientation
+    view.ShowDividers <- newProps.ShowDividers
+    view.WeightSum <- newProps.WeightSum
+
+  let dispose (view: LinearLayout) = 
+    ViewGroup.dispose view
+
+  let createView (context: Context) (initialProps: obj) = 
+    let view = new LinearLayout(context)
+
+    let currentProps = ref None
+    let children = ref (ImmutableMap.empty ())
+
+    let updateProps (props: obj) =
+      let props = (props :?> ILinearLayoutProps)
+      let oldProps = !currentProps
+      currentProps := Some props
+
+      view |> updateWithProps oldProps props
+
+    let dispose () = dispose view
+
+    let reactView: AndroidReactViewGroup = {
+      dispose = dispose
+      name = name
+      updateProps = updateProps
+      view = view
+      getChildren = fun () -> !children
+      setChildren = 
+        fun newChildren ->
+          let oldChildren = !children
+          view |> ViewGroup.updateChildren oldChildren newChildren
+          children := newChildren
+    }
+
+    updateProps initialProps
+    ReactViewGroup reactView
+
+  let reactComponent = ReactStatelessComponent (fun (props: LinearLayoutComponentProps) -> ReactNativeElementGroup {
+    name = name
+    props = props.props
+    children = props.children
+  })

@@ -23,11 +23,12 @@ module Views =
     let reducer (state, _) = state + 1
   
     let render (props, state: int) = 
-      Widgets.Button >>= { 
-        layoutParams = ViewGroupLayoutParams(-1, -2)
-        text = sprintf "count %i" state
-        onClick = Some action.Trigger
-      }
+      Components.Button >>= 
+        { TextView.defaultProps with
+            layoutParameters = new FrameLayout.LayoutParams(new ViewGroup.LayoutParams(-1, -2))
+            text = sprintf "count %i" state
+            onClick = Some action.Trigger
+        }
 
     let actions = 
       action.Publish
@@ -37,11 +38,11 @@ module Views =
   )
       
   let MyComponent = ReactStatelessComponent (fun (props: unit) -> 
-    Widgets.LinearLayout >>= {
+    Components.LinearLayout >>= {
       props = 
-        {
-          layoutParams = LinearLayoutLayoutParams(-1, -1, (float32 0.0))
-          orientation = Android.Widget.Orientation.Vertical
+        { LinearLayout.defaultProps with
+            layoutParameters = new LinearLayout.LayoutParams(-1, -1, (float32 0.0))
+            orientation = Android.Widget.Orientation.Vertical
         }
       children = %% 
         [| 
@@ -59,7 +60,7 @@ type MainActivity () =
   override this.OnCreate (bundle) =
     base.OnCreate (bundle)
 
-    let viewProvider = AndroidReactView.createViewProvider (this :> Context) Widgets.widgets
+    let viewProvider = AndroidReactView.createViewProvider (this :> Context) Widgets.views
     let render = AndroidReactView.render viewProvider
 
     let element = Views.MyComponent >>= ()

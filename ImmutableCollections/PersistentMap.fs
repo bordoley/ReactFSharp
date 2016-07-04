@@ -721,6 +721,22 @@ module PersistentMap =
   let get k (map: IPersistentMap<'k, 'v>) =
     map.Item k
 
+  let putAll (values: seq<'k * 'v>) (map: IPersistentMap<'k, 'v>) =
+    values
+    |> Seq.fold (fun (acc: ITransientMap<'k, 'v>) i -> acc.Put i) (map |> mutate)
+    |> TransientMap.persist
+
+  let createWithComparer (comparer: KeyValueComparer<'k, 'v>) (values: seq<'k * 'v>) =
+    emptyWithComparer comparer |> putAll values
+
+  let create (values: seq<'k * 'v>) =
+    createWithComparer 
+      {
+        key = EqualityComparer.Default
+        value = EqualityComparer.Default
+      }
+      values
+
   let put k v (map: IPersistentMap<'k, 'v>) =
     map.Put (k, v)
 

@@ -88,7 +88,7 @@ module ReactView =
 
       | (ReactNativeDOMNodeGroup node, ReactViewGroup viewWithChildren) 
           when node.element.name = viewWithChildren.Name ->
-            viewWithChildren.UpdateProps node.element.props
+
 
             let children =
               node.children |> ImmutableMap.map (
@@ -100,8 +100,12 @@ module ReactView =
               ) |> ImmutableMap.create
           
             let oldChildren = viewWithChildren.Children
+           
+            // Update the props after adding the children. On android this is needed
+            // to support the BaselineAlignedChildIndex property
             viewWithChildren.Children <- children
-         
+            viewWithChildren.UpdateProps node.element.props
+
             for (name, view) in oldChildren do
               match children |> ImmutableMap.tryGet name with
               | Some _ -> ()
