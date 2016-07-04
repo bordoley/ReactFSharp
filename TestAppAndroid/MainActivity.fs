@@ -4,6 +4,7 @@ open System
 
 open Android.App
 open Android.Content
+open Android.Graphics
 open Android.OS
 open Android.Runtime
 open Android.Views
@@ -45,10 +46,23 @@ module Views =
             orientation = Android.Widget.Orientation.Vertical
         }
       children = %% 
-        [| 
+        [|
+          ("Toolbar", Components.Toolbar >>= {
+              Toolbar.defaultProps with
+                subTitle = "a subtitle"
+                title = "React FSharp App"
+            })
           ("child1", StatefulButton >>= ())
           ("child2", StatefulButton >>= ())
           ("child3", StatefulButton >>= ()) 
+          ("textView", Components.TextView >>= {
+            TextView.defaultProps with
+              alpha = 0.5f
+              backgroundColor = Color.Green
+              clickable = false
+              layoutParameters = new FrameLayout.LayoutParams(-1, -1)
+              text = "This is a text view with some copy in it."
+          })
         |]
     }
   )

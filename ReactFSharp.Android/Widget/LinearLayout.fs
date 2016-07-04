@@ -32,6 +32,7 @@ type LinearLayoutProps =
     contextClickable: bool
     layoutParameters: ViewGroup.LayoutParams
     onClick: Option<unit -> unit>
+    padding: Padding
     pivotX: Single
     pivotY: Single
     soundEffectsEnabled: bool
@@ -63,6 +64,7 @@ type LinearLayoutProps =
     member this.ContextClickable = this.contextClickable
     member this.LayoutParameters = this.layoutParameters
     member this.OnClick = this.onClick
+    member this.Padding = this.padding
     member this.PivotX = this.pivotX
     member this.PivotY = this.pivotY
     member this.SoundEffectsEnabled = this.soundEffectsEnabled
@@ -101,6 +103,7 @@ module LinearLayout =
     contextClickable = View.defaultProps.contextClickable
     layoutParameters = new LinearLayout.LayoutParams(-2, -2)
     onClick = View.defaultProps.onClick
+    padding = View.defaultProps.padding
     pivotX = View.defaultProps.pivotX
     pivotY = View.defaultProps.pivotY
     soundEffectsEnabled = View.defaultProps.soundEffectsEnabled

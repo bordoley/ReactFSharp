@@ -89,7 +89,7 @@ module ReactElement =
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Operators = 
   [<CompiledName("CreateElement")>]
-  let (>>=) (comp : ReactComponent<'Props>) (props : 'Props) = ReactElement.create props comp
+  let (>>=) (comp : ReactComponent<'Props>) (props: 'Props) = ReactElement.create props comp
 
   [<CompiledName("CreateChildren")>]
   let (~%%) (children: seq<string * ReactElement>) = ImmutableMap.create children

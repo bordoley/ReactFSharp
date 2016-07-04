@@ -10,13 +10,13 @@ open React.Android
 open React.Android.Views
 open System
 
-type ITextViewProps =
-  inherit IViewProps
+type IToolbarProps =
+  inherit IViewGroupProps
 
-  abstract member LayoutParameters: FrameLayout.LayoutParams
-  abstract member Text: string
+  abstract member SubTitle: string
+  abstract member Title: string
 
-type TextViewProps =
+type ToolbarProps =
   {
     // View Props
     alpha: float32
@@ -25,7 +25,7 @@ type TextViewProps =
     clickable: bool
     contentDescription: string
     contextClickable: bool
-    layoutParameters: FrameLayout.LayoutParams
+    layoutParameters: ViewGroup.LayoutParams
     onClick: Option<unit -> unit>
     padding: Padding
     pivotX: Single
@@ -39,11 +39,12 @@ type TextViewProps =
     translationZ: Single
     visibility: ViewStates
 
-    // TextView Props
-    text: string
+    // Toolbar Props
+    subTitle: string
+    title: string
   }
 
-  interface ITextViewProps with
+  interface IToolbarProps with
     // View Props
     member this.Alpha = this.alpha
     member this.BackgroundColor = this.backgroundColor
@@ -51,7 +52,7 @@ type TextViewProps =
     member this.Clickable = this.clickable
     member this.ContentDescription = this.contentDescription
     member this.ContextClickable = this.contextClickable
-    member this.LayoutParameters = this.layoutParameters :> ViewGroup.LayoutParams
+    member this.LayoutParameters = this.layoutParameters
     member this.OnClick = this.onClick
     member this.Padding = this.padding
     member this.PivotX = this.pivotX
@@ -65,21 +66,22 @@ type TextViewProps =
     member this.TranslationZ = this.translationZ
     member this.Visibility = this.visibility
 
-    // TextView Props
-    member this.LayoutParameters = this.layoutParameters
-    member this.Text = this.text
+    // Toolbar Props
+    member this.SubTitle = this.subTitle
+    member this.Title = this.title
 
-module TextView =
-  let name = "Android.Widget.TextView"
+module Toolbar =
+  let name = "Android.Widget.Toolbar"
 
   let defaultProps = {
+    // View Props
     alpha = View.defaultProps.alpha
     backgroundColor = View.defaultProps.backgroundColor
     backgroundTintMode = View.defaultProps.backgroundTintMode
     clickable = View.defaultProps.clickable
     contentDescription = View.defaultProps.contentDescription
     contextClickable = View.defaultProps.contextClickable
-    layoutParameters = new FrameLayout.LayoutParams(-2, -2)
+    layoutParameters = View.defaultProps.layoutParameters
     onClick = View.defaultProps.onClick
     padding = View.defaultProps.padding
     pivotX = View.defaultProps.pivotX
@@ -93,23 +95,25 @@ module TextView =
     translationZ = View.defaultProps.translationZ
     visibility = View.defaultProps.visibility
 
-    // TextView Props
-    text = ""
+    // Toolbar Props
+    subTitle = ""
+    title = ""
   }
 
-  let dispose (view: TextView) =
-    View.dispose view
+  let dispose (view: Toolbar) =
+    ViewGroup.dispose view
 
-  let setProps (view: TextView) (props: ITextViewProps)  =
-    View.setProps view props
-    view.Text <- props.Text
+  let setProps (view: Toolbar) (props: IToolbarProps)   =
+    ViewGroup.setProps view props
+    view.Subtitle <- props.SubTitle
+    view.Title <- props.Title
 
-  let private viewProvider context = new TextView(context)
+  let private viewProvider context = new Toolbar(context)
 
   let createView: Context -> obj -> ReactView =
     AndroidReactView.createView name viewProvider setProps dispose
 
-  let reactComponent = ReactStatelessComponent (fun (props: TextViewProps) -> ReactNativeElement {
+  let reactComponent = ReactStatelessComponent (fun (props: ToolbarProps) -> ReactNativeElement {
     name = name
     props = props
   })

@@ -8,7 +8,8 @@ module Widgets =
   let views: IPersistentMap<string, Context -> obj -> ReactView> = 
     PersistentMap.create 
       [| 
-        (TextView.name, TextView.createView)
         (Button.name, Button.createView)
         (LinearLayout.name, LinearLayout.createView)
+        (TextView.name, TextView.createView)
+        (Toolbar.name, Toolbar.createView)
       |]

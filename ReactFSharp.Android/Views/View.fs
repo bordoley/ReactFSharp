@@ -6,6 +6,15 @@ open Android.Views
 
 open System
 
+[<Struct>]
+type Padding = 
+  val start: int
+  val top: int 
+  val end_: int
+  val bottom: int
+
+  new (start, top, end_, bottom) = { start = start; top = top; end_ = end_; bottom = bottom }
+
 type IViewProps =
   abstract member Alpha: float32
   abstract member BackgroundColor: Color
@@ -15,6 +24,7 @@ type IViewProps =
   abstract member ContextClickable: bool
   abstract member LayoutParameters: ViewGroup.LayoutParams
   abstract member OnClick: Option<unit -> unit>
+  abstract member Padding: Padding
   abstract member PivotX: Single
   abstract member PivotY: Single
   abstract member SoundEffectsEnabled: bool
@@ -37,6 +47,7 @@ type ViewProps =
     contextClickable: bool
     layoutParameters: ViewGroup.LayoutParams
     onClick: Option<unit -> unit>
+    padding: Padding
     pivotX: Single
     pivotY: Single
     soundEffectsEnabled: bool
@@ -59,6 +70,7 @@ type ViewProps =
     member this.ContextClickable = this.contextClickable
     member this.LayoutParameters = this.layoutParameters
     member this.OnClick = this.onClick
+    member this.Padding = this.padding
     member this.PivotX = this.pivotX
     member this.PivotY = this.pivotY
     member this.SoundEffectsEnabled = this.soundEffectsEnabled
@@ -86,15 +98,16 @@ module View =
     contextClickable = true
     layoutParameters = new ViewGroup.LayoutParams(-2, -2)
     onClick = None
-    pivotX = Unchecked.defaultof<Single>
-    pivotY = Unchecked.defaultof<Single>
+    padding = Unchecked.defaultof<Padding>
+    pivotX = 0.0f
+    pivotY = 0.0f
     soundEffectsEnabled = true
     textAlignment = TextAlignment.Inherit
     textDirection = TextDirection.Inherit
     transitionName = ""
-    translationX = Unchecked.defaultof<Single>
-    translationY = Unchecked.defaultof<Single>
-    translationZ = Unchecked.defaultof<Single>
+    translationX = 0.0f
+    translationY = 0.0f
+    translationZ = 0.0f
     visibility = ViewStates.Visible
   }
 
@@ -120,6 +133,7 @@ module View =
     view.ContentDescription <- props.ContentDescription
     view.ContextClickable <- props.ContextClickable
     view.LayoutParameters <- props.LayoutParameters
+    view.SetPaddingRelative(props.Padding.start, props.Padding.top, props.Padding.end_, props.Padding.bottom)
     view.PivotX <- props.PivotX
     view.PivotY <- props.PivotY
     view.SoundEffectsEnabled <- props.SoundEffectsEnabled
