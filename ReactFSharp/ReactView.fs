@@ -8,56 +8,92 @@ open System.Reactive.Concurrency
 
 module FSXObservable = FSharp.Control.Reactive.Observable
 
-type [<ReferenceEquality>] ReactView = 
+type [<ReferenceEquality>] ReactView =
   | ReactStatefulView of IReactStatefulView
   | ReactView of IReactView
   | ReactViewGroup of IReactViewGroup
   | ReactViewNone
 
-and IReactStatefulView = 
+  interface IDisposable with
+    member this.Dispose() =
+      match this with
+      | ReactView view -> view.Dispose()
+      | ReactStatefulView view -> ()
+      | ReactViewGroup view -> view.Dispose()
+      | ReactViewNone -> ()
+
+and IReactStatefulView =
   inherit IDisposable
 
   abstract member Id: obj
+  abstract member State: IObservable<ReactView>
 
 and IReactView =
   inherit IDisposable
 
   abstract member Name: string with get
   abstract member Props: obj with get, set
+  abstract member View: obj
 
 and IReactViewGroup =
-  inherit IDisposable
+  inherit IReactView
 
-  abstract member Name: string with get
-  abstract member Props: obj with get, set
   abstract member Children: IImmutableMap<string, ReactView> with get, set
+
+type private ReactStatefulViewImpl =
+  {
+    dispose: unit -> unit
+    id: obj
+    state: IObservable<ReactView>
+  }
+
+  interface IReactStatefulView with
+    member this.Dispose () = this.dispose ()
+    member this.Id = this.id
+    member this.State = this.state
+
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ReactView =
-  type ViewProvider = {
-    createView: string -> obj -> ReactView
-    createStatefulView: (obj * IObservable<ReactView>) -> ReactView
-  }
+  let private dispose (view: ReactView) = (view :> IDisposable).Dispose()
 
-  let dispose = function
-    | ReactView view -> view.Dispose()
-    | ReactStatefulView view -> view.Dispose()
-    | ReactViewGroup view -> view.Dispose()
-    | ReactViewNone -> ()
- 
+  let rec updateNativeView (doUpdate: Option<obj> -> unit) (reactView: ReactView): IDisposable =
+    match reactView with
+    | ReactStatefulView statefulView ->
+        let reducer (subscription: IDisposable) (reactView: ReactView) =
+          subscription.Dispose()
+          reactView |> updateNativeView doUpdate
+
+        let subscription =
+          statefulView.State
+          |> Observable.scan reducer Disposable.Empty
+          |> FSXObservable.last
+          |> Observable.subscribe (fun view -> view.Dispose())
+
+        subscription
+    | ReactView view ->
+        Some (view.View) |> doUpdate
+        Disposable.Empty
+    | ReactViewGroup view ->
+        Some (view.View) |> doUpdate
+        Disposable.Empty
+    | ReactViewNone ->
+        None |> doUpdate
+        Disposable.Empty
+
   let render
       (scheduler: IScheduler)
-      (viewProvider: ViewProvider) 
+      (createView: string -> obj -> ReactView)
       (element: ReactElement) =
-    let rec updateWith (dom: ReactDOMNode) (view: ReactView) = 
+    let rec updateWith (dom: ReactDOMNode) (view: ReactView) =
       match (dom, view) with
-      | (ReactNoneDOMNode, _) -> 
+      | (ReactNoneDOMNode, _) ->
           ReactViewNone
-        
-      | (ReactStatelessDOMNode node, _) -> 
+
+      | (ReactStatelessDOMNode node, _) ->
           view |> updateWith node.child
 
-      | (ReactStatefulDOMNode node, ReactStatefulView statefulView) 
+      | (ReactStatefulDOMNode node, ReactStatefulView statefulView)
           when node.id = statefulView.Id -> view
 
       | (ReactStatefulDOMNode node, _) ->
@@ -65,35 +101,42 @@ module ReactView =
 
           let id = node.id
 
-          let state = 
+          let state =
             node.state
             |> FSXObservable.observeOn scheduler
-            |> Observable.scan 
-                (fun view dom -> 
-                  view |> updateWith dom) 
+            |> Observable.scan
+                (fun view dom ->
+                  view |> updateWith dom)
                 ReactViewNone
             |> FSXObservable.distinctUntilChanged
+            |> FSXObservable.replayBuffer 1
 
-          viewProvider.createStatefulView (id, state)
+          let subscription = state.Connect ()
 
-      | (ReactNativeDOMNode node, ReactView reactView) 
+          ReactStatefulView {
+            dispose = subscription.Dispose
+            id = id
+            state = state
+          }
+
+      | (ReactNativeDOMNode node, ReactView reactView)
           when node.element.name = reactView.Name ->
             reactView.Props <- node.element.props
             view
 
-      | (ReactNativeDOMNodeGroup node, ReactViewGroup viewWithChildren) 
+      | (ReactNativeDOMNodeGroup node, ReactViewGroup viewWithChildren)
           when node.element.name = viewWithChildren.Name ->
             let children =
               node.children |> ImmutableMap.map (
-                fun key node -> 
-                  updateWith node 
+                fun key node ->
+                  updateWith node
                    <| match viewWithChildren.Children |> ImmutableMap.tryGet key with
                       | Some childView -> childView
                       | None -> ReactViewNone
               ) |> ImmutableMap.create
-          
+
             let oldChildren = viewWithChildren.Children
-           
+
             // Update the props after adding the children. On android this is needed
             // to support the BaselineAlignedChildIndex property
             viewWithChildren.Children <- children
@@ -106,7 +149,7 @@ module ReactView =
 
             view
 
-      | (node, view) -> 
+      | (node, view) ->
           view |> dispose
 
           let (name, props) =
@@ -115,9 +158,9 @@ module ReactView =
             | ReactNativeDOMNodeGroup node -> (node.element.name, node.element.props)
             | _ -> failwith "node must be a ReactNativeDomNode ReactNativeDOMNodeGroup"
 
-          let view = viewProvider.createView name props
+          let view = createView name props
 
-          do 
+          do
             match (node, view) with
             | (ReactNativeDOMNode node, ReactView _) -> ()
             | (ReactNativeDOMNodeGroup node, ReactViewGroup view) ->
@@ -130,6 +173,6 @@ module ReactView =
 
           view
 
-    let dom = ReactDom.render element 
+    let dom = ReactDom.render element
     updateWith dom ReactViewNone
 

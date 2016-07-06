@@ -12,23 +12,6 @@ open System.Reactive.Subjects
 
 module FSXObservable = FSharp.Control.Reactive.Observable
 
-type IAndroidReactView =
-    abstract member View: View with get
-
-type StatefulAndroidReactView =
-  {
-    id: obj
-    dispose: unit -> unit
-    view: View
-  }
-
-  interface IAndroidReactView with
-    member this.View = this.view
-
-  interface IReactStatefulView with
-    member this.Dispose () = this.dispose ()
-    member this.Id = this.id
-
 type AndroidReactView =
   {
     dispose: unit -> unit
@@ -38,29 +21,24 @@ type AndroidReactView =
     view: View
   }
 
-  interface IAndroidReactView with
-    member this.View = this.view
-
   interface IReactView with
     member this.Dispose () = this.dispose ()
     member this.Name = this.name
     member this.Props
       with get () = this.getProps ()
        and set props = this.setProps props
+    member this.View = this.view :> obj
 
 type AndroidReactViewGroup =
   {
     dispose: unit -> unit
     name: string
-    view: View
+    view: ViewGroup
     getChildren: unit -> IImmutableMap<string, ReactView>
     setChildren: IImmutableMap<string, ReactView> -> unit
     getProps: unit -> obj
     setProps: obj -> unit
   }
-
-  interface IAndroidReactView with
-    member this.View = this.view
 
   interface IReactViewGroup with
     member this.Children
@@ -71,47 +49,10 @@ type AndroidReactViewGroup =
     member this.Props
       with get () = this.getProps ()
        and set props = this.setProps props
+    member this.View = this.view :> obj
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module AndroidReactView =
-  let getView = function
-    | ReactView child -> Some (child :?> IAndroidReactView).View
-    | ReactStatefulView child -> Some (child :?> IAndroidReactView).View
-    | ReactViewGroup child -> Some (child :?> IAndroidReactView).View
-    | _ -> None
-
-  let private updateView (view: FrameLayout) prevView nextView =
-    view.RemoveAllViews ()
-    prevView |> ReactView.dispose
-
-    match getView nextView with
-    | Some child ->
-        view.AddView child
-        view.LayoutParameters <- child.LayoutParameters
-    | _ -> ()
-
-    nextView
-
-  let private statefulViewProvider (context: Android.Content.Context) (id: obj, state: IObservable<ReactView>) =
-    let view = new FrameLayout(context);
-    view.LayoutParameters <- new ViewGroup.LayoutParams(-2, -2)
-
-    let subscription =
-      state
-      |> Observable.scan (updateView view) ReactViewNone
-      |> FSXObservable.last
-      |> Observable.subscribe ReactView.dispose
-
-    let dispose () =
-      subscription.Dispose()
-      view.Dispose()
-
-    ReactStatefulView {
-      id = id
-      dispose = dispose
-      view = view
-    }
-
   let private createReactViewInternal<'view, 'props when 'view :> View>
       (name: string)
       (viewProvider: Context -> 'view)
@@ -164,11 +105,54 @@ module AndroidReactView =
         initialProps
     )
 
+  // FIXME: I think this can generified and reused for iOS
+  let private updateChildren
+       (viewGroup: ViewGroup)
+       (emptyView: unit -> View)
+       (oldChildren: IImmutableMap<string, IDisposable>)
+       (newChildren: IImmutableMap<string, ReactView>): IImmutableMap<string, IDisposable> =
+
+     let setNativeViewAtIndex (index: int) (viewGroup: ViewGroup) (view: Option<obj>) =
+       if index < viewGroup.ChildCount then
+         viewGroup.RemoveViewAt index
+       match view with
+       | Some view  -> viewGroup.AddView(view :?> View, index)
+       | None _ -> viewGroup.AddView(emptyView (), index)
+
+     let updateSubscription (index: int) = function
+       | ((prevKey, _) as prev, (nextKey, _)) when prevKey = nextKey ->
+           prev
+       | ((_, prevSubscription: IDisposable), (nextKey, nextView))->
+           prevSubscription.Dispose ()
+           (nextKey, nextView |> ReactView.updateNativeView (setNativeViewAtIndex index viewGroup))
+
+     let updateAndSubscribe (index: int) = function
+       | (Some prev, Some next) ->
+           viewGroup.RemoveViewAt index
+           (prev, next) |> updateSubscription index
+       | (None, Some (key, view)) ->
+           (key, view |> ReactView.updateNativeView (setNativeViewAtIndex index viewGroup))
+       | _ -> failwith "this can never happen"
+
+     let result =
+       if oldChildren.Count >= newChildren.Count then
+         // Remove children at the tail
+         for i = newChildren.Count to oldChildren.Count - 1
+           do viewGroup.RemoveViewAt i
+
+         Seq.zip oldChildren newChildren
+         |> Seq.mapi updateSubscription
+
+       else
+         Seq.zipAll oldChildren newChildren
+         |> Seq.mapi updateAndSubscribe
+
+     ImmutableMap.create result
+
   let createViewGroup<'view, 'props when 'view :> ViewGroup>
       (name: string)
       (viewProvider: Context -> 'view)
       (setProps: 'view -> 'props -> unit)
-      (updateChildren: 'view -> IImmutableMap<string, ReactView> -> IImmutableMap<string, ReactView> -> unit)
       (disposeView: 'view -> unit)
       (context: Context)
       (initialProps: obj) =
@@ -182,13 +166,20 @@ module AndroidReactView =
         context
         initialProps
 
+    let emptyView () = (new Android.Widget.Space(context)) :> View
+    let viewGroup = ((reactView :> IReactView).View) :?> ViewGroup
+    let updateChildren = updateChildren viewGroup emptyView
+
     let childrenSubject = new BehaviorSubject<IImmutableMap<string, ReactView>>(ImmutableMap.empty ());
 
     let childrenUpdaterSubscription =
       childrenSubject
-      |> FSXObservable.bufferCountSkip 2 1
-      |> FSXObservable.iter (fun values -> updateChildren (reactView.view :?> 'view) values.[0] values.[1])
-      |> Observable.subscribe (fun _ -> ())
+      |> FSXObservable.fold updateChildren (ImmutableMap.empty ())
+      |> Observable.subscribe (fun map ->
+            map
+            |> ImmutableMap.values
+            |> Seq.iter (fun subscription -> subscription.Dispose())
+        )
 
     let dispose () =
       childrenUpdaterSubscription.Dispose ()
@@ -199,15 +190,15 @@ module AndroidReactView =
       name = name
       getProps = reactView.getProps
       setProps = reactView.setProps
-      view = reactView.view
+      view = viewGroup
       getChildren = fun () -> childrenSubject.Value
       setChildren = childrenSubject.OnNext
     }
 
-  let render = ReactView.render Scheduler.mainLoopScheduler
+  let render
+      (nativeViews: IImmutableMap<string, Context -> obj -> ReactView>)
+      (context: Context)
+      (element: ReactElement) =
 
-  let createViewProvider (context: Context) (viewMap: IImmutableMap<string, Context -> obj -> ReactView>) : ReactView.ViewProvider = {
-    createView = fun name ->
-      (viewMap |> ImmutableMap.get name) context
-    createStatefulView = statefulViewProvider context
-  }
+    let createView name = (nativeViews |> ImmutableMap.get name) context
+    ReactView.render Scheduler.mainLoopScheduler createView element

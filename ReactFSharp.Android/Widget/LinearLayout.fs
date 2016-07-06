@@ -145,7 +145,7 @@ module LinearLayout =
   let private viewProvider context = new LinearLayout(context)
 
   let createView: Context -> obj -> ReactView =
-    AndroidReactView.createViewGroup name viewProvider setProps ViewGroup.updateChildren dispose
+    AndroidReactView.createViewGroup name viewProvider setProps dispose
 
   let reactComponent = ReactStatelessComponent (fun (props: LinearLayoutComponentProps) -> ReactNativeElementGroup {
     name = name

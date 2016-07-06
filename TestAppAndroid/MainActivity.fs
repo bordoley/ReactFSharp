@@ -10,6 +10,8 @@ open Android.Runtime
 open Android.Views
 open Android.Widget
 
+open ImmutableCollections
+
 open React
 open React.Android
 open React.Android.Views
@@ -89,12 +91,13 @@ type MainActivity () =
   override this.OnCreate (bundle) =
     base.OnCreate (bundle)
 
-    let viewProvider = AndroidReactView.createViewProvider (this :> Context) Widgets.views
-    let render = AndroidReactView.render viewProvider
-
     let element = MyStatefulComponent >>= ()
-    let view = render element
+    let view = element |> AndroidReactView.render Components.nativeViews this
 
-    match AndroidReactView.getView view with
-    | Some view -> this.SetContentView view
-    | None -> failwith "ugghh"
+    let updateView = function
+      | Some (view: obj) ->
+          this.SetContentView (view :?> View)
+      | None -> this.SetContentView null
+
+    let viewSubscription = ReactView.updateNativeView updateView view
+    ()
