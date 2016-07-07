@@ -67,6 +67,7 @@ type TextViewProps =
     // TextView Props
     member this.Text = this.text
 
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module TextView =
   let name = "Android.Widget.TextView"
 
@@ -105,9 +106,9 @@ module TextView =
   let private viewProvider context = new TextView(context)
 
   let createView: Context -> obj -> ReactView =
-    AndroidReactView.createView name viewProvider setProps dispose
+    ReactView.createView name viewProvider setProps dispose
 
-  let reactComponent = ReactStatelessComponent (fun (props: TextViewProps) -> ReactNativeElement {
+  let internal reactComponent = ReactStatelessComponent (fun (props: TextViewProps) -> ReactNativeElement {
     name = name
     props = props
   })

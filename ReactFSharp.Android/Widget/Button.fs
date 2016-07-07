@@ -6,6 +6,7 @@ open Android.Widget
 open React
 open React.Android.Views
 
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Button =
   let name = "Android.Widget.Button"
 
@@ -18,9 +19,9 @@ module Button =
   let private viewProvider context = new Button(context)
 
   let createView: Context -> obj -> ReactView =
-    AndroidReactView.createView name viewProvider setProps dispose
+    ReactView.createView name viewProvider setProps dispose
 
-  let reactComponent = ReactStatelessComponent (fun (props: TextViewProps) -> ReactNativeElement {
+  let internal reactComponent = ReactStatelessComponent (fun (props: TextViewProps) -> ReactNativeElement {
     name = name
     props = props
   })

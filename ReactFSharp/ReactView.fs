@@ -1,12 +1,11 @@
 ﻿namespace React
 
+open FSharp.Control.Reactive
 open ImmutableCollections
 open System
 open System.Reactive.Linq
 open System.Reactive.Disposables
 open System.Reactive.Concurrency
-
-module FSXObservable = FSharp.Control.Reactive.Observable
 
 type [<ReferenceEquality>] ReactView =
   | ReactStatefulView of IReactStatefulView
@@ -18,7 +17,7 @@ type [<ReferenceEquality>] ReactView =
     member this.Dispose() =
       match this with
       | ReactView view -> view.Dispose()
-      | ReactStatefulView view -> ()
+      | ReactStatefulView view -> view.Dispose()
       | ReactViewGroup view -> view.Dispose()
       | ReactViewNone -> ()
 
@@ -40,19 +39,6 @@ and IReactViewGroup =
 
   abstract member Children: IImmutableMap<string, ReactView> with get, set
 
-type private ReactStatefulViewImpl =
-  {
-    dispose: unit -> unit
-    id: obj
-    state: IObservable<ReactView>
-  }
-
-  interface IReactStatefulView with
-    member this.Dispose () = this.dispose ()
-    member this.Id = this.id
-    member this.State = this.state
-
-
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ReactView =
   let private dispose (view: ReactView) = (view :> IDisposable).Dispose()
@@ -66,8 +52,8 @@ module ReactView =
 
         let subscription =
           statefulView.State
-          |> Observable.scan reducer Disposable.Empty
-          |> FSXObservable.last
+          |> Observable.scanInit Disposable.Empty reducer 
+          |> Observable.last
           |> Observable.subscribe (fun view -> view.Dispose())
 
         subscription
@@ -103,20 +89,20 @@ module ReactView =
 
           let state =
             node.state
-            |> FSXObservable.observeOn scheduler
-            |> Observable.scan
+            |> Observable.observeOn scheduler
+            |> Observable.scanInit ReactViewNone
                 (fun view dom ->
-                  view |> updateWith dom)
-                ReactViewNone
-            |> FSXObservable.distinctUntilChanged
-            |> FSXObservable.replayBuffer 1
+                  view |> updateWith dom) 
+            |> Observable.distinctUntilChanged
+            |> Observable.replayBuffer 1
 
           let subscription = state.Connect ()
 
-          ReactStatefulView {
-            dispose = subscription.Dispose
-            id = id
-            state = state
+          ReactStatefulView { 
+            new IReactStatefulView with
+              member this.Dispose () = subscription.Dispose ()
+              member this.Id = id
+              member this.State = state :> IObservable<ReactView>
           }
 
       | (ReactNativeDOMNode node, ReactView reactView)
@@ -127,13 +113,15 @@ module ReactView =
       | (ReactNativeDOMNodeGroup node, ReactViewGroup viewWithChildren)
           when node.element.name = viewWithChildren.Name ->
             let children =
-              node.children |> ImmutableMap.map (
+              node.children 
+              |> ImmutableMap.map (
                 fun key node ->
                   updateWith node
                    <| match viewWithChildren.Children |> ImmutableMap.tryGet key with
                       | Some childView -> childView
                       | None -> ReactViewNone
-              ) |> ImmutableMap.create
+                ) 
+              |> ImmutableMap.create
 
             let oldChildren = viewWithChildren.Children
 

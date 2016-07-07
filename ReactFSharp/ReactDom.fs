@@ -1,10 +1,9 @@
 ﻿namespace React
 
+open FSharp.Control.Reactive
 open ImmutableCollections
 open System
 open System.Reactive.Subjects
-
-module FSXObservable = FSharp.Control.Reactive.Observable
 
 type ReactDOMNodeChildren = IImmutableMap<string, ReactDOMNode>
 
@@ -106,9 +105,9 @@ module internal ReactDom =
           | ReactStatefulElement ele ->
             let props = new BehaviorSubject<obj>(ele.props);
             let state = 
-              (ele.comp (props |> FSXObservable.asObservable))
-              |> Observable.scan reducer ReactNoneDOMNode
-              |> FSXObservable.multicast (new BehaviorSubject<ReactDOMNode>(ReactNoneDOMNode))
+              (ele.comp (props |> Observable.asObservable))
+              |> Observable.scanInit ReactNoneDOMNode reducer 
+              |> Observable.multicast (new BehaviorSubject<ReactDOMNode>(ReactNoneDOMNode))
             
             let connection = state.Connect()
                 
@@ -120,7 +119,7 @@ module internal ReactDom =
               element = ele
               id = new obj()
               updateProps = props.OnNext
-              state = state |> FSXObservable.asObservable
+              state = state |> Observable.asObservable
               dispose = dispose
             }
 

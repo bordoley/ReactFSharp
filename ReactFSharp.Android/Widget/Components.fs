@@ -3,19 +3,11 @@
 open Android.Content
 open ImmutableCollections
 open React
+open React.Android.Widget
 
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Components =
-  let nativeViews: IPersistentMap<string, Context -> obj -> ReactView> =
-    PersistentMap.create
-      [|
-        (Button.name, Button.createView)
-        (LinearLayout.name, LinearLayout.createView)
-        (TextView.name, TextView.createView)
-        (Toolbar.name, Toolbar.createView)
-      |]
-
   let Button = Button.reactComponent
   let LinearLayout = LinearLayout.reactComponent
   let TextView = TextView.reactComponent
-  let Toolbar = Toolbar.reactComponent
-
+  let Toolbar = Toolbar.reactComponent 

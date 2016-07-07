@@ -1,6 +1,6 @@
 ﻿namespace React.Android
 
-module Scheduler =
+module private Scheduler =
   open System
   open System.Reactive.Concurrency
   open System.Reactive.Disposables

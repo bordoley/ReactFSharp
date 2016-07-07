@@ -1,10 +1,9 @@
 ﻿namespace React
 
+open FSharp.Control.Reactive
 open ImmutableCollections
 open System
 open System.Reactive.Linq
-
-module FSXObservable = FSharp.Control.Reactive.Observable
 
 type ReactElementChildren = IImmutableMap<string, ReactElement>
 
@@ -47,7 +46,6 @@ and ReactStatelessComponent<'Props> = ('Props -> ReactElement)
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ReactComponent =
-  open FSXObservable
   let stateReducing 
       (render: ('Props * 'State) -> ReactElement)
       (reducer: 'State -> 'Action -> 'State)
@@ -57,21 +55,21 @@ module ReactComponent =
     let statefulComponent (props: IObservable<'Props>) =
       let state = 
         actions     
-        |> Observable.scan reducer initialState  
-        |> FSXObservable.startWith [initialState]
+        |> Observable.scanInit initialState reducer 
+        |> Observable.startWith [initialState]
 
       let updatedPropsAndState =
-        FSXObservable.combineLatest props state
-        |> FSXObservable.bufferCountSkip 2 1
+        Observable.combineLatest props state
+        |> Observable.bufferCountSkip 2 1
         |> Observable.map (fun list -> (list.[0], list.[1]))
         |> Observable.filter (fun (o, n) -> shouldUpdate o n)
         |> Observable.map (fun (o, n) -> n)
 
       let elements = 
         props
-        |> FSXObservable.first 
-        |> FSXObservable.map (fun props -> (props, initialState))
-        |> FSXObservable.concat updatedPropsAndState
+        |> Observable.first 
+        |> Observable.map (fun props -> (props, initialState))
+        |> Observable.concat updatedPropsAndState
         |> Observable.map render
         
       elements

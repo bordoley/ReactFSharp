@@ -13,7 +13,6 @@ open Android.Widget
 open ImmutableCollections
 
 open React
-open React.Android
 open React.Android.Views
 open React.Android.Widget
 
@@ -91,8 +90,17 @@ type MainActivity () =
   override this.OnCreate (bundle) =
     base.OnCreate (bundle)
 
+    let views =
+      PersistentMap.create
+        [|
+          (Button.name, Button.createView)
+          (LinearLayout.name, LinearLayout.createView)
+          (TextView.name, TextView.createView)
+          (Toolbar.name, Toolbar.createView)
+        |]
+
     let element = MyStatefulComponent >>= ()
-    let view = element |> AndroidReactView.render Components.nativeViews this
+    let view = element |> ReactView.render views this
 
     let updateView = function
       | Some (view: obj) ->

@@ -70,6 +70,7 @@ type ToolbarProps =
     member this.SubTitle = this.subTitle
     member this.Title = this.title
 
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Toolbar =
   let name = "Android.Widget.Toolbar"
 
@@ -111,9 +112,9 @@ module Toolbar =
   let private viewProvider context = new Toolbar(context)
 
   let createView: Context -> obj -> ReactView =
-    AndroidReactView.createView name viewProvider setProps dispose
+    ReactView.createView name viewProvider setProps dispose
 
-  let reactComponent = ReactStatelessComponent (fun (props: ToolbarProps) -> ReactNativeElement {
+  let internal reactComponent = ReactStatelessComponent (fun (props: ToolbarProps) -> ReactNativeElement {
     name = name
     props = props
   })

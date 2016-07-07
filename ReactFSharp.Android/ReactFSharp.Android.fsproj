@@ -66,17 +66,16 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Scheduler.fs" />
-	<Compile Include="Views\AndroidReactView.fs" />	
+	<Compile Include="Scheduler.fs" />
+	<Compile Include="Views\ReactView.fs" />	
     <Compile Include="Views\View.fs" />
 	<Compile Include="Views\ViewGroup.fs" />
     <Compile Include="Widget\TextView.fs" />
     <Compile Include="Widget\Button.fs" />
     <Compile Include="Widget\LinearLayout.fs" />
     <Compile Include="Widget\Toolbar.fs" />
-    <Compile Include="Widget\Components.fs" />	
-    <None Include="packages.config" />
-
+	<Compile Include="Widget\Components.fs" />
+	<None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Widget\" />

@@ -82,6 +82,7 @@ type ViewProps =
     member this.TranslationZ = this.translationZ
     member this.Visibility = this.visibility
 
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module View =
   type private OnClickListener (onClick) =
     inherit Java.Lang.Object ()

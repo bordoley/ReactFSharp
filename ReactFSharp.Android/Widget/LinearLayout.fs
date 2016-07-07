@@ -90,6 +90,7 @@ type LinearLayoutComponentProps = {
   children: IImmutableMap<string, ReactElement>
 }
 
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module LinearLayout =
   let name = "Android.Widget.LinearLayout"
 
@@ -145,9 +146,9 @@ module LinearLayout =
   let private viewProvider context = new LinearLayout(context)
 
   let createView: Context -> obj -> ReactView =
-    AndroidReactView.createViewGroup name viewProvider setProps dispose
+    ReactView.createViewGroup name viewProvider setProps dispose
 
-  let reactComponent = ReactStatelessComponent (fun (props: LinearLayoutComponentProps) -> ReactNativeElementGroup {
+  let internal reactComponent = ReactStatelessComponent (fun (props: LinearLayoutComponentProps) -> ReactNativeElementGroup {
     name = name
     props = props.props
     children = props.children
