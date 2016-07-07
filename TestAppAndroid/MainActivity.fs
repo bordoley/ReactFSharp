@@ -48,7 +48,7 @@ type MainActivity () =
               TextView.defaultProps with
                 layoutParameters = new LinearLayout.LayoutParams(-1, -2)
                 text = "Click on me to increment"
-                onClick = Some props.onClick
+                onClick = props.onClick
             })
 
           ("textView", Components.TextView >>= {

@@ -20,22 +20,31 @@ type TextViewProps =
     // View Props
     alpha: float32
     backgroundColor: Color
-    backgroundTintMode: Option<PorterDuff.Mode>
+    backgroundTintMode: PorterDuff.Mode
     clickable: bool
     contentDescription: string
     contextClickable: bool
     layoutParameters: ViewGroup.LayoutParams
-    onClick: Option<unit -> unit>
+    onClick: unit -> unit
+    onCreateContextMenu: IContextMenu -> IContextMenuContextMenuInfo -> unit
+    onDrag: DragEvent -> bool
+    onGenericMotion: MotionEvent -> bool
+    onHover: MotionEvent -> bool
+    onKey: Keycode -> KeyEvent -> bool
+    onLongClick: unit -> bool
+    onSystemUiVisibilityChange: StatusBarVisibility -> unit
+    onTouch: MotionEvent -> bool
     padding: Padding
-    pivotX: Single
-    pivotY: Single
+    pivot: Pivot
     soundEffectsEnabled: bool
+    systemUiVisibility: StatusBarVisibility
     textAlignment: TextAlignment
     textDirection: TextDirection
     transitionName: string
-    translationX: Single
-    translationY: Single
-    translationZ: Single
+    translation: Translation
+    verticalFadingEdgeEnabled: bool
+    verticalScrollBarEnabled: bool
+    verticalScrollbarPosition: ScrollbarPosition
     visibility: ViewStates
 
     // TextView Props
@@ -51,17 +60,26 @@ type TextViewProps =
     member this.ContentDescription = this.contentDescription
     member this.ContextClickable = this.contextClickable
     member this.LayoutParameters = this.layoutParameters
-    member this.OnClick = this.onClick
+    member this.OnClick () = this.onClick ()
+    member this.OnCreateContextMenu (menu, info) = this.onCreateContextMenu menu info
+    member this.OnDrag de = this.onDrag de
+    member this.OnGenericMotion me = this.onGenericMotion me 
+    member this.OnHover me = this.onHover me
+    member this.OnKey (keyCode, keyEvent) = this.onKey keyCode keyEvent
+    member this.OnLongClick () = this.onLongClick ()
+    member this.OnSystemUiVisibilityChange sbv = this.onSystemUiVisibilityChange sbv
+    member this.OnTouch me = this.onTouch me
     member this.Padding = this.padding
-    member this.PivotX = this.pivotX
-    member this.PivotY = this.pivotY
+    member this.Pivot = this.pivot
     member this.SoundEffectsEnabled = this.soundEffectsEnabled
+    member this.SystemUiVisibility =  this.systemUiVisibility
     member this.TextAlignment = this.textAlignment
     member this.TextDirection = this.textDirection
     member this.TransitionName = this.transitionName
-    member this.TranslationX = this.translationX
-    member this.TranslationY = this.translationY
-    member this.TranslationZ = this.translationZ
+    member this.Translation = this.translation
+    member this.VerticalFadingEdgeEnabled = this.verticalFadingEdgeEnabled
+    member this.VerticalScrollBarEnabled = this.verticalScrollBarEnabled
+    member this.VerticalScrollbarPosition = this.verticalScrollbarPosition
     member this.Visibility = this.visibility
 
     // TextView Props
@@ -80,16 +98,25 @@ module TextView =
     contextClickable = View.defaultProps.contextClickable
     layoutParameters = View.defaultProps.layoutParameters
     onClick = View.defaultProps.onClick
+    onCreateContextMenu = View.defaultProps.onCreateContextMenu
+    onDrag = View.defaultProps.onDrag
+    onGenericMotion = View.defaultProps.onGenericMotion
+    onHover = View.defaultProps.onHover
+    onKey = View.defaultProps.onKey
+    onLongClick = View.defaultProps.onLongClick
+    onSystemUiVisibilityChange = View.defaultProps.onSystemUiVisibilityChange
+    onTouch = View.defaultProps.onTouch
     padding = View.defaultProps.padding
-    pivotX = View.defaultProps.pivotX
-    pivotY = View.defaultProps.pivotY
+    pivot = View.defaultProps.pivot
     soundEffectsEnabled = View.defaultProps.soundEffectsEnabled
+    systemUiVisibility = View.defaultProps.systemUiVisibility
     textAlignment = View.defaultProps.textAlignment
     textDirection = View.defaultProps.textDirection
     transitionName = View.defaultProps.transitionName
-    translationX = View.defaultProps.translationX
-    translationY = View.defaultProps.translationY
-    translationZ = View.defaultProps.translationZ
+    translation = View.defaultProps.translation
+    verticalFadingEdgeEnabled = View.defaultProps.verticalFadingEdgeEnabled
+    verticalScrollBarEnabled = View.defaultProps.verticalScrollBarEnabled
+    verticalScrollbarPosition = View.defaultProps.verticalScrollbarPosition
     visibility = View.defaultProps.visibility
 
     // TextView Props
