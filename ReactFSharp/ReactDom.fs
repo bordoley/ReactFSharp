@@ -45,16 +45,17 @@ module internal ReactDom =
     let rec updateChildrenWith (elements: ReactElementChildren) (nodes: ReactDOMNodeChildren) =
       let keys = elements |> ImmutableMap.keys
 
-      keys 
-      |> Seq.map (fun key ->
-          let element = elements |> ImmutableMap.get key
+      let keyToNodeMapper key =
+        let element = elements |> ImmutableMap.get key
 
-          let node =
-            match (nodes |> ImmutableMap.tryGet key) with
-            | None -> ReactNoneDOMNode |> updateWith element
-            | Some node -> node |> updateWith element
-          (key, node)
-        ) 
+        let node =
+          match (nodes |> ImmutableMap.tryGet key) with
+          | None -> ReactNoneDOMNode |> updateWith element
+          | Some node -> node |> updateWith element
+        (key, node)
+
+      keys 
+      |> Seq.map keyToNodeMapper
       |> Seq.toArray
       |> ImmutableMap.create
 

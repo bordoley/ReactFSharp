@@ -2,7 +2,6 @@
 
 open Android.Content
 open Android.Views
-open Android.Widget
 open FSharp.Control.Reactive
 open ImmutableCollections
 open React
@@ -63,50 +62,6 @@ module ReactView =
         initialProps
     )
 
-  // FIXME: I think this can generified and reused for iOS
-  let private updateChildren
-       (viewGroup: ViewGroup)
-       (emptyView: unit -> View)
-       (oldChildren: IImmutableMap<string, IDisposable>)
-       (newChildren: IImmutableMap<string, ReactView>): IImmutableMap<string, IDisposable> =
-
-     let setNativeViewAtIndex (index: int) (viewGroup: ViewGroup) (view: Option<obj>) =
-       if index < viewGroup.ChildCount then
-         viewGroup.RemoveViewAt index
-       match view with
-       | Some view  -> viewGroup.AddView(view :?> View, index)
-       | None _ -> viewGroup.AddView(emptyView (), index)
-
-     let updateSubscription (index: int) = function
-       | ((prevKey, _) as prev, (nextKey, _)) when prevKey = nextKey ->
-           prev
-       | ((_, prevSubscription: IDisposable), (nextKey, nextView))->
-           prevSubscription.Dispose ()
-           (nextKey, nextView |> ReactView.updateNativeView (setNativeViewAtIndex index viewGroup))
-
-     let updateAndSubscribe (index: int) = function
-       | (Some prev, Some next) ->
-           viewGroup.RemoveViewAt index
-           (prev, next) |> updateSubscription index
-       | (None, Some (key, view)) ->
-           (key, view |> ReactView.updateNativeView (setNativeViewAtIndex index viewGroup))
-       | _ -> failwith "this can never happen"
-
-     let result =
-       if oldChildren.Count >= newChildren.Count then
-         // Remove children at the tail
-         for i = newChildren.Count to oldChildren.Count - 1
-           do viewGroup.RemoveViewAt i
-
-         Seq.zip oldChildren newChildren
-         |> Seq.mapi updateSubscription
-
-       else
-         Seq.zipAll oldChildren newChildren
-         |> Seq.mapi updateAndSubscribe
-
-     ImmutableMap.create result
-
   let createViewGroup<'view, 'props when 'view :> ViewGroup>
       (name: string)
       (viewProvider: Context -> 'view)
@@ -126,7 +81,18 @@ module ReactView =
 
     let emptyView () = (new Android.Widget.Space(context)) :> View
     let viewGroup = reactView.View :?> ViewGroup
-    let updateChildren = updateChildren viewGroup emptyView
+
+    let setViewAtIndex (index: int) (view: Option<obj>) =
+      if index < viewGroup.ChildCount then
+        viewGroup.RemoveViewAt index
+      match view with
+      | Some view  -> viewGroup.AddView(view :?> View, index)
+      | None _ -> viewGroup.AddView(emptyView (), index)
+
+    let removeViewAtIndex (index: int) =
+      viewGroup.RemoveViewAt index
+
+    let updateChildren = ReactView.updateChildren setViewAtIndex removeViewAtIndex
 
     let childrenSubject = new BehaviorSubject<IImmutableMap<string, ReactView>>(ImmutableMap.empty ());
 

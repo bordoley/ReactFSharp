@@ -43,12 +43,12 @@ and IReactViewGroup =
 module ReactView =
   let private dispose (view: ReactView) = (view :> IDisposable).Dispose()
 
-  let rec updateNativeView (doUpdate: Option<obj> -> unit) (reactView: ReactView): IDisposable =
+  let rec bindToNativeViewContainer (update: Option<obj> -> unit) (reactView: ReactView): IDisposable =
     match reactView with
     | ReactStatefulView statefulView ->
         let reducer (subscription: IDisposable) (reactView: ReactView) =
           subscription.Dispose()
-          reactView |> updateNativeView doUpdate
+          reactView |> bindToNativeViewContainer update
 
         let subscription =
           statefulView.State
@@ -58,14 +58,50 @@ module ReactView =
 
         subscription
     | ReactView view ->
-        Some (view.View) |> doUpdate
+        Some (view.View) |> update
         Disposable.Empty
     | ReactViewGroup view ->
-        Some (view.View) |> doUpdate
+        Some (view.View) |> update
         Disposable.Empty
     | ReactViewNone ->
-        None |> doUpdate
+        None |> update
         Disposable.Empty
+
+  let updateChildren
+       (setViewAtIndex: int -> Option<obj> -> unit)
+       (removeViewAtIndex: int -> unit)
+       (oldChildren: IImmutableMap<string, IDisposable>)
+       (newChildren: IImmutableMap<string, ReactView>): IImmutableMap<string, IDisposable> =
+
+    let updateSubscription (index: int) = function
+      | ((prevKey, _) as prev, (nextKey, _)) when prevKey = nextKey ->
+          prev
+      | ((_, prevSubscription: IDisposable), (nextKey, nextView))->
+          prevSubscription.Dispose ()
+          (nextKey, nextView |> bindToNativeViewContainer (setViewAtIndex index))
+
+    let updateAndSubscribe (index: int) = function
+      | (Some prev, Some next) ->
+          removeViewAtIndex index
+          (prev, next) |> updateSubscription index
+      | (None, Some (key, view)) ->
+          (key, view |> bindToNativeViewContainer (setViewAtIndex index))
+      | _ -> failwith "this can never happen"
+
+    let result =
+      if oldChildren.Count >= newChildren.Count then
+        // Remove children at the tail
+        for i = newChildren.Count to oldChildren.Count - 1
+          do removeViewAtIndex i
+
+        Seq.zip oldChildren newChildren
+        |> Seq.mapi updateSubscription
+
+      else
+        Seq.zipAll oldChildren newChildren
+        |> Seq.mapi updateAndSubscribe
+
+    ImmutableMap.create result
 
   let render
       (scheduler: IScheduler)
@@ -90,9 +126,9 @@ module ReactView =
           let state =
             node.state
             |> Observable.observeOn scheduler
-            |> Observable.scanInit ReactViewNone
-                (fun view dom ->
-                  view |> updateWith dom) 
+            |> Observable.scanInit 
+                ReactViewNone
+                (fun view dom -> view |> updateWith dom) 
             |> Observable.distinctUntilChanged
             |> Observable.replayBuffer 1
 
@@ -148,16 +184,14 @@ module ReactView =
 
           let view = createView name props
 
-          do
-            match (node, view) with
-            | (ReactNativeDOMNode node, ReactView _) -> ()
-            | (ReactNativeDOMNodeGroup node, ReactViewGroup view) ->
-                let children =
-                  node.children |> ImmutableMap.map (
-                    fun key node -> ReactViewNone |> updateWith node
-                  ) |> ImmutableMap.create
-                view.Children <- children
-            | _ -> failwith "node/view mismatch"
+          match (node, view) with
+          | (ReactNativeDOMNode node, ReactView _) -> ()
+          | (ReactNativeDOMNodeGroup node, ReactViewGroup view) ->
+              view.Children <-
+                node.children 
+                |> ImmutableMap.map (fun _ node -> ReactViewNone |> updateWith node) 
+                |> ImmutableMap.create
+          | _ -> failwith "node/view mismatch"
 
           view
 

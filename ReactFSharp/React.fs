@@ -45,8 +45,8 @@ and ReactStatefulComponent<'Props> = (IObservable<'Props> -> IObservable<ReactEl
 and ReactStatelessComponent<'Props> = ('Props -> ReactElement)
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
-module ReactComponent =
-  let stateReducing 
+module ReactStatefulComponent =
+  let create 
       (render: ('Props * 'State) -> ReactElement)
       (reducer: 'State -> 'Action -> 'State)
       (shouldUpdate: ('Props * 'State) -> ('Props * 'State) -> bool)
@@ -62,8 +62,8 @@ module ReactComponent =
         Observable.combineLatest props state
         |> Observable.bufferCountSkip 2 1
         |> Observable.map (fun list -> (list.[0], list.[1]))
-        |> Observable.filter (fun (o, n) -> shouldUpdate o n)
-        |> Observable.map (fun (o, n) -> n)
+        |> Observable.filter (fun (prev, next) -> shouldUpdate prev next)
+        |> Observable.map (fun (_, next) -> next)
 
       let elements = 
         props
@@ -80,8 +80,8 @@ module ReactElement =
   let create (props : 'Props) (comp : ReactComponent<'Props>) = 
     match comp with
     | ReactStatefulComponent comp -> 
-       let comp = fun (propsStream : IObservable<obj>) -> 
-         let propsStream = propsStream |> Observable.map (fun props -> props :?> 'Props)
+       let comp (propsStream : IObservable<obj>) = 
+         let propsStream = propsStream |> Observable.cast<'Props>
          comp propsStream
         
        ReactStatefulElement {
@@ -90,7 +90,7 @@ module ReactElement =
        }
 
     | ReactStatelessComponent comp -> 
-        let comp = fun (props : obj) -> comp (props :?> 'Props)
+        let comp (props : obj) = comp (props :?> 'Props)
 
         ReactStatelessElement {
           comp = comp

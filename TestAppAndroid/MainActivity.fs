@@ -82,7 +82,7 @@ type MainActivity () =
       action.Publish
       |> FSXObservable.observeOn (System.Reactive.Concurrency.NewThreadScheduler())
 
-    let StatefulComponent = ReactComponent.stateReducing render reducer shouldUpdate 0 actions
+    let StatefulComponent = ReactStatefulComponent.create render reducer shouldUpdate 0 actions
 
     StatefulComponent >>= (action.Trigger, new FrameLayout.LayoutParams(-1, -1))
   )
@@ -107,5 +107,5 @@ type MainActivity () =
           this.SetContentView (view :?> View)
       | None -> this.SetContentView null
 
-    let viewSubscription = ReactView.updateNativeView updateView view
+    let viewSubscription = view |> ReactView.bindToNativeViewContainer updateView 
     ()
