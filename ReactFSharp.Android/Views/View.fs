@@ -30,92 +30,99 @@ type Translation =
 
   new (x, y, z) = { x = x; y = y; z=z }
 
-type ViewProps (?alpha: float32,
-                ?backgroundColor: Color,
-                ?backgroundTintMode: PorterDuff.Mode,
-                ?clickable: bool,
-                ?contentDescription: string,
-                ?contextClickable: bool,
-                ?layoutParameters: ViewGroup.LayoutParams,
-                ?onClick: unit -> unit,
-                ?onCreateContextMenu: IContextMenu -> IContextMenuContextMenuInfo -> unit,
-                ?onDrag: DragEvent -> bool,
-                ?onGenericMotion: MotionEvent -> bool,
-                ?onHover: MotionEvent -> bool,
-                ?onKey: Keycode -> KeyEvent -> bool,
-                ?onLongClick: unit -> bool,
-                ?onSystemUiVisibilityChange: StatusBarVisibility -> unit,
-                ?onTouch: MotionEvent -> bool,
-                ?padding: Padding,
-                ?pivot: Pivot,
-                ?soundEffectsEnabled: bool,
-                ?systemUiVisibility: StatusBarVisibility,
-                ?textAlignment: TextAlignment,
-                ?textDirection: TextDirection,
-                ?transitionName: string,
-                ?translation: Translation,
-                ?verticalFadingEdgeEnabled: bool,
-                ?verticalScrollBarEnabled: bool,
-                ?verticalScrollbarPosition: ScrollbarPosition,
-                ?visibility: ViewStates
-               ) =
-  let alpha = defaultArg alpha 1.0f
-  let backgroundColor = defaultArg backgroundColor Color.White
-  let backgroundTintMode = defaultArg backgroundTintMode PorterDuff.Mode.SrcIn
-  let clickable = defaultArg clickable true
-  let contentDescription = defaultArg contentDescription ""
-  let contextClickable = defaultArg contextClickable true
-  let layoutParameters = defaultArg layoutParameters (new ViewGroup.LayoutParams (-2, -2))
-  let onClick = defaultArg onClick (fun () -> ())
-  let onCreateContextMenu = defaultArg onCreateContextMenu (fun _ _ -> ())
-  let onDrag = defaultArg onDrag (fun _ -> false)
-  let onGenericMotion = defaultArg onGenericMotion (fun _ -> false)
-  let onHover = defaultArg onHover (fun _ -> false)
-  let onKey = defaultArg onKey (fun _ _ -> false)
-  let onLongClick = defaultArg onLongClick (fun () -> false)
-  let onSystemUiVisibilityChange = defaultArg onSystemUiVisibilityChange (fun _ -> ())
-  let onTouch = defaultArg onTouch (fun _ -> false)
-  let padding = defaultArg padding Unchecked.defaultof<Padding>
-  let pivot = defaultArg pivot (Pivot (0.0f, 0.0f))
-  let soundEffectsEnabled = defaultArg soundEffectsEnabled true
-  let systemUiVisibility = defaultArg systemUiVisibility StatusBarVisibility.Visible
-  let textAlignment = defaultArg textAlignment TextAlignment.Inherit
-  let textDirection = defaultArg textDirection TextDirection.Inherit
-  let transitionName = defaultArg transitionName ""
-  let translation = defaultArg translation (Translation (0.0f, 0.0f, 0.0f))
-  let verticalFadingEdgeEnabled = defaultArg verticalFadingEdgeEnabled false
-  let verticalScrollBarEnabled = defaultArg verticalScrollBarEnabled false
-  let verticalScrollbarPosition = defaultArg verticalScrollbarPosition ScrollbarPosition.Default
-  let visibility = defaultArg visibility ViewStates.Visible
+type IViewProps =
+  abstract member Alpha: float32
+  abstract member BackgroundColor: Color
+  abstract member BackgroundTintMode: PorterDuff.Mode
+  abstract member Clickable: bool
+  abstract member ContentDescription: string
+  abstract member ContextClickable: bool
+  abstract member LayoutParameters: ViewGroup.LayoutParams
+  abstract member OnClick: unit -> unit
+  abstract member OnCreateContextMenu: IContextMenu * IContextMenuContextMenuInfo -> unit
+  abstract member OnDrag: DragEvent -> bool
+  abstract member OnGenericMotion: MotionEvent -> bool
+  abstract member OnHover: MotionEvent -> bool
+  abstract member OnKey: Keycode * KeyEvent -> bool
+  abstract member OnLongClick: unit -> bool
+  abstract member OnSystemUiVisibilityChange: StatusBarVisibility -> unit
+  abstract member OnTouch: MotionEvent -> bool
+  abstract member Padding: Padding
+  abstract member Pivot: Pivot
+  abstract member SoundEffectsEnabled: bool
+  abstract member SystemUiVisibility: StatusBarVisibility
+  abstract member TextAlignment: TextAlignment
+  abstract member TextDirection: TextDirection
+  abstract member TransitionName: string
+  abstract member Translation: Translation
+  abstract member VerticalFadingEdgeEnabled: bool
+  abstract member VerticalScrollBarEnabled: bool
+  abstract member VerticalScrollbarPosition: ScrollbarPosition
+  abstract member Visibility: ViewStates
 
-  member this.Alpha = alpha
-  member this.BackgroundColor = backgroundColor
-  member this.BackgroundTintMode = backgroundTintMode
-  member this.Clickable = clickable
-  member this.ContentDescription = contentDescription
-  member this.ContextClickable = contextClickable
-  member this.LayoutParameters = layoutParameters
-  member this.OnClick () = onClick ()
-  member this.OnCreateContextMenu (menu, info) = onCreateContextMenu menu info
-  member this.OnDrag de = onDrag de
-  member this.OnGenericMotion me = onGenericMotion me 
-  member this.OnHover me = onHover me
-  member this.OnKey (keyCode, keyEvent) = onKey keyCode keyEvent
-  member this.OnLongClick () = onLongClick ()
-  member this.OnSystemUiVisibilityChange sbv = onSystemUiVisibilityChange sbv
-  member this.OnTouch me = onTouch me
-  member this.Padding = padding
-  member this.Pivot = pivot
-  member this.SoundEffectsEnabled = soundEffectsEnabled
-  member this.SystemUiVisibility = systemUiVisibility
-  member this.TextAlignment = textAlignment
-  member this.TextDirection = textDirection
-  member this.TransitionName = transitionName
-  member this.Translation = translation
-  member this.VerticalFadingEdgeEnabled = verticalFadingEdgeEnabled
-  member this.VerticalScrollBarEnabled = verticalScrollBarEnabled
-  member this.VerticalScrollbarPosition = verticalScrollbarPosition
-  member this.Visibility = visibility
+type ViewProps =
+  {
+    // View Props
+    alpha: float32
+    backgroundColor: Color
+    backgroundTintMode: PorterDuff.Mode
+    clickable: bool
+    contentDescription: string
+    contextClickable: bool
+    layoutParameters: ViewGroup.LayoutParams
+    onClick: unit -> unit
+    onCreateContextMenu: IContextMenu -> IContextMenuContextMenuInfo -> unit
+    onDrag: DragEvent -> bool
+    onGenericMotion: MotionEvent -> bool
+    onHover: MotionEvent -> bool
+    onKey: Keycode -> KeyEvent -> bool
+    onLongClick: unit -> bool
+    onSystemUiVisibilityChange: StatusBarVisibility -> unit
+    onTouch: MotionEvent -> bool
+    padding: Padding
+    pivot: Pivot
+    soundEffectsEnabled: bool
+    systemUiVisibility: StatusBarVisibility
+    textAlignment: TextAlignment
+    textDirection: TextDirection
+    transitionName: string
+    translation: Translation
+    verticalFadingEdgeEnabled: bool
+    verticalScrollBarEnabled: bool
+    verticalScrollbarPosition: ScrollbarPosition
+    visibility: ViewStates
+  }
+
+  interface IViewProps with
+    // View Props
+    member this.Alpha = this.alpha
+    member this.BackgroundColor = this.backgroundColor
+    member this.BackgroundTintMode = this.backgroundTintMode
+    member this.Clickable = this.clickable
+    member this.ContentDescription = this.contentDescription
+    member this.ContextClickable = this.contextClickable
+    member this.LayoutParameters = this.layoutParameters
+    member this.OnClick () = this.onClick ()
+    member this.OnCreateContextMenu (menu, info) = this.onCreateContextMenu menu info
+    member this.OnDrag de = this.onDrag de
+    member this.OnGenericMotion me = this.onGenericMotion me 
+    member this.OnHover me = this.onHover me
+    member this.OnKey (keyCode, keyEvent) = this.onKey keyCode keyEvent
+    member this.OnLongClick () = this.onLongClick ()
+    member this.OnSystemUiVisibilityChange sbv = this.onSystemUiVisibilityChange sbv
+    member this.OnTouch me = this.onTouch me
+    member this.Padding = this.padding
+    member this.Pivot = this.pivot
+    member this.SoundEffectsEnabled = this.soundEffectsEnabled
+    member this.SystemUiVisibility = this.systemUiVisibility
+    member this.TextAlignment = this.textAlignment
+    member this.TextDirection = this.textDirection
+    member this.TransitionName = this.transitionName
+    member this.Translation = this.translation
+    member this.VerticalFadingEdgeEnabled = this.verticalFadingEdgeEnabled
+    member this.VerticalScrollBarEnabled = this.verticalScrollBarEnabled
+    member this.VerticalScrollbarPosition = this.verticalScrollbarPosition
+    member this.Visibility = this.visibility
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module View =
@@ -262,6 +269,37 @@ module View =
     interface Android.Views.View.IOnTouchListener with 
       member this.OnTouch (view, motionEvent) = onTouch(motionEvent)
 
+  let defaultProps = {
+    alpha = 1.0f
+    backgroundColor = Color.White
+    backgroundTintMode = PorterDuff.Mode.SrcIn
+    clickable = true
+    contentDescription = ""
+    contextClickable = true
+    layoutParameters = new ViewGroup.LayoutParams(-2, -2)
+    onClick = fun () -> ()
+    onCreateContextMenu = fun _ _ -> ()
+    onDrag = fun _ -> false
+    onGenericMotion = fun _ -> false
+    onHover = fun _ -> false
+    onKey = fun _ _ -> false
+    onLongClick = fun () -> false
+    onSystemUiVisibilityChange = fun _ -> ()
+    onTouch = fun _ -> false
+    padding = Unchecked.defaultof<Padding>
+    pivot = Pivot(0.0f, 0.0f)
+    soundEffectsEnabled = true
+    systemUiVisibility =  StatusBarVisibility.Visible
+    textAlignment = TextAlignment.Inherit
+    textDirection = TextDirection.Inherit
+    transitionName = ""
+    translation = Translation(0.0f, 0.0f, 0.0f)
+    verticalFadingEdgeEnabled = false
+    verticalScrollBarEnabled = false
+    verticalScrollbarPosition = ScrollbarPosition.Default
+    visibility = ViewStates.Visible
+  }
+
   let dispose (view: View) =
     view.SetOnClickListener null
     view.SetOnCreateContextMenuListener null
@@ -278,7 +316,7 @@ module View =
 
     ()
 
-  let setProps (view: View) (props: ViewProps) =
+  let setProps (view: View) (props: IViewProps) =
     view.SetOnClickListener (OnClickListener.Create props.OnClick)
     view.SetOnCreateContextMenuListener (OnCreateContextMenuListener.Create props.OnCreateContextMenu)
     view.SetOnDragListener (OnDragListener.Create props.OnDrag)

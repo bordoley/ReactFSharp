@@ -13,7 +13,7 @@ module Button =
   let dispose (view: Button) =
     TextView.dispose view
 
-  let setProps (view: Button) (props: TextViewProps)   =
+  let setProps (view: Button) (props: ITextViewProps)   =
     TextView.setProps view props
 
   let private viewProvider context = new Button(context)

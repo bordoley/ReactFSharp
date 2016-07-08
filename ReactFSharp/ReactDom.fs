@@ -106,9 +106,7 @@ module internal ReactDom =
           | ReactStatefulElement ele ->
             let props = new BehaviorSubject<obj>(ele.Props);
             let state = 
-              props 
-              |> Observable.asObservable
-              |> ele.Component 
+              (ele.Component (props |> Observable.asObservable))
               |> Observable.scanInit ReactNoneDOMNode reducer 
               |> Observable.multicast (new BehaviorSubject<ReactDOMNode>(ReactNoneDOMNode))
             

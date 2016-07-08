@@ -31,38 +31,32 @@ type MainActivity () =
   let MyComponent = ReactStatelessComponent (fun (props: MyComponentProps) ->
     Components.LinearLayout >>= {
       props = 
-        LinearLayoutProps (
-          layoutParameters = props.layoutParameters,
-          orientation = Android.Widget.Orientation.Vertical
-        )
+        { LinearLayout.defaultProps with
+            layoutParameters = props.layoutParameters
+            orientation = Android.Widget.Orientation.Vertical
+        }
       children = %% 
         [|
-          ("Toolbar", 
-            Components.Toolbar 
-            >>= ToolbarProps (
-                  layoutParameters = new LinearLayout.LayoutParams(-1, -2),
-                  subTitle = "a subtitle",
-                  title = "React FSharp App"
-                )
-          )
+          ("Toolbar", Components.Toolbar >>= {
+              Toolbar.defaultProps with
+                layoutParameters = new LinearLayout.LayoutParams(-1, -2)
+                subTitle = "a subtitle"
+                title = "React FSharp App"
+            })
 
-          ("button", 
-            Components.Button 
-            >>= TextViewProps (
-                  layoutParameters = new LinearLayout.LayoutParams(-1, -2),
-                  text = "Click on me to increment",
-                  onClick = props.onClick
-                 )
-          )
+          ("button", Components.Button >>= {
+              TextView.defaultProps with
+                layoutParameters = new LinearLayout.LayoutParams(-1, -2)
+                text = "Click on me to increment"
+                onClick = props.onClick
+            })
 
-          ("textView", 
-            Components.TextView 
-            >>= TextViewProps (
-                  clickable = false,
-                  layoutParameters = new LinearLayout.LayoutParams(-1, -1),
-                  text = sprintf "count %i" props.count
-                )
-          )
+          ("textView", Components.TextView >>= {
+              TextView.defaultProps with
+                clickable = false
+                layoutParameters = new LinearLayout.LayoutParams(-1, -1)
+                text = sprintf "count %i" props.count
+            })
         |]
     }
   )
