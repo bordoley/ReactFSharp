@@ -14,26 +14,39 @@ and [<ReferenceEquality>] ReactElement =
   | ReactNativeElementGroup of ReactNativeElementGroup
   | ReactNoneElement
 
-and [<ReferenceEquality>] ReactStatefulElement = { 
-  comp: ReactStatefulComponent<obj> 
-  props: obj
-}
+and ReactStatefulElement private (comp: ReactStatefulComponent<obj>, props: obj) = 
+  static member internal Create<'Props>(comp: ReactStatefulComponent<'Props>, 
+                                        props: 'Props
+                                       ): ReactElement =
+    let comp (propsStream : IObservable<obj>) = 
+      propsStream |> Observable.cast<'Props> |> comp
+     
+    ReactElement.ReactStatefulElement <| ReactStatefulElement(comp, props)    
 
-and [<ReferenceEquality>] ReactStatelessElement = { 
-  comp: ReactStatelessComponent<obj> 
-  props: obj
-}
+  member this.Component = comp
+  member this.Props = props
+
+and ReactStatelessElement private (comp: ReactStatelessComponent<obj>, props: obj) = 
+  static member internal Create<'Props>(comp: ReactStatelessComponent<'Props>, 
+                                        props: 'Props
+                                       ): ReactElement =
+    
+    let comp (props : obj) = comp (props :?> 'Props)
+    ReactElement.ReactStatelessElement <| ReactStatelessElement(comp, props :> obj)
+
+  member this.Component = comp
+  member this.Props = props
 
 and [<ReferenceEquality>] ReactNativeElement = {
-  name: string
-  props: obj
-}
+    Name: string
+    Props: obj
+  }
 
 and [<ReferenceEquality>] ReactNativeElementGroup = {
-  name: string
-  props: obj
-  children: ReactElementChildren
-}
+    Name: string 
+    Props: obj
+    Children: ReactElementChildren
+  }
 
 and [<ReferenceEquality>] ReactComponent<'Props> = 
   | ReactStatefulComponent of ReactStatefulComponent<'Props>
@@ -77,25 +90,13 @@ module ReactStatefulComponent =
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ReactElement = 
-  let create (props : 'Props) (comp : ReactComponent<'Props>) = 
+  let create (props : 'Props) (comp : ReactComponent<'Props>): ReactElement = 
     match comp with
     | ReactStatefulComponent comp -> 
-       let comp (propsStream : IObservable<obj>) = 
-         let propsStream = propsStream |> Observable.cast<'Props>
-         comp propsStream
-        
-       ReactStatefulElement {
-         comp = comp
-         props = props    
-       }
+         (ReactStatefulElement.Create(comp, props))
 
     | ReactStatelessComponent comp -> 
-        let comp (props : obj) = comp (props :?> 'Props)
-
-        ReactStatelessElement {
-          comp = comp
-          props = props
-        }
+        ReactStatelessElement.Create(comp, props)
 
     | ReactNoneComponent -> ReactNoneElement
 

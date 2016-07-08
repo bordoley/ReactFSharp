@@ -5,7 +5,7 @@ open ImmutableCollections
 open System
 open System.Reactive.Subjects
 
-type ReactDOMNodeChildren = IImmutableMap<string, ReactDOMNode>
+type internal ReactDOMNodeChildren = IImmutableMap<string, ReactDOMNode>
 
 and [<ReferenceEquality>] internal ReactDOMNode = 
   | ReactStatefulDOMNode of ReactStatefulDOMNode
@@ -62,11 +62,11 @@ module internal ReactDom =
     and updateWith (element: ReactElement) (tree: ReactDOMNode) = 
       match (tree, element) with
       | (ReactStatefulDOMNode node, ReactStatefulElement ele) 
-          when Object.ReferenceEquals(node.element.comp, ele.comp) && node.element.props = ele.props -> tree
+          when Object.ReferenceEquals(node.element.Component, ele.Component) && node.element.Props = ele.Props -> tree
 
       | (ReactStatefulDOMNode node, ReactStatefulElement element) 
-          when Object.ReferenceEquals(node.element.comp, element.comp) ->
-            node.updateProps element.props
+          when Object.ReferenceEquals(node.element.Component, element.Component) ->
+            node.updateProps element.Props
 
             ReactStatefulDOMNode {
               element = element
@@ -77,24 +77,24 @@ module internal ReactDom =
             }
       
       | (ReactStatelessDOMNode node, ReactStatelessElement ele)
-          when Object.ReferenceEquals(node.element.comp, ele.comp) && node.element.props = ele.props -> tree
+          when Object.ReferenceEquals(node.element.Component, ele.Component) && node.element.Props = ele.Props -> tree
 
       | (ReactStatelessDOMNode node, ReactStatelessElement ele)
-          when Object.ReferenceEquals(node.element.comp, ele.comp) ->
+          when Object.ReferenceEquals(node.element.Component, ele.Component) ->
             ReactStatelessDOMNode {
               element = ele
-              child = node.child |> updateWith (ele.comp ele.props)
+              child = node.child |> updateWith (ele.Component ele.Props)
             }
       
-      | (ReactNativeDOMNode node, ReactNativeElement ele) when node.element.name = ele.name ->
+      | (ReactNativeDOMNode node, ReactNativeElement ele) when node.element.Name = ele.Name ->
           ReactNativeDOMNode {
             element = ele
           }     
 
-      | (ReactNativeDOMNodeGroup node, ReactNativeElementGroup ele) when node.element.name = ele.name ->
+      | (ReactNativeDOMNodeGroup node, ReactNativeElementGroup ele) when node.element.Name = ele.Name ->
           ReactNativeDOMNodeGroup {
             element = ele
-            children = node.children |> updateChildrenWith ele.children
+            children = node.children |> updateChildrenWith ele.Children
           }     
        
       | (tree, ele) ->
@@ -104,9 +104,9 @@ module internal ReactDom =
 
           match ele with
           | ReactStatefulElement ele ->
-            let props = new BehaviorSubject<obj>(ele.props);
+            let props = new BehaviorSubject<obj>(ele.Props);
             let state = 
-              (ele.comp (props |> Observable.asObservable))
+              (ele.Component (props |> Observable.asObservable))
               |> Observable.scanInit ReactNoneDOMNode reducer 
               |> Observable.multicast (new BehaviorSubject<ReactDOMNode>(ReactNoneDOMNode))
             
@@ -126,7 +126,7 @@ module internal ReactDom =
 
           | ReactStatelessElement ele -> ReactStatelessDOMNode {
               element = ele
-              child = ReactNoneDOMNode |> updateWith (ele.comp ele.props)
+              child = ReactNoneDOMNode |> updateWith (ele.Component ele.Props)
             }
 
           | ReactNativeElement ele -> ReactNativeDOMNode {
@@ -135,7 +135,7 @@ module internal ReactDom =
 
           | ReactNativeElementGroup ele -> ReactNativeDOMNodeGroup {
               element = ele 
-              children = ImmutableMap.empty () |> updateChildrenWith ele.children
+              children = ImmutableMap.empty () |> updateChildrenWith ele.Children
             }
 
           | ReactNoneElement -> ReactNoneDOMNode

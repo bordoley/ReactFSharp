@@ -142,6 +142,6 @@ module Toolbar =
     ReactView.createView name viewProvider setProps dispose
 
   let internal reactComponent = ReactStatelessComponent (fun (props: ToolbarProps) -> ReactNativeElement {
-    name = name
-    props = props
+    Name = name
+    Props = props
   })

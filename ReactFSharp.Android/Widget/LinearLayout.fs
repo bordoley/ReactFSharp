@@ -176,7 +176,7 @@ module LinearLayout =
     ReactView.createViewGroup name viewProvider setProps dispose
 
   let internal reactComponent = ReactStatelessComponent (fun (props: LinearLayoutComponentProps) -> ReactNativeElementGroup {
-    name = name
-    props = props.props
-    children = props.children
+    Name = name
+    Props = props.props
+    Children = props.children
   })

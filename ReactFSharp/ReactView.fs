@@ -142,12 +142,12 @@ module ReactView =
           }
 
       | (ReactNativeDOMNode node, ReactView reactView)
-          when node.element.name = reactView.Name ->
-            reactView.Props <- node.element.props
+          when node.element.Name = reactView.Name ->
+            reactView.Props <- node.element.Props
             view
 
       | (ReactNativeDOMNodeGroup node, ReactViewGroup viewWithChildren)
-          when node.element.name = viewWithChildren.Name ->
+          when node.element.Name = viewWithChildren.Name ->
             let children =
               node.children 
               |> ImmutableMap.map (
@@ -164,7 +164,7 @@ module ReactView =
             // Update the props after adding the children. On android this is needed
             // to support the BaselineAlignedChildIndex property
             viewWithChildren.Children <- children
-            viewWithChildren.Props <- node.element.props
+            viewWithChildren.Props <- node.element.Props
 
             for (name, view) in oldChildren do
               match children |> ImmutableMap.tryGet name with
@@ -178,8 +178,8 @@ module ReactView =
 
           let (name, props) =
             match node with
-            | ReactNativeDOMNode node -> (node.element.name, node.element.props)
-            | ReactNativeDOMNodeGroup node -> (node.element.name, node.element.props)
+            | ReactNativeDOMNode node -> (node.element.Name, node.element.Props)
+            | ReactNativeDOMNodeGroup node -> (node.element.Name, node.element.Props)
             | _ -> failwith "node must be a ReactNativeDomNode ReactNativeDOMNodeGroup"
 
           let view = createView name props

@@ -136,6 +136,6 @@ module TextView =
     ReactView.createView name viewProvider setProps dispose
 
   let internal reactComponent = ReactStatelessComponent (fun (props: TextViewProps) -> ReactNativeElement {
-    name = name
-    props = props
+    Name = name
+    Props = props
   })
