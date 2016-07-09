@@ -37,15 +37,15 @@ type ToolbarProps =
     horizontalScrollBarEnabled: bool
     id: int
     layoutParameters: ViewGroup.LayoutParams
-    onClick: unit -> unit
-    onCreateContextMenu: IContextMenu -> IContextMenuContextMenuInfo -> unit
-    onDrag: DragEvent -> bool
-    onGenericMotion: MotionEvent -> bool
-    onHover: MotionEvent -> bool
-    onKey: Keycode -> KeyEvent -> bool
-    onLongClick: unit -> bool
-    onSystemUiVisibilityChange: StatusBarVisibility -> unit
-    onTouch: MotionEvent -> bool
+    onClick: Func<unit, unit>
+    onCreateContextMenu: Func<IContextMenu, IContextMenuContextMenuInfo, unit>
+    onDrag: Func<DragEvent, bool>
+    onGenericMotion: Func<MotionEvent, bool>
+    onHover: Func<MotionEvent, bool>
+    onKey: Func<Keycode, KeyEvent, bool>
+    onLongClick: Func<unit, bool>
+    onSystemUiVisibilityChange: Func<StatusBarVisibility, unit>
+    onTouch: Func<MotionEvent, bool>
     padding: Padding
     pivot: Pivot
     scrollBarSize: int

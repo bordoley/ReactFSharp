@@ -66,11 +66,6 @@ module internal ReactDom =
 
     | (ReactLazyElement ele, ReactLazyDOMNode node)
           when Object.ReferenceEquals(node.element.Id, ele.Id) ->
-        let p1 = node.element.Props
-        let p2 = ele.Props
-
-        let r = p1 = p2
-
         ReactLazyDOMNode {
           element = ele
           child = node.child |> updateWith (ele.Component ele.Props)

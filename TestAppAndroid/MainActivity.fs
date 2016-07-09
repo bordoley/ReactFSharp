@@ -15,7 +15,7 @@ open React.Android.Widget
 open System
 
 type MyComponentProps = {
-  onClick: unit -> unit
+  onClick: Func<unit, unit>
   count: int
   layoutParameters: ViewGroup.LayoutParams
 }
@@ -24,40 +24,40 @@ type MyComponentProps = {
 type MainActivity () =
   inherit Activity ()
 
-  let toolbarLayoutParams = new LinearLayout.LayoutParams(-1, -2)
+  let fillWidthWrapHeightLayoutParams = new LinearLayout.LayoutParams(-1, -2)
 
   let MyComponent = ReactComponent.makeLazy (fun (props: MyComponentProps) ->
     Components.LinearLayout {
-      props = 
+      props =
         { LinearLayoutProps.Default with
             layoutParameters = props.layoutParameters
             orientation = Orientation.Vertical
         }
       children =
         [|
-          ( "Toolbar", 
+          ( "Toolbar",
             Components.Toolbar {
               ToolbarProps.Default with
-                layoutParameters = toolbarLayoutParams
+                layoutParameters = fillWidthWrapHeightLayoutParams
                 subTitle = "a subtitle"
                 title = "React FSharp App"
             }
           )
 
-          ( "button", 
+          ( "button",
             Components.Button {
               TextViewProps.Default with
-                layoutParameters = new LinearLayout.LayoutParams(-1, -2)
+                layoutParameters = fillWidthWrapHeightLayoutParams
                 text = "Click on me to increment"
                 onClick = props.onClick
              }
           )
 
-          ( "textView", 
+          ( "textView",
             Components.TextView {
               TextViewProps.Default with
                 clickable = false
-                layoutParameters = new LinearLayout.LayoutParams(-1, -1)
+                layoutParameters = fillWidthWrapHeightLayoutParams
                 text = sprintf "count %i" props.count
             }
           )
@@ -70,25 +70,27 @@ type MainActivity () =
 
     let shouldUpdate old updated = true
 
-    let render 
+    let render
       (
-        (onClick, layoutParameters): ((unit -> unit) * FrameLayout.LayoutParams), 
+        (onClick, layoutParameters): (Func<unit, unit> * FrameLayout.LayoutParams),
         state: int
       ) = MyComponent {
         onClick = onClick
         count = state
         layoutParameters = layoutParameters
       }
-  
+
     let action = new Event<unit>()
 
-    let actions = 
+    let actions =
       action.Publish
       |> Observable.observeOn (System.Reactive.Concurrency.NewThreadScheduler())
 
     let StatefulComponent = ReactComponent.stateReducing render reducer shouldUpdate 0 actions
 
-    StatefulComponent (action.Trigger, new FrameLayout.LayoutParams(-1, -1))
+    let onClick = Func<unit, unit>(action.Trigger)
+
+    StatefulComponent (onClick, new FrameLayout.LayoutParams(-1, -1))
 
   override this.OnCreate (bundle) =
     base.OnCreate (bundle)
@@ -109,5 +111,5 @@ type MainActivity () =
           this.SetContentView (view :?> View)
       | None -> this.SetContentView null
 
-    let viewSubscription = view |> ReactView.bindToNativeViewContainer updateView 
+    let viewSubscription = view |> ReactView.bindToNativeViewContainer updateView
     ()

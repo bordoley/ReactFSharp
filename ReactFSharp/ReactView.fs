@@ -248,7 +248,9 @@ module ReactView =
             // Update the props after adding the children. On android this is needed
             // to support the BaselineAlignedChildIndex property
             viewWithChildren.Children <- children
-            viewWithChildren.Props <- node.element.Props
+
+            if node.element.Props <> viewWithChildren.Props then
+              viewWithChildren.Props <- node.element.Props
 
             for (name, view) in oldChildren do
               match children |> ImmutableMap.tryGet name with

@@ -8,9 +8,9 @@ open System
 open System.Runtime.CompilerServices
 
 [<Struct>]
-type Padding = 
+type Padding =
   val start: int
-  val top: int 
+  val top: int
   val end_: int
   val bottom: int
 
@@ -50,15 +50,15 @@ type IViewProps =
   abstract member HorizontalScrollBarEnabled: bool
   abstract member Id: int
   abstract member LayoutParameters: ViewGroup.LayoutParams
-  abstract member OnClick: (unit -> unit) with get 
-  abstract member OnCreateContextMenu: (IContextMenu -> IContextMenuContextMenuInfo -> unit) with get 
-  abstract member OnDrag: (DragEvent -> bool) with get 
-  abstract member OnGenericMotion: (MotionEvent -> bool) with get 
-  abstract member OnHover: (MotionEvent -> bool) with get 
-  abstract member OnKey: (Keycode -> KeyEvent -> bool) with get 
-  abstract member OnLongClick: (unit -> bool) with get 
-  abstract member OnSystemUiVisibilityChange: (StatusBarVisibility -> unit) with get 
-  abstract member OnTouch: (MotionEvent -> bool) with get 
+  abstract member OnClick: Func<unit, unit> with get
+  abstract member OnCreateContextMenu: Func<IContextMenu, IContextMenuContextMenuInfo, unit> with get
+  abstract member OnDrag: Func<DragEvent, bool> with get
+  abstract member OnGenericMotion: Func<MotionEvent, bool> with get
+  abstract member OnHover: Func<MotionEvent, bool> with get
+  abstract member OnKey: Func<Keycode, KeyEvent, bool> with get
+  abstract member OnLongClick: Func<unit, bool> with get
+  abstract member OnSystemUiVisibilityChange: Func<StatusBarVisibility, unit> with get
+  abstract member OnTouch: Func<MotionEvent, bool> with get
   abstract member Padding: Padding
   abstract member Pivot: Pivot
   abstract member ScrollBarSize: int
@@ -82,40 +82,31 @@ module private ViewPropsDefaultValues =
   let layoutParameters = new ViewGroup.LayoutParams(-2, -2)
 
   let onClick =
-    let f () = ()
-    f
+    Func<unit, unit>(fun () -> ())
 
-  let onCreateContextMenu: IContextMenu -> IContextMenuContextMenuInfo -> unit =
-    let f _ _ = ()
-    f
+  let onCreateContextMenu =
+    Func<IContextMenu, IContextMenuContextMenuInfo, unit> (fun _ _ -> ())
 
-  let onDrag: DragEvent -> bool =
-    let f _  = false
-    f
+  let onDrag =
+    Func<DragEvent, bool> (fun _ -> false)
 
-  let onGenericMotion: MotionEvent -> bool =
-    let f _  = false
-    f
+  let onGenericMotion =
+    Func<MotionEvent, bool>(fun _ -> false)
 
-  let onHover: MotionEvent -> bool =
-    let f _  = false
-    f
+  let onHover =
+    Func<MotionEvent, bool>(fun _ -> false)
 
-  let onKey: Keycode -> KeyEvent -> bool =
-    let f _ _ = false
-    f
+  let onKey =
+    Func<Keycode, KeyEvent, bool>(fun _ _ -> false)
 
-  let onLongClick: unit -> bool =
-    let f _  = false
-    f
+  let onLongClick =
+    Func<unit, bool>(fun _ -> false)
 
-  let onSystemUiVisibilityChange: StatusBarVisibility -> unit =
-    let f _ = ()
-    f
+  let onSystemUiVisibilityChange =
+    Func<StatusBarVisibility, unit>(fun _ -> ())
 
-  let onTouch: MotionEvent -> bool =
-    let f _  = false
-    f
+  let onTouch =
+    Func<MotionEvent, bool>(fun _ -> false)
 
 type ViewProps =
   {
@@ -137,15 +128,15 @@ type ViewProps =
     horizontalScrollBarEnabled: bool
     id: int
     layoutParameters: ViewGroup.LayoutParams
-    onClick: unit -> unit
-    onCreateContextMenu: IContextMenu -> IContextMenuContextMenuInfo -> unit
-    onDrag: DragEvent -> bool
-    onGenericMotion: MotionEvent -> bool
-    onHover: MotionEvent -> bool
-    onKey: Keycode -> KeyEvent -> bool
-    onLongClick: unit -> bool
-    onSystemUiVisibilityChange: StatusBarVisibility -> unit
-    onTouch: MotionEvent -> bool
+    onClick: Func<unit, unit>
+    onCreateContextMenu: Func<IContextMenu, IContextMenuContextMenuInfo, unit>
+    onDrag: Func<DragEvent, bool>
+    onGenericMotion: Func<MotionEvent, bool>
+    onHover: Func<MotionEvent, bool>
+    onKey: Func<Keycode, KeyEvent, bool>
+    onLongClick: Func<unit, bool>
+    onSystemUiVisibilityChange: Func<StatusBarVisibility, unit>
+    onTouch: Func<MotionEvent, bool>
     padding: Padding
     pivot: Pivot
     scrollBarSize: int
@@ -256,42 +247,41 @@ module View =
   type private OnClickListener (onClick) =
     inherit Java.Lang.Object ()
 
-    static let cache = 
-      new ConditionalWeakTable<unit -> unit, Android.Views.View.IOnClickListener>()
+    static let cache =
+      new ConditionalWeakTable<Func<unit, unit>, Android.Views.View.IOnClickListener>()
 
     static member Create(onClick) =
       cache.GetValue(
-        onClick, 
+        onClick,
         fun onClick -> (new OnClickListener(onClick)) :> View.IOnClickListener
       )
 
-
     interface View.IOnClickListener with
-      member this.OnClick view = onClick ()
+      member this.OnClick view = onClick.Invoke ()
 
   type private OnCreateContextMenuListener (onCreateContextMenu) =
     inherit Java.Lang.Object ()
 
-    static let cache = 
+    static let cache =
       new ConditionalWeakTable<
-          IContextMenu -> IContextMenuContextMenuInfo -> unit, 
+          Func<IContextMenu, IContextMenuContextMenuInfo, unit>,
           Android.Views.View.IOnCreateContextMenuListener
         >()
 
     static member Create(onCreateContextMenu) =
       cache.GetValue(
-        onCreateContextMenu, 
+        onCreateContextMenu,
         fun onCreateContextMenu -> (new OnCreateContextMenuListener(onCreateContextMenu)) :> View.IOnCreateContextMenuListener
       )
 
     interface View.IOnCreateContextMenuListener with
-      member this.OnCreateContextMenu (menu, view, info) = onCreateContextMenu menu info
-    
-  type private OnDragListener (onDrag) =
-    inherit Java.Lang.Object () 
+      member this.OnCreateContextMenu (menu, view, info) = onCreateContextMenu.Invoke(menu, info)
 
-    static let cache = 
-      new ConditionalWeakTable<DragEvent -> bool, View.IOnDragListener>()
+  type private OnDragListener (onDrag) =
+    inherit Java.Lang.Object ()
+
+    static let cache =
+      new ConditionalWeakTable<Func<DragEvent, bool>, View.IOnDragListener>()
 
     static member Create(onDrag) =
       cache.GetValue(
@@ -299,14 +289,14 @@ module View =
         fun onDrag -> (new OnDragListener(onDrag)) :> View.IOnDragListener
       )
 
-    interface Android.Views.View.IOnDragListener with 
-      member this.OnDrag (view, motionEvent) = onDrag(motionEvent)
+    interface Android.Views.View.IOnDragListener with
+      member this.OnDrag (view, motionEvent) = onDrag.Invoke(motionEvent)
 
   type private OnHoverListener (onHover) =
-    inherit Java.Lang.Object () 
+    inherit Java.Lang.Object ()
 
-    static let cache = 
-      new ConditionalWeakTable<MotionEvent -> bool, View.IOnHoverListener>()
+    static let cache =
+      new ConditionalWeakTable<Func<MotionEvent, bool>, View.IOnHoverListener>()
 
     static member Create(onHover) =
       cache.GetValue(
@@ -314,14 +304,14 @@ module View =
         fun onHover -> (new OnHoverListener(onHover)) :> View.IOnHoverListener
       )
 
-    interface Android.Views.View.IOnHoverListener with 
-      member this.OnHover (view, motionEvent) = onHover(motionEvent)
+    interface Android.Views.View.IOnHoverListener with
+      member this.OnHover (view, motionEvent) = onHover.Invoke(motionEvent)
 
   type private OnGenericMotionListener (onGenericMotion) =
-    inherit Java.Lang.Object () 
+    inherit Java.Lang.Object ()
 
-    static let cache = 
-      new ConditionalWeakTable<MotionEvent -> bool, View.IOnGenericMotionListener>()
+    static let cache =
+      new ConditionalWeakTable<Func<MotionEvent, bool>, View.IOnGenericMotionListener>()
 
     static member Create(onGenericMotion) =
       cache.GetValue(
@@ -329,60 +319,60 @@ module View =
         fun onGenericMotion -> (new OnGenericMotionListener(onGenericMotion)) :> View.IOnGenericMotionListener
       )
 
-    interface Android.Views.View.IOnGenericMotionListener with 
-      member this.OnGenericMotion (view, motionEvent) = onGenericMotion(motionEvent)
+    interface Android.Views.View.IOnGenericMotionListener with
+      member this.OnGenericMotion (view, motionEvent) = onGenericMotion.Invoke(motionEvent)
 
   type private OnKeyListener (onKey) =
     inherit Java.Lang.Object ()
 
-    static let cache = 
-      new ConditionalWeakTable<Keycode -> KeyEvent -> bool, View.IOnKeyListener>()
+    static let cache =
+      new ConditionalWeakTable<Func<Keycode, KeyEvent, bool>, View.IOnKeyListener>()
 
     static member Create(onKey) =
       cache.GetValue(
-        onKey, 
+        onKey,
         fun onKey -> (new OnKeyListener(onKey)) :> View.IOnKeyListener
       )
 
     interface View.IOnKeyListener with
-      member this.OnKey (view, keyCode, keyEvent) = onKey keyCode keyEvent
+      member this.OnKey (view, keyCode, keyEvent) = onKey.Invoke(keyCode, keyEvent)
 
   type private OnLongClickListener (onLongClick) =
     inherit Java.Lang.Object ()
 
-    static let cache = 
-      new ConditionalWeakTable<unit -> bool, Android.Views.View.IOnLongClickListener>()
+    static let cache =
+      new ConditionalWeakTable<Func<unit, bool>, Android.Views.View.IOnLongClickListener>()
 
     static member Create(onLongClick) =
       cache.GetValue(
-        onLongClick, 
+        onLongClick,
         fun onLongClick -> (new OnLongClickListener(onLongClick)) :> View.IOnLongClickListener
       )
 
     interface View.IOnLongClickListener with
-      member this.OnLongClick view = onLongClick ()
+      member this.OnLongClick view = onLongClick.Invoke ()
 
   type private OnSystemUiVisibilityChangeListener (onSystemUiVisibilityChange) =
     inherit Java.Lang.Object ()
 
-    static let cache = 
-      new ConditionalWeakTable<StatusBarVisibility -> unit, View.IOnSystemUiVisibilityChangeListener>()
+    static let cache =
+      new ConditionalWeakTable<Func<StatusBarVisibility, unit>, View.IOnSystemUiVisibilityChangeListener>()
 
     static member Create(onSystemUiVisibilityChange) =
       cache.GetValue(
-        onSystemUiVisibilityChange, 
-        fun onSystemUiVisibilityChange -> 
+        onSystemUiVisibilityChange,
+        fun onSystemUiVisibilityChange ->
           (new OnSystemUiVisibilityChangeListener(onSystemUiVisibilityChange)) :> View.IOnSystemUiVisibilityChangeListener
       )
 
     interface View.IOnSystemUiVisibilityChangeListener with
-      member this.OnSystemUiVisibilityChange(sbv) = onSystemUiVisibilityChange sbv
+      member this.OnSystemUiVisibilityChange(sbv) = onSystemUiVisibilityChange.Invoke(sbv)
 
   type private OnTouchListener (onTouch) =
-    inherit Java.Lang.Object () 
+    inherit Java.Lang.Object ()
 
-    static let cache = 
-      new ConditionalWeakTable<MotionEvent -> bool, View.IOnTouchListener>()
+    static let cache =
+      new ConditionalWeakTable<Func<MotionEvent, bool>, View.IOnTouchListener>()
 
     static member Create(onTouch) =
       cache.GetValue(
@@ -390,8 +380,8 @@ module View =
         fun onTouch -> (new OnTouchListener(onTouch)) :> View.IOnTouchListener
       )
 
-    interface Android.Views.View.IOnTouchListener with 
-      member this.OnTouch (view, motionEvent) = onTouch(motionEvent)
+    interface Android.Views.View.IOnTouchListener with
+      member this.OnTouch (view, motionEvent) = onTouch.Invoke(motionEvent)
 
   let setProps (view: View) (props: IViewProps) =
     view.SetOnClickListener (OnClickListener.Create props.OnClick)
@@ -433,7 +423,7 @@ module View =
     view.PivotX <- props.Pivot.x
     view.PivotY <- props.Pivot.y
     view.ScrollBarSize <- props.ScrollBarSize
-    view.ScrollBarStyle <- props.ScrollBarStyle 
+    view.ScrollBarStyle <- props.ScrollBarStyle
     view.Selected <- props.Selected
     view.SoundEffectsEnabled <- props.SoundEffectsEnabled
     view.SystemUiVisibility <- props.SystemUiVisibility
