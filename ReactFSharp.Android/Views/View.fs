@@ -32,24 +32,38 @@ type Translation =
   new (x, y, z) = { x = x; y = y; z=z }
 
 type IViewProps =
+  abstract member AccessibilityLiveRegion: AccessibilityLiveRegion
+  //abstract member Activated: bool
   abstract member Alpha: float32
   abstract member BackgroundColor: Color
   abstract member BackgroundTintMode: PorterDuff.Mode
   abstract member Clickable: bool
   abstract member ContentDescription: string
   abstract member ContextClickable: bool
+  abstract member Elevation: Single
+  abstract member Enabled: bool
+  abstract member FilterTouchesWhenObscured: bool
+  abstract member Focusable: bool
+  abstract member FocusableInTouchMode: bool
+  abstract member HapticFeedbackEnabled: bool
+  abstract member HorizontalFadingEdgeEnabled: bool
+  abstract member HorizontalScrollBarEnabled: bool
+  abstract member Id: int
   abstract member LayoutParameters: ViewGroup.LayoutParams
-  abstract member OnClick: unit -> unit
-  abstract member OnCreateContextMenu: IContextMenu * IContextMenuContextMenuInfo -> unit
-  abstract member OnDrag: DragEvent -> bool
-  abstract member OnGenericMotion: MotionEvent -> bool
-  abstract member OnHover: MotionEvent -> bool
-  abstract member OnKey: Keycode * KeyEvent -> bool
-  abstract member OnLongClick: unit -> bool
-  abstract member OnSystemUiVisibilityChange: StatusBarVisibility -> unit
-  abstract member OnTouch: MotionEvent -> bool
+  abstract member OnClick: (unit -> unit) with get 
+  abstract member OnCreateContextMenu: (IContextMenu -> IContextMenuContextMenuInfo -> unit) with get 
+  abstract member OnDrag: (DragEvent -> bool) with get 
+  abstract member OnGenericMotion: (MotionEvent -> bool) with get 
+  abstract member OnHover: (MotionEvent -> bool) with get 
+  abstract member OnKey: (Keycode -> KeyEvent -> bool) with get 
+  abstract member OnLongClick: (unit -> bool) with get 
+  abstract member OnSystemUiVisibilityChange: (StatusBarVisibility -> unit) with get 
+  abstract member OnTouch: (MotionEvent -> bool) with get 
   abstract member Padding: Padding
   abstract member Pivot: Pivot
+  abstract member ScrollBarSize: int
+  abstract member ScrollBarStyle: ScrollbarStyles
+  abstract member Selected: bool
   abstract member SoundEffectsEnabled: bool
   abstract member SystemUiVisibility: StatusBarVisibility
   abstract member TextAlignment: TextAlignment
@@ -61,15 +75,65 @@ type IViewProps =
   abstract member VerticalScrollbarPosition: ScrollbarPosition
   abstract member Visibility: ViewStates
 
+// This is a hack around the F# compiler. We want to ensure that
+// the default event handlers are values so that they can be effectively
+// cached
+module private  ViewDefaultEventHandlers =
+  let onClick =
+    let f () = ()
+    f
+
+  let onCreateContextMenu: IContextMenu -> IContextMenuContextMenuInfo -> unit =
+    let f _ _ = ()
+    f
+
+  let onDrag: DragEvent -> bool =
+    let f _  = false
+    f
+
+  let onGenericMotion: MotionEvent -> bool =
+    let f _  = false
+    f
+
+  let onHover: MotionEvent -> bool =
+    let f _  = false
+    f
+
+  let onKey: Keycode -> KeyEvent -> bool =
+    let f _ _ = false
+    f
+
+  let onLongClick: unit -> bool =
+    let f _  = false
+    f
+
+  let onSystemUiVisibilityChange: StatusBarVisibility -> unit =
+    let f _ = ()
+    f
+
+  let onTouch: MotionEvent -> bool =
+    let f _  = false
+    f
+
 type ViewProps =
   {
     // View Props
+    accessibilityLiveRegion: AccessibilityLiveRegion
     alpha: float32
     backgroundColor: Color
     backgroundTintMode: PorterDuff.Mode
     clickable: bool
     contentDescription: string
     contextClickable: bool
+    elevation: Single
+    enabled: bool
+    filterTouchesWhenObscured: bool
+    focusable: bool
+    focusableInTouchMode: bool
+    hapticFeedbackEnabled: bool
+    horizontalFadingEdgeEnabled: bool
+    horizontalScrollBarEnabled: bool
+    id: int
     layoutParameters: ViewGroup.LayoutParams
     onClick: unit -> unit
     onCreateContextMenu: IContextMenu -> IContextMenuContextMenuInfo -> unit
@@ -82,6 +146,9 @@ type ViewProps =
     onTouch: MotionEvent -> bool
     padding: Padding
     pivot: Pivot
+    scrollBarSize: int
+    scrollBarStyle: ScrollbarStyles
+    selected: bool
     soundEffectsEnabled: bool
     systemUiVisibility: StatusBarVisibility
     textAlignment: TextAlignment
@@ -95,24 +162,37 @@ type ViewProps =
   }
 
   static member Default = {
+    accessibilityLiveRegion = AccessibilityLiveRegion.None
     alpha = 1.0f
     backgroundColor = Color.White
     backgroundTintMode = PorterDuff.Mode.SrcIn
     clickable = true
     contentDescription = ""
     contextClickable = true
+    elevation = 0.0f
+    enabled = true
+    filterTouchesWhenObscured = false
+    focusable = false
+    focusableInTouchMode = false
+    hapticFeedbackEnabled = false
+    horizontalFadingEdgeEnabled = false
+    horizontalScrollBarEnabled = false
+    id = 0
     layoutParameters = new ViewGroup.LayoutParams(-2, -2)
-    onClick = fun () -> ()
-    onCreateContextMenu = fun _ _ -> ()
-    onDrag = fun _ -> false
-    onGenericMotion = fun _ -> false
-    onHover = fun _ -> false
-    onKey = fun _ _ -> false
-    onLongClick = fun () -> false
-    onSystemUiVisibilityChange = fun _ -> ()
-    onTouch = fun _ -> false
+    onClick = ViewDefaultEventHandlers.onClick
+    onCreateContextMenu = ViewDefaultEventHandlers.onCreateContextMenu
+    onDrag = ViewDefaultEventHandlers.onDrag
+    onGenericMotion = ViewDefaultEventHandlers.onGenericMotion
+    onHover = ViewDefaultEventHandlers.onHover
+    onKey = ViewDefaultEventHandlers.onKey
+    onLongClick = ViewDefaultEventHandlers.onLongClick
+    onSystemUiVisibilityChange = ViewDefaultEventHandlers.onSystemUiVisibilityChange
+    onTouch = ViewDefaultEventHandlers.onTouch
     padding = Unchecked.defaultof<Padding>
     pivot = Pivot(0.0f, 0.0f)
+    scrollBarSize = 0
+    scrollBarStyle = ScrollbarStyles.InsideOverlay
+    selected = false
     soundEffectsEnabled = true
     systemUiVisibility =  StatusBarVisibility.Visible
     textAlignment = TextAlignment.Inherit
@@ -127,24 +207,37 @@ type ViewProps =
 
   interface IViewProps with
     // View Props
+    member this.AccessibilityLiveRegion = this.accessibilityLiveRegion
     member this.Alpha = this.alpha
     member this.BackgroundColor = this.backgroundColor
     member this.BackgroundTintMode = this.backgroundTintMode
     member this.Clickable = this.clickable
     member this.ContentDescription = this.contentDescription
     member this.ContextClickable = this.contextClickable
+    member this.Elevation = this.elevation
+    member this.Enabled = this.enabled
+    member this.FilterTouchesWhenObscured = this.filterTouchesWhenObscured
+    member this.Focusable = this.focusable
+    member this.FocusableInTouchMode = this.focusableInTouchMode
+    member this.HapticFeedbackEnabled = this.hapticFeedbackEnabled
+    member this.HorizontalFadingEdgeEnabled = this.horizontalFadingEdgeEnabled
+    member this.HorizontalScrollBarEnabled = this.horizontalScrollBarEnabled
+    member this.Id = this.id
     member this.LayoutParameters = this.layoutParameters
-    member this.OnClick () = this.onClick ()
-    member this.OnCreateContextMenu (menu, info) = this.onCreateContextMenu menu info
-    member this.OnDrag de = this.onDrag de
-    member this.OnGenericMotion me = this.onGenericMotion me 
-    member this.OnHover me = this.onHover me
-    member this.OnKey (keyCode, keyEvent) = this.onKey keyCode keyEvent
-    member this.OnLongClick () = this.onLongClick ()
-    member this.OnSystemUiVisibilityChange sbv = this.onSystemUiVisibilityChange sbv
-    member this.OnTouch me = this.onTouch me
+    member this.OnClick = this.onClick
+    member this.OnCreateContextMenu = this.onCreateContextMenu
+    member this.OnDrag = this.onDrag
+    member this.OnGenericMotion = this.onGenericMotion
+    member this.OnHover = this.onHover
+    member this.OnKey = this.onKey
+    member this.OnLongClick = this.onLongClick
+    member this.OnSystemUiVisibilityChange = this.onSystemUiVisibilityChange
+    member this.OnTouch = this.onTouch
     member this.Padding = this.padding
     member this.Pivot = this.pivot
+    member this.ScrollBarSize = this.scrollBarSize
+    member this.ScrollBarStyle = this.scrollBarStyle
+    member this.Selected = this.selected
     member this.SoundEffectsEnabled = this.soundEffectsEnabled
     member this.SystemUiVisibility = this.systemUiVisibility
     member this.TextAlignment = this.textAlignment
@@ -170,6 +263,7 @@ module View =
         fun onClick -> (new OnClickListener(onClick)) :> View.IOnClickListener
       )
 
+
     interface View.IOnClickListener with
       member this.OnClick view = onClick ()
 
@@ -178,18 +272,18 @@ module View =
 
     static let cache = 
       new ConditionalWeakTable<
-          IContextMenu * IContextMenuContextMenuInfo -> unit, 
+          IContextMenu -> IContextMenuContextMenuInfo -> unit, 
           Android.Views.View.IOnCreateContextMenuListener
         >()
 
     static member Create(onCreateContextMenu) =
       cache.GetValue(
         onCreateContextMenu, 
-        fun onClick -> (new OnCreateContextMenuListener(onCreateContextMenu)) :> View.IOnCreateContextMenuListener
+        fun onCreateContextMenu -> (new OnCreateContextMenuListener(onCreateContextMenu)) :> View.IOnCreateContextMenuListener
       )
 
     interface View.IOnCreateContextMenuListener with
-      member this.OnCreateContextMenu (menu, view, info) = onCreateContextMenu (menu, info)
+      member this.OnCreateContextMenu (menu, view, info) = onCreateContextMenu menu info
     
   type private OnDragListener (onDrag) =
     inherit Java.Lang.Object () 
@@ -200,8 +294,7 @@ module View =
     static member Create(onDrag) =
       cache.GetValue(
         onDrag,
-        fun onDrag -> 
-          (new OnDragListener(onDrag)) :> View.IOnDragListener
+        fun onDrag -> (new OnDragListener(onDrag)) :> View.IOnDragListener
       )
 
     interface Android.Views.View.IOnDragListener with 
@@ -216,8 +309,7 @@ module View =
     static member Create(onHover) =
       cache.GetValue(
         onHover,
-        fun onHover -> 
-          (new OnHoverListener(onHover)) :> View.IOnHoverListener
+        fun onHover -> (new OnHoverListener(onHover)) :> View.IOnHoverListener
       )
 
     interface Android.Views.View.IOnHoverListener with 
@@ -232,8 +324,7 @@ module View =
     static member Create(onGenericMotion) =
       cache.GetValue(
         onGenericMotion,
-        fun onGenericMotion -> 
-          (new OnGenericMotionListener(onGenericMotion)) :> View.IOnGenericMotionListener
+        fun onGenericMotion -> (new OnGenericMotionListener(onGenericMotion)) :> View.IOnGenericMotionListener
       )
 
     interface Android.Views.View.IOnGenericMotionListener with 
@@ -243,7 +334,7 @@ module View =
     inherit Java.Lang.Object ()
 
     static let cache = 
-      new ConditionalWeakTable<Keycode * KeyEvent -> bool, View.IOnKeyListener>()
+      new ConditionalWeakTable<Keycode -> KeyEvent -> bool, View.IOnKeyListener>()
 
     static member Create(onKey) =
       cache.GetValue(
@@ -252,7 +343,7 @@ module View =
       )
 
     interface View.IOnKeyListener with
-      member this.OnKey (view, keyCode, keyEvent) = onKey (keyCode, keyEvent)
+      member this.OnKey (view, keyCode, keyEvent) = onKey keyCode keyEvent
 
   type private OnLongClickListener (onLongClick) =
     inherit Java.Lang.Object ()
@@ -260,10 +351,10 @@ module View =
     static let cache = 
       new ConditionalWeakTable<unit -> bool, Android.Views.View.IOnLongClickListener>()
 
-    static member Create(onClick) =
+    static member Create(onLongClick) =
       cache.GetValue(
-        onClick, 
-        fun onClick -> (new OnLongClickListener(onClick)) :> View.IOnLongClickListener
+        onLongClick, 
+        fun onLongClick -> (new OnLongClickListener(onLongClick)) :> View.IOnLongClickListener
       )
 
     interface View.IOnLongClickListener with
@@ -294,28 +385,11 @@ module View =
     static member Create(onTouch) =
       cache.GetValue(
         onTouch,
-        fun onTcouh -> 
-          (new OnTouchListener(onTouch)) :> View.IOnTouchListener
+        fun onTouch -> (new OnTouchListener(onTouch)) :> View.IOnTouchListener
       )
 
     interface Android.Views.View.IOnTouchListener with 
       member this.OnTouch (view, motionEvent) = onTouch(motionEvent)
-
-  let dispose (view: View) =
-    view.SetOnClickListener null
-    view.SetOnCreateContextMenuListener null
-    view.SetOnDragListener null
-    view.SetOnGenericMotionListener null
-    view.SetOnHoverListener null
-    view.SetOnKeyListener null
-    view.SetOnLongClickListener null
-    view.SetOnSystemUiVisibilityChangeListener null
-    view.SetOnTouchListener null
-   
-    //view.SetOnContextClickListener null
-    //view.SetOnApplyWindowInsetsListener null
-
-    ()
 
   let setProps (view: View) (props: IViewProps) =
     view.SetOnClickListener (OnClickListener.Create props.OnClick)
@@ -335,16 +409,30 @@ module View =
     //view.SetOnContextClickListener null
     //view.SetOnApplyWindowInsetsListener null
 
+    view.AccessibilityLiveRegion <- props.AccessibilityLiveRegion
+    //view.Activated
     view.Alpha <- props.Alpha
     view.SetBackgroundColor props.BackgroundColor
     view.BackgroundTintMode <- props.BackgroundTintMode
     view.Clickable <- props.Clickable
     view.ContentDescription <- props.ContentDescription
     view.ContextClickable <- props.ContextClickable
+    view.Elevation <- props.Elevation
+    view.Enabled <- props.Enabled
+    view.FilterTouchesWhenObscured <- props.FilterTouchesWhenObscured
+    view.Focusable <- props.Focusable
+    view.FocusableInTouchMode <- props.FocusableInTouchMode
+    view.HapticFeedbackEnabled <- props.HapticFeedbackEnabled
+    view.HorizontalFadingEdgeEnabled <- props.HorizontalFadingEdgeEnabled
+    view.HorizontalScrollBarEnabled <- props.HorizontalScrollBarEnabled
+    view.Id <- props.Id
     view.LayoutParameters <- props.LayoutParameters
     view.SetPaddingRelative(props.Padding.start, props.Padding.top, props.Padding.end_, props.Padding.bottom)
     view.PivotX <- props.Pivot.x
     view.PivotY <- props.Pivot.y
+    view.ScrollBarSize <- props.ScrollBarSize
+    view.ScrollBarStyle <- props.ScrollBarStyle 
+    view.Selected <- props.Selected
     view.SoundEffectsEnabled <- props.SoundEffectsEnabled
     view.SystemUiVisibility <- props.SystemUiVisibility
     view.TextAlignment <- props.TextAlignment
@@ -357,6 +445,5 @@ module View =
     view.VerticalScrollBarEnabled <- props.VerticalScrollBarEnabled
     view.VerticalScrollbarPosition <- props.VerticalScrollbarPosition
     view.Visibility <- props.Visibility
-
 
 

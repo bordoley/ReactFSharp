@@ -1,7 +1,5 @@
 ﻿namespace TestAppAndroid
 
-open System
-
 open Android.App
 open Android.Content
 open Android.Graphics
@@ -9,14 +7,12 @@ open Android.OS
 open Android.Runtime
 open Android.Views
 open Android.Widget
-
+open FSharp.Control.Reactive
 open ImmutableCollections
-
 open React
 open React.Android.Views
 open React.Android.Widget
-
-module FSXObservable = FSharp.Control.Reactive.Observable
+open System
 
 type MyComponentProps = {
   onClick: unit -> unit
@@ -27,6 +23,8 @@ type MyComponentProps = {
 [<Activity (Label = "ReactFSharp", MainLauncher = true)>]
 type MainActivity () =
   inherit Activity ()
+
+  let toolbarLayoutParams = new LinearLayout.LayoutParams(-1, -2)
 
   let MyComponent = ReactComponent.makeLazy (fun (props: MyComponentProps) ->
     Components.LinearLayout {
@@ -40,7 +38,7 @@ type MainActivity () =
           ( "Toolbar", 
             Components.Toolbar {
               ToolbarProps.Default with
-                layoutParameters = new LinearLayout.LayoutParams(-1, -2)
+                layoutParameters = toolbarLayoutParams
                 subTitle = "a subtitle"
                 title = "React FSharp App"
             }
@@ -86,7 +84,7 @@ type MainActivity () =
 
     let actions = 
       action.Publish
-      |> FSXObservable.observeOn (System.Reactive.Concurrency.NewThreadScheduler())
+      |> Observable.observeOn (System.Reactive.Concurrency.NewThreadScheduler())
 
     let StatefulComponent = ReactComponent.stateReducing render reducer shouldUpdate 0 actions
 
