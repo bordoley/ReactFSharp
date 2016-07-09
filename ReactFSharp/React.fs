@@ -57,8 +57,7 @@ and ReactComponent<'Props> = 'Props -> ReactElement
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ReactComponent =
   let makeLazy (f: ReactComponent<'Props>): ReactComponent<'Props> =
-    let f props =
-       ReactLazyElement.Create(f, props)
+    let f props = ReactLazyElement.Create(f, props)
     f
 
   let fromStatefulComponent (comp: ReactStatefulComponent<'Props>): ReactComponent<'Props> =

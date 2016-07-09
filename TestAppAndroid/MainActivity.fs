@@ -17,7 +17,6 @@ open System
 type MyComponentProps = {
   onClick: Func<unit, unit>
   count: int
-  layoutParameters: ViewGroup.LayoutParams
 }
 
 [<Activity (Label = "ReactFSharp", MainLauncher = true)>]
@@ -30,7 +29,6 @@ type MainActivity () =
     Components.LinearLayout {
       props =
         { LinearLayoutProps.Default with
-            layoutParameters = props.layoutParameters
             orientation = Orientation.Vertical
         }
       children =
@@ -70,27 +68,21 @@ type MainActivity () =
 
     let shouldUpdate old updated = true
 
-    let render
-      (
-        (onClick, layoutParameters): (Func<unit, unit> * FrameLayout.LayoutParams),
-        state: int
-      ) = MyComponent {
-        onClick = onClick
-        count = state
-        layoutParameters = layoutParameters
-      }
+    let actions = new Event<unit>()
+    let onClick = Func<unit, unit>(actions.Trigger)
 
-    let action = new Event<unit>()
+    let render (props: unit, state: int) = MyComponent {
+      onClick = onClick
+      count = state
+    }
 
     let actions =
-      action.Publish
+      actions.Publish
       |> Observable.observeOn (System.Reactive.Concurrency.NewThreadScheduler())
 
     let StatefulComponent = ReactComponent.stateReducing render reducer shouldUpdate 0 actions
 
-    let onClick = Func<unit, unit>(action.Trigger)
-
-    StatefulComponent (onClick, new FrameLayout.LayoutParams(-1, -1))
+    StatefulComponent ()
 
   override this.OnCreate (bundle) =
     base.OnCreate (bundle)

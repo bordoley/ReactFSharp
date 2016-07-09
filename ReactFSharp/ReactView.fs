@@ -42,7 +42,7 @@ and IReactViewGroup =
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ReactView =
-  let private dispose (view: ReactView) = (view :> IDisposable).Dispose()
+  let private dispose (disposable: IDisposable) = disposable.Dispose()
 
   let rec bindToNativeViewContainer (update: Option<obj> -> unit) (reactView: ReactView): IDisposable =
     match reactView with
@@ -55,7 +55,7 @@ module ReactView =
           statefulView.State
           |> Observable.scanInit Disposable.Empty reducer 
           |> Observable.last
-          |> Observable.subscribe (fun view -> view.Dispose())
+          |> Observable.subscribe dispose
 
         subscription
     | ReactView view ->
