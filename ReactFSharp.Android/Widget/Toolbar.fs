@@ -169,7 +169,6 @@ module Toolbar =
   let name = "Android.Widget.Toolbar"
 
   let setProps (view: Toolbar) (props: IToolbarProps) =
-    Console.WriteLine("toolbar set props");
     ViewGroup.setProps view props
     view.Subtitle <- props.SubTitle
     view.Title <- props.Title
@@ -178,11 +177,7 @@ module Toolbar =
     let viewProvider () = new Toolbar(context)
     ReactView.createView name viewProvider setProps
 
-  let private toolbarComponent =
-    let toolbarComponent (props: ToolbarProps) = ReactNativeElement {
-      Name = name
-      Props = props
-    }
-    toolbarComponent
-
-  let internal reactComponent = ReactComponent.makeLazy toolbarComponent
+  let internal reactComponent = ReactComponent.makeLazy (fun (props: ToolbarProps) -> ReactNativeElement {
+    Name = name
+    Props = props
+  })

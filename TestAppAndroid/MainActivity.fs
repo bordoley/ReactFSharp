@@ -31,7 +31,7 @@ type MainActivity () =
       props = 
         { LinearLayoutProps.Default with
             layoutParameters = props.layoutParameters
-            orientation = Android.Widget.Orientation.Vertical
+            orientation = Orientation.Vertical
         }
       children =
         [|

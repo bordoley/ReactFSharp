@@ -77,8 +77,10 @@ type IViewProps =
 
 // This is a hack around the F# compiler. We want to ensure that
 // the default event handlers are values so that they can be effectively
-// cached
-module private  ViewDefaultEventHandlers =
+// cached and don't break record equality
+module private ViewPropsDefaultValues =
+  let layoutParameters = new ViewGroup.LayoutParams(-2, -2)
+
   let onClick =
     let f () = ()
     f
@@ -178,16 +180,16 @@ type ViewProps =
     horizontalFadingEdgeEnabled = false
     horizontalScrollBarEnabled = false
     id = 0
-    layoutParameters = new ViewGroup.LayoutParams(-2, -2)
-    onClick = ViewDefaultEventHandlers.onClick
-    onCreateContextMenu = ViewDefaultEventHandlers.onCreateContextMenu
-    onDrag = ViewDefaultEventHandlers.onDrag
-    onGenericMotion = ViewDefaultEventHandlers.onGenericMotion
-    onHover = ViewDefaultEventHandlers.onHover
-    onKey = ViewDefaultEventHandlers.onKey
-    onLongClick = ViewDefaultEventHandlers.onLongClick
-    onSystemUiVisibilityChange = ViewDefaultEventHandlers.onSystemUiVisibilityChange
-    onTouch = ViewDefaultEventHandlers.onTouch
+    layoutParameters = ViewPropsDefaultValues.layoutParameters
+    onClick = ViewPropsDefaultValues.onClick
+    onCreateContextMenu = ViewPropsDefaultValues.onCreateContextMenu
+    onDrag = ViewPropsDefaultValues.onDrag
+    onGenericMotion = ViewPropsDefaultValues.onGenericMotion
+    onHover = ViewPropsDefaultValues.onHover
+    onKey = ViewPropsDefaultValues.onKey
+    onLongClick = ViewPropsDefaultValues.onLongClick
+    onSystemUiVisibilityChange = ViewPropsDefaultValues.onSystemUiVisibilityChange
+    onTouch = ViewPropsDefaultValues.onTouch
     padding = Unchecked.defaultof<Padding>
     pivot = Pivot(0.0f, 0.0f)
     scrollBarSize = 0

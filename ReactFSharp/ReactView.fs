@@ -226,8 +226,8 @@ module ReactView =
           }
 
       | (ReactNativeDOMNode node, ReactView reactView)
-          when node.element.Name = reactView.Name ->
-            reactView.Props <- node.element.Props
+          when node.Name = reactView.Name ->
+            reactView.Props <- node.Props
             view
 
       | (ReactNativeDOMNodeGroup node, ReactViewGroup viewWithChildren)
@@ -262,7 +262,7 @@ module ReactView =
 
           let (name, props) =
             match node with
-            | ReactNativeDOMNode node -> (node.element.Name, node.element.Props)
+            | ReactNativeDOMNode node -> (node.Name, node.Props)
             | ReactNativeDOMNodeGroup node -> (node.element.Name, node.element.Props)
             | _ -> failwith "node must be a ReactNativeDomNode ReactNativeDOMNodeGroup"
 

@@ -2,13 +2,11 @@
 
 open Android.Content
 open Android.Views
-open FSharp.Control.Reactive
 open ImmutableCollections
 open React
 open React.Android
 open System
 open System.Reactive.Concurrency
-open System.Reactive.Subjects
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ReactView =

@@ -10,4 +10,4 @@ module Components =
   let Button = Button.reactComponent
   let LinearLayout = LinearLayout.reactComponent
   let TextView = TextView.reactComponent
-  let Toolbar = Toolbar.reactComponent 
+  let Toolbar = Toolbar.reactComponent

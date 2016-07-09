@@ -5,33 +5,37 @@ open ImmutableCollections
 open System
 open System.Reactive.Linq
 
-type [<ReferenceEquality>] ReactElement = 
+type [<ReferenceEquality>] ReactElement =
   | ReactStatefulElement of ReactStatefulElement
   | ReactLazyElement of ReactLazyElement
   | ReactNativeElement of ReactNativeElement
   | ReactNativeElementGroup of ReactNativeElementGroup
   | ReactNoneElement
 
-and ReactStatefulElement private (comp: ReactStatefulComponent<obj>, props: obj) = 
-  static member internal Create<'Props>(comp: ReactStatefulComponent<'Props>, 
+and ReactStatefulElement private (id: obj, comp: ReactStatefulComponent<obj>, props: obj) =
+
+  static member internal Create<'Props>(comp: ReactStatefulComponent<'Props>,
                                         props: 'Props
                                        ): ReactElement =
-    let comp (propsStream : IObservable<obj>) = 
+    let castedComp (propsStream: IObservable<obj>) =
       propsStream |> Observable.cast<'Props> |> comp
-     
-    ReactElement.ReactStatefulElement <| ReactStatefulElement(comp, props)    
 
+    ReactElement.ReactStatefulElement <| ReactStatefulElement(comp :> obj, castedComp, props)
+
+  member this.Id = id
   member this.Component = comp
   member this.Props = props
 
-and ReactLazyElement private (comp: ReactComponent<obj>, props: obj) = 
-  static member internal Create<'Props>(comp: ReactComponent<'Props>, 
+and ReactLazyElement private (id: obj, comp: ReactComponent<obj>, props: obj) =
+
+  static member internal Create<'Props>(comp: ReactComponent<'Props>,
                                         props: 'Props
                                        ): ReactElement =
-    
-    let comp (props : obj) = comp (props :?> 'Props)
-    ReactElement.ReactLazyElement <| ReactLazyElement(comp, props :> obj)
 
+    let castedComp (props : obj) = comp (props :?> 'Props)
+    ReactElement.ReactLazyElement <| ReactLazyElement(comp :> obj, castedComp, props :> obj)
+
+  member this.Id = id
   member this.Component = comp
   member this.Props = props
 
@@ -41,7 +45,7 @@ and [<ReferenceEquality>] ReactNativeElement = {
   }
 
 and [<ReferenceEquality>] ReactNativeElementGroup = {
-    Name: string 
+    Name: string
     Props: obj
     Children: IImmutableMap<string, ReactElement>
   }
@@ -53,21 +57,24 @@ and ReactComponent<'Props> = 'Props -> ReactElement
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ReactComponent =
   let makeLazy (f: ReactComponent<'Props>): ReactComponent<'Props> =
-    fun props -> ReactLazyElement.Create(f, props)
+    let f props =
+       ReactLazyElement.Create(f, props)
+    f
 
   let fromStatefulComponent (comp: ReactStatefulComponent<'Props>): ReactComponent<'Props> =
-    fun props -> ReactStatefulElement.Create(comp, props)
+    let f props = ReactStatefulElement.Create(comp, props)
+    f
 
   let stateReducing
       (render: ('Props * 'State) -> ReactElement)
       (reducer: 'State -> 'Action -> 'State)
       (shouldUpdate: ('Props * 'State) -> ('Props * 'State) -> bool)
-      (initialState: 'State) 
+      (initialState: 'State)
       (actions: IObservable<'Action>) =
     let statefulComponent (props: IObservable<'Props>) =
-      let state = 
-        actions     
-        |> Observable.scanInit initialState reducer 
+      let state =
+        actions
+        |> Observable.scanInit initialState reducer
         |> Observable.startWith [initialState]
 
       let updatedPropsAndState =
@@ -77,13 +84,13 @@ module ReactComponent =
         |> Observable.filter (fun (prev, next) -> shouldUpdate prev next)
         |> Observable.map (fun (_, next) -> next)
 
-      let elements = 
+      let elements =
         props
-        |> Observable.first 
+        |> Observable.first
         |> Observable.map (fun props -> (props, initialState))
         |> Observable.concat updatedPropsAndState
         |> Observable.map render
-        
+
       elements
 
     fromStatefulComponent statefulComponent
