@@ -112,7 +112,7 @@ module ReactView =
       | (ReactNoneDOMNode, _) ->
           ReactViewNone
 
-      | (ReactStatelessDOMNode node, _) ->
+      | (ReactLazyDOMNode node, _) ->
           view |> updateWith node.child
 
       | (ReactStatefulDOMNode node, ReactStatefulView statefulView)

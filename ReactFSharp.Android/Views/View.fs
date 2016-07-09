@@ -23,6 +23,7 @@ type Pivot =
 
   new (x, y) = { x = x; y = y }
 
+[<Struct>]
 type Translation =
   val x: Single
   val y: Single
@@ -91,6 +92,37 @@ type ViewProps =
     verticalScrollBarEnabled: bool
     verticalScrollbarPosition: ScrollbarPosition
     visibility: ViewStates
+  }
+
+  static member Default = {
+    alpha = 1.0f
+    backgroundColor = Color.White
+    backgroundTintMode = PorterDuff.Mode.SrcIn
+    clickable = true
+    contentDescription = ""
+    contextClickable = true
+    layoutParameters = new ViewGroup.LayoutParams(-2, -2)
+    onClick = fun () -> ()
+    onCreateContextMenu = fun _ _ -> ()
+    onDrag = fun _ -> false
+    onGenericMotion = fun _ -> false
+    onHover = fun _ -> false
+    onKey = fun _ _ -> false
+    onLongClick = fun () -> false
+    onSystemUiVisibilityChange = fun _ -> ()
+    onTouch = fun _ -> false
+    padding = Unchecked.defaultof<Padding>
+    pivot = Pivot(0.0f, 0.0f)
+    soundEffectsEnabled = true
+    systemUiVisibility =  StatusBarVisibility.Visible
+    textAlignment = TextAlignment.Inherit
+    textDirection = TextDirection.Inherit
+    transitionName = ""
+    translation = Translation(0.0f, 0.0f, 0.0f)
+    verticalFadingEdgeEnabled = false
+    verticalScrollBarEnabled = false
+    verticalScrollbarPosition = ScrollbarPosition.Default
+    visibility = ViewStates.Visible
   }
 
   interface IViewProps with
@@ -268,37 +300,6 @@ module View =
 
     interface Android.Views.View.IOnTouchListener with 
       member this.OnTouch (view, motionEvent) = onTouch(motionEvent)
-
-  let defaultProps = {
-    alpha = 1.0f
-    backgroundColor = Color.White
-    backgroundTintMode = PorterDuff.Mode.SrcIn
-    clickable = true
-    contentDescription = ""
-    contextClickable = true
-    layoutParameters = new ViewGroup.LayoutParams(-2, -2)
-    onClick = fun () -> ()
-    onCreateContextMenu = fun _ _ -> ()
-    onDrag = fun _ -> false
-    onGenericMotion = fun _ -> false
-    onHover = fun _ -> false
-    onKey = fun _ _ -> false
-    onLongClick = fun () -> false
-    onSystemUiVisibilityChange = fun _ -> ()
-    onTouch = fun _ -> false
-    padding = Unchecked.defaultof<Padding>
-    pivot = Pivot(0.0f, 0.0f)
-    soundEffectsEnabled = true
-    systemUiVisibility =  StatusBarVisibility.Visible
-    textAlignment = TextAlignment.Inherit
-    textDirection = TextDirection.Inherit
-    transitionName = ""
-    translation = Translation(0.0f, 0.0f, 0.0f)
-    verticalFadingEdgeEnabled = false
-    verticalScrollBarEnabled = false
-    verticalScrollbarPosition = ScrollbarPosition.Default
-    visibility = ViewStates.Visible
-  }
 
   let dispose (view: View) =
     view.SetOnClickListener null

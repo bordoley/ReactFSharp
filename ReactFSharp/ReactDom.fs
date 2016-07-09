@@ -5,11 +5,9 @@ open ImmutableCollections
 open System
 open System.Reactive.Subjects
 
-type internal ReactDOMNodeChildren = IImmutableMap<string, ReactDOMNode>
-
-and [<ReferenceEquality>] internal ReactDOMNode = 
+type [<ReferenceEquality>] internal ReactDOMNode = 
   | ReactStatefulDOMNode of ReactStatefulDOMNode
-  | ReactStatelessDOMNode of ReactStatelessDOMNode
+  | ReactLazyDOMNode of ReactLazyDOMNode
   | ReactNativeDOMNode of ReactNativeDOMNode
   | ReactNativeDOMNodeGroup of ReactNativeDOMNodeGroup
   | ReactNoneDOMNode
@@ -25,8 +23,8 @@ and [<ReferenceEquality>] internal ReactStatefulDOMNode =
   interface IDisposable with
     member this.Dispose() = this.dispose ()
 
-and [<ReferenceEquality>] internal ReactStatelessDOMNode = {
-  element: ReactStatelessElement
+and [<ReferenceEquality>] internal ReactLazyDOMNode = {
+  element: ReactLazyElement
   child: ReactDOMNode
 }
 
@@ -36,13 +34,13 @@ and [<ReferenceEquality>] internal ReactNativeDOMNode = {
 
 and [<ReferenceEquality>] internal ReactNativeDOMNodeGroup = {
   element: ReactNativeElementGroup
-  children: ReactDOMNodeChildren
+  children: IImmutableMap<string, ReactDOMNode>
 }
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module internal ReactDom =
   let render (element: ReactElement) =
-    let rec updateChildrenWith (elements: ReactElementChildren) (nodes: ReactDOMNodeChildren) =
+    let rec updateChildrenWith elements nodes =
       let keys = elements |> ImmutableMap.keys
 
       let keyToNodeMapper key =
@@ -76,12 +74,12 @@ module internal ReactDom =
               dispose = node.dispose
             }
       
-      | (ReactStatelessDOMNode node, ReactStatelessElement ele)
+      | (ReactLazyDOMNode node, ReactLazyElement ele)
           when Object.ReferenceEquals(node.element.Component, ele.Component) && node.element.Props = ele.Props -> tree
 
-      | (ReactStatelessDOMNode node, ReactStatelessElement ele)
+      | (ReactLazyDOMNode node, ReactLazyElement ele)
           when Object.ReferenceEquals(node.element.Component, ele.Component) ->
-            ReactStatelessDOMNode {
+            ReactLazyDOMNode {
               element = ele
               child = node.child |> updateWith (ele.Component ele.Props)
             }
@@ -98,9 +96,9 @@ module internal ReactDom =
           }     
        
       | (tree, ele) ->
-          do match tree with
-             | ReactStatefulDOMNode node -> node.dispose ()
-             | _ -> ()
+          match tree with
+          | ReactStatefulDOMNode node -> node.dispose ()
+          | _ -> ()
 
           match ele with
           | ReactStatefulElement ele ->
@@ -124,7 +122,7 @@ module internal ReactDom =
               dispose = dispose
             }
 
-          | ReactStatelessElement ele -> ReactStatelessDOMNode {
+          | ReactLazyElement ele -> ReactLazyDOMNode {
               element = ele
               child = ReactNoneDOMNode |> updateWith (ele.Component ele.Props)
             }

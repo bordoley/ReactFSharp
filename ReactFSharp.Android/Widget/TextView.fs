@@ -51,6 +51,40 @@ type TextViewProps =
     text: string
   }
 
+  static member Default = {
+    alpha = ViewProps.Default.alpha
+    backgroundColor = ViewProps.Default.backgroundColor
+    backgroundTintMode = ViewProps.Default.backgroundTintMode
+    clickable = ViewProps.Default.clickable
+    contentDescription = ViewProps.Default.contentDescription
+    contextClickable = ViewProps.Default.contextClickable
+    layoutParameters = ViewProps.Default.layoutParameters
+    onClick = ViewProps.Default.onClick
+    onCreateContextMenu = ViewProps.Default.onCreateContextMenu
+    onDrag = ViewProps.Default.onDrag
+    onGenericMotion = ViewProps.Default.onGenericMotion
+    onHover = ViewProps.Default.onHover
+    onKey = ViewProps.Default.onKey
+    onLongClick = ViewProps.Default.onLongClick
+    onSystemUiVisibilityChange = ViewProps.Default.onSystemUiVisibilityChange
+    onTouch = ViewProps.Default.onTouch
+    padding = ViewProps.Default.padding
+    pivot = ViewProps.Default.pivot
+    soundEffectsEnabled = ViewProps.Default.soundEffectsEnabled
+    systemUiVisibility = ViewProps.Default.systemUiVisibility
+    textAlignment = ViewProps.Default.textAlignment
+    textDirection = ViewProps.Default.textDirection
+    transitionName = ViewProps.Default.transitionName
+    translation = ViewProps.Default.translation
+    verticalFadingEdgeEnabled = ViewProps.Default.verticalFadingEdgeEnabled
+    verticalScrollBarEnabled = ViewProps.Default.verticalScrollBarEnabled
+    verticalScrollbarPosition = ViewProps.Default.verticalScrollbarPosition
+    visibility = ViewProps.Default.visibility
+
+    // TextView Props
+    text = ""
+  }
+
   interface ITextViewProps with
     // View Props
     member this.Alpha = this.alpha
@@ -89,40 +123,6 @@ type TextViewProps =
 module TextView =
   let name = "Android.Widget.TextView"
 
-  let defaultProps = {
-    alpha = View.defaultProps.alpha
-    backgroundColor = View.defaultProps.backgroundColor
-    backgroundTintMode = View.defaultProps.backgroundTintMode
-    clickable = View.defaultProps.clickable
-    contentDescription = View.defaultProps.contentDescription
-    contextClickable = View.defaultProps.contextClickable
-    layoutParameters = View.defaultProps.layoutParameters
-    onClick = View.defaultProps.onClick
-    onCreateContextMenu = View.defaultProps.onCreateContextMenu
-    onDrag = View.defaultProps.onDrag
-    onGenericMotion = View.defaultProps.onGenericMotion
-    onHover = View.defaultProps.onHover
-    onKey = View.defaultProps.onKey
-    onLongClick = View.defaultProps.onLongClick
-    onSystemUiVisibilityChange = View.defaultProps.onSystemUiVisibilityChange
-    onTouch = View.defaultProps.onTouch
-    padding = View.defaultProps.padding
-    pivot = View.defaultProps.pivot
-    soundEffectsEnabled = View.defaultProps.soundEffectsEnabled
-    systemUiVisibility = View.defaultProps.systemUiVisibility
-    textAlignment = View.defaultProps.textAlignment
-    textDirection = View.defaultProps.textDirection
-    transitionName = View.defaultProps.transitionName
-    translation = View.defaultProps.translation
-    verticalFadingEdgeEnabled = View.defaultProps.verticalFadingEdgeEnabled
-    verticalScrollBarEnabled = View.defaultProps.verticalScrollBarEnabled
-    verticalScrollbarPosition = View.defaultProps.verticalScrollbarPosition
-    visibility = View.defaultProps.visibility
-
-    // TextView Props
-    text = ""
-  }
-
   let dispose (view: TextView) =
     View.dispose view
 
@@ -135,7 +135,7 @@ module TextView =
   let createView: Context -> obj -> ReactView =
     ReactView.createView name viewProvider setProps dispose
 
-  let internal reactComponent = ReactStatelessComponent (fun (props: TextViewProps) -> ReactNativeElement {
+  let internal reactComponent = ReactComponent.makeLazy (fun (props: TextViewProps) -> ReactNativeElement {
     Name = name
     Props = props
-  })
+  }) 

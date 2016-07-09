@@ -21,7 +21,7 @@ module Button =
   let createView: Context -> obj -> ReactView =
     ReactView.createView name viewProvider setProps dispose
 
-  let internal reactComponent = ReactStatelessComponent (fun (props: TextViewProps) -> ReactNativeElement {
+  let internal reactComponent = ReactComponent.makeLazy (fun (props: TextViewProps) -> ReactNativeElement {
     Name = name
     Props = props
   })

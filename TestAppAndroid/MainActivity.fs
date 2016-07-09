@@ -28,40 +28,46 @@ type MyComponentProps = {
 type MainActivity () =
   inherit Activity ()
 
-  let MyComponent = ReactStatelessComponent (fun (props: MyComponentProps) ->
-    Components.LinearLayout >>= {
+  let MyComponent = ReactComponent.makeLazy (fun (props: MyComponentProps) ->
+    Components.LinearLayout {
       props = 
-        { LinearLayout.defaultProps with
+        { LinearLayoutProps.Default with
             layoutParameters = props.layoutParameters
             orientation = Android.Widget.Orientation.Vertical
         }
-      children = %% 
+      children =
         [|
-          ("Toolbar", Components.Toolbar >>= {
-              Toolbar.defaultProps with
+          ( "Toolbar", 
+            Components.Toolbar {
+              ToolbarProps.Default with
                 layoutParameters = new LinearLayout.LayoutParams(-1, -2)
                 subTitle = "a subtitle"
                 title = "React FSharp App"
-            })
+            }
+          )
 
-          ("button", Components.Button >>= {
-              TextView.defaultProps with
+          ( "button", 
+            Components.Button {
+              TextViewProps.Default with
                 layoutParameters = new LinearLayout.LayoutParams(-1, -2)
                 text = "Click on me to increment"
                 onClick = props.onClick
-            })
+             }
+          )
 
-          ("textView", Components.TextView >>= {
-              TextView.defaultProps with
+          ( "textView", 
+            Components.TextView {
+              TextViewProps.Default with
                 clickable = false
                 layoutParameters = new LinearLayout.LayoutParams(-1, -1)
                 text = sprintf "count %i" props.count
-            })
+            }
+          )
         |]
     }
   )
 
-  let MyStatefulComponent = ReactStatelessComponent (fun (props: unit) ->
+  let MyStatefulComponent =
     let reducer state _ = state + 1
 
     let shouldUpdate old updated = true
@@ -70,7 +76,7 @@ type MainActivity () =
       (
         (onClick, layoutParameters): ((unit -> unit) * FrameLayout.LayoutParams), 
         state: int
-      ) = MyComponent >>= {
+      ) = MyComponent {
         onClick = onClick
         count = state
         layoutParameters = layoutParameters
@@ -82,10 +88,9 @@ type MainActivity () =
       action.Publish
       |> FSXObservable.observeOn (System.Reactive.Concurrency.NewThreadScheduler())
 
-    let StatefulComponent = ReactStatefulComponent.create render reducer shouldUpdate 0 actions
+    let StatefulComponent = ReactComponent.stateReducing render reducer shouldUpdate 0 actions
 
-    StatefulComponent >>= (action.Trigger, new FrameLayout.LayoutParams(-1, -1))
-  )
+    StatefulComponent (action.Trigger, new FrameLayout.LayoutParams(-1, -1))
 
   override this.OnCreate (bundle) =
     base.OnCreate (bundle)
@@ -99,8 +104,7 @@ type MainActivity () =
           (Toolbar.name, Toolbar.createView)
         |]
 
-    let element = MyStatefulComponent >>= ()
-    let view = element |> ReactView.render views this
+    let view = MyStatefulComponent |> ReactView.render views this
 
     let updateView = function
       | Some (view: obj) ->

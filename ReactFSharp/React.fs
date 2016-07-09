@@ -5,11 +5,9 @@ open ImmutableCollections
 open System
 open System.Reactive.Linq
 
-type ReactElementChildren = IImmutableMap<string, ReactElement>
-
-and [<ReferenceEquality>] ReactElement = 
+type [<ReferenceEquality>] ReactElement = 
   | ReactStatefulElement of ReactStatefulElement
-  | ReactStatelessElement of ReactStatelessElement
+  | ReactLazyElement of ReactLazyElement
   | ReactNativeElement of ReactNativeElement
   | ReactNativeElementGroup of ReactNativeElementGroup
   | ReactNoneElement
@@ -26,13 +24,13 @@ and ReactStatefulElement private (comp: ReactStatefulComponent<obj>, props: obj)
   member this.Component = comp
   member this.Props = props
 
-and ReactStatelessElement private (comp: ReactStatelessComponent<obj>, props: obj) = 
-  static member internal Create<'Props>(comp: ReactStatelessComponent<'Props>, 
+and ReactLazyElement private (comp: ReactComponent<obj>, props: obj) = 
+  static member internal Create<'Props>(comp: ReactComponent<'Props>, 
                                         props: 'Props
                                        ): ReactElement =
     
     let comp (props : obj) = comp (props :?> 'Props)
-    ReactElement.ReactStatelessElement <| ReactStatelessElement(comp, props :> obj)
+    ReactElement.ReactLazyElement <| ReactLazyElement(comp, props :> obj)
 
   member this.Component = comp
   member this.Props = props
@@ -45,21 +43,22 @@ and [<ReferenceEquality>] ReactNativeElement = {
 and [<ReferenceEquality>] ReactNativeElementGroup = {
     Name: string 
     Props: obj
-    Children: ReactElementChildren
+    Children: IImmutableMap<string, ReactElement>
   }
 
-and [<ReferenceEquality>] ReactComponent<'Props> = 
-  | ReactStatefulComponent of ReactStatefulComponent<'Props>
-  | ReactStatelessComponent of ReactStatelessComponent<'Props>
-  | ReactNoneComponent
+and ReactStatefulComponent<'Props> = IObservable<'Props> -> IObservable<ReactElement>
 
-and ReactStatefulComponent<'Props> = (IObservable<'Props> -> IObservable<ReactElement>)
-
-and ReactStatelessComponent<'Props> = ('Props -> ReactElement)
+and ReactComponent<'Props> = 'Props -> ReactElement
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
-module ReactStatefulComponent =
-  let create 
+module ReactComponent =
+  let makeLazy (f: ReactComponent<'Props>): ReactComponent<'Props> =
+    fun props -> ReactLazyElement.Create(f, props)
+
+  let fromStatefulComponent (comp: ReactStatefulComponent<'Props>): ReactComponent<'Props> =
+    fun props -> ReactStatefulElement.Create(comp, props)
+
+  let stateReducing
       (render: ('Props * 'State) -> ReactElement)
       (reducer: 'State -> 'Action -> 'State)
       (shouldUpdate: ('Props * 'State) -> ('Props * 'State) -> bool)
@@ -86,25 +85,5 @@ module ReactStatefulComponent =
         |> Observable.map render
         
       elements
-    ReactStatefulComponent statefulComponent
 
-[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
-module ReactElement = 
-  let create (props : 'Props) (comp : ReactComponent<'Props>): ReactElement = 
-    match comp with
-    | ReactStatefulComponent comp -> 
-         (ReactStatefulElement.Create(comp, props))
-
-    | ReactStatelessComponent comp -> 
-        ReactStatelessElement.Create(comp, props)
-
-    | ReactNoneComponent -> ReactNoneElement
-
-[<AutoOpen>]
-[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
-module Operators = 
-  [<CompiledName("CreateElement")>]
-  let (>>=) (comp : ReactComponent<'Props>) (props: 'Props) = ReactElement.create props comp
-
-  [<CompiledName("CreateChildren")>]
-  let (~%%) (children: seq<string * ReactElement>) = ImmutableMap.create children
+    fromStatefulComponent statefulComponent
