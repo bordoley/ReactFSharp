@@ -27,6 +27,8 @@ type MainActivity () =
   let fillWidthWrapHeightLayoutParams = new LinearLayoutCompat.LayoutParams(-1, -2)
 
   let MyComponent = ReactComponent.makeLazy (fun (props: MyComponentProps) ->
+    let focusEvent = new Event<unit>()
+
     Components.LinearLayout {
       props =
         { LinearLayoutProps.Default with
@@ -57,12 +59,37 @@ type MainActivity () =
              }
           )
 
+          ( "button2",
+            Components.Button {
+              TextViewProps.Default with
+                backgroundColor = Color.Black
+                enabled = true
+                layoutParameters = fillWidthWrapHeightLayoutParams
+                text = "Move focus"
+                onClick = Func<unit, unit>(focusEvent.Trigger)
+             }
+          )
+
           ( "textView",
             Components.TextView {
               TextViewProps.Default with
-                clickable = false
+                enabled = true
+                focusable = true
+                focusableInTouchMode = true
                 layoutParameters = fillWidthWrapHeightLayoutParams
                 text = sprintf "count %i" props.count
+            }
+          )
+
+          ( "textView2",
+            Components.EditText {
+              EditTextProps.Default with
+                enabled = true
+                focusable = true
+                focusableInTouchMode = true
+                layoutParameters = fillWidthWrapHeightLayoutParams
+                requestFocus = focusEvent.Publish
+                text = "I should have focus"
             }
           )
         |]
@@ -95,12 +122,13 @@ type MainActivity () =
 
     let onError exn =
       Console.WriteLine (exn.ToString ())
-      raise exn
+      this.RunOnUiThread (fun () -> raise exn)
 
     let views =
       ImmutableMap.create
         [|
           Button.viewProvider
+          EditText.viewProvider
           FrameLayout.viewProvider
           GridView.viewProvider
           ImageView.viewProvider
@@ -123,5 +151,7 @@ type MainActivity () =
       MyStatefulComponent ()
       |> ReactView.render views this 
       |> Observable.subscribeWithError updateView onError
+     
+    let x = this.Resources
 
     ()

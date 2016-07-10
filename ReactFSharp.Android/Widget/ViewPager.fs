@@ -108,7 +108,7 @@ type ViewPagerProps =
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module private ViewPagerProps =
-  let defaultProps = {
+  let internal defaultProps = {
     // View Props
     accessibilityLiveRegion = ViewGroupProps.Default.accessibilityLiveRegion
     alpha = ViewGroupProps.Default.alpha

@@ -124,7 +124,7 @@ type RelativeLayoutProps =
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module private RelativeLayoutProps =
-  let defaultProps = {
+  let internal defaultProps = {
     // View Props
     accessibilityLiveRegion = ViewGroupProps.Default.accessibilityLiveRegion
     alpha = ViewGroupProps.Default.alpha

@@ -108,7 +108,7 @@ type ImageViewProps =
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module private ImageViewProps =
-  let defaultProps = {
+  let internal defaultProps = {
     // View Props
     accessibilityLiveRegion = ViewProps.Default.accessibilityLiveRegion
     alpha = ViewProps.Default.alpha

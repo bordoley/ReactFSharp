@@ -134,7 +134,7 @@ type LinearLayoutProps =
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module private LinearLayoutProps = 
-  let defaultProps = {
+  let internal defaultProps = {
     // View Props
     accessibilityLiveRegion = ViewGroupProps.Default.accessibilityLiveRegion
     alpha = ViewGroupProps.Default.alpha

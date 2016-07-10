@@ -107,7 +107,7 @@ type GridViewProps =
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module private GridViewProps =
-  let defaultProps = {
+  let internal defaultProps = {
     // View Props
     accessibilityLiveRegion = ViewGroupProps.Default.accessibilityLiveRegion
     alpha = ViewGroupProps.Default.alpha

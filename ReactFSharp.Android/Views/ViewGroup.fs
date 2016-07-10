@@ -105,7 +105,7 @@ type ViewGroupProps =
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module private ViewGroupProps = 
-  let defaultProps = {
+  let internal defaultProps = {
     // View Props
     accessibilityLiveRegion = ViewProps.Default.accessibilityLiveRegion
     alpha = ViewProps.Default.alpha

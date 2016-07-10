@@ -8,6 +8,7 @@ open React.Android.Widget
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Components =
   let Button = Button.reactComponent
+  let EditText = EditText.reactComponent
   let FrameLayout = FrameLayout.reactComponent
   let GridView = GridView.reactComponent
   let ImageView = ImageView.reactComponent

@@ -108,7 +108,7 @@ type RatingBarProps =
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module private RatingBarProps =
-  let defaultProps = {
+  let internal defaultProps = {
     // View Props
     accessibilityLiveRegion = ViewProps.Default.accessibilityLiveRegion
     alpha = ViewProps.Default.alpha

@@ -207,9 +207,9 @@ module private ViewProps =
   let private defaultOnTouch =
     Func<MotionEvent, bool>(fun _ -> false)
 
-  let defaultRequestFocus: IObservable<unit> = Observable.empty<unit>
+  let internal defaultRequestFocus: IObservable<unit> = Observable.empty<unit>
 
-  let defaultProps = {
+  let internal defaultProps = {
     accessibilityLiveRegion = ViewCompat.AccessibilityLiveRegionNone
     alpha = 1.0f
     backgroundColor = Color.White

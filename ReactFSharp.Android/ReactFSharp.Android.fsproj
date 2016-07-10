@@ -83,6 +83,7 @@
     <Compile Include="Views\View.fs" />
     <Compile Include="Views\ViewGroup.fs" />
     <Compile Include="Widget\TextView.fs" />
+    <Compile Include="Widget\EditText.fs" />
     <Compile Include="Widget\Button.fs" />
     <Compile Include="Widget\LinearLayout.fs" />
     <Compile Include="Widget\Toolbar.fs" />

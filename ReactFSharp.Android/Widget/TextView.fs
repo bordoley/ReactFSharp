@@ -16,6 +16,7 @@ type ITextViewProps =
 
   abstract member Text: string
 
+
 type TextViewProps =
   {
     // View Props
@@ -116,7 +117,7 @@ type TextViewProps =
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module private TextViewProps =
-  let defaultProps = {
+  let internal defaultProps = {
     // View Props
     accessibilityLiveRegion = ViewProps.Default.accessibilityLiveRegion
     alpha = ViewProps.Default.alpha
@@ -174,6 +175,9 @@ module TextView =
 
   let setProps (onError: Exception -> unit) (view: TextView) (props: ITextViewProps) =
     view.Text <- props.Text
+
+    // FIXME
+    view.SetTextIsSelectable true
     View.setProps onError view props
 
   let private createView (context: Context) (onError: Exception -> unit) =
