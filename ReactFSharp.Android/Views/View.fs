@@ -2,6 +2,7 @@
 
 open Android.Content.Res
 open Android.Graphics
+open Android.Support.V4.View
 open Android.Views
 
 open System
@@ -32,7 +33,7 @@ type Translation =
   new (x, y, z) = { x = x; y = y; z=z }
 
 type IViewProps =
-  abstract member AccessibilityLiveRegion: AccessibilityLiveRegion
+  abstract member AccessibilityLiveRegion: int
   //abstract member Activated: bool
   abstract member Alpha: float32
   abstract member BackgroundColor: Color
@@ -50,15 +51,15 @@ type IViewProps =
   abstract member HorizontalScrollBarEnabled: bool
   abstract member Id: int
   abstract member LayoutParameters: ViewGroup.LayoutParams
-  abstract member OnClick: Func<unit, unit> with get
-  abstract member OnCreateContextMenu: Func<IContextMenu, IContextMenuContextMenuInfo, unit> with get
-  abstract member OnDrag: Func<DragEvent, bool> with get
-  abstract member OnGenericMotion: Func<MotionEvent, bool> with get
-  abstract member OnHover: Func<MotionEvent, bool> with get
-  abstract member OnKey: Func<Keycode, KeyEvent, bool> with get
-  abstract member OnLongClick: Func<unit, bool> with get
-  abstract member OnSystemUiVisibilityChange: Func<StatusBarVisibility, unit> with get
-  abstract member OnTouch: Func<MotionEvent, bool> with get
+  abstract member OnClick: Func<unit, unit>
+  abstract member OnCreateContextMenu: Func<IContextMenu, IContextMenuContextMenuInfo, unit>
+  abstract member OnDrag: Func<DragEvent, bool>
+  abstract member OnGenericMotion: Func<MotionEvent, bool>
+  abstract member OnHover: Func<MotionEvent, bool>
+  abstract member OnKey: Func<Keycode, KeyEvent, bool>
+  abstract member OnLongClick: Func<unit, bool>
+  abstract member OnSystemUiVisibilityChange: Func<StatusBarVisibility, unit>
+  abstract member OnTouch: Func<MotionEvent, bool>
   abstract member Padding: Padding
   abstract member Pivot: Pivot
   abstract member ScrollBarSize: int
@@ -75,43 +76,10 @@ type IViewProps =
   abstract member VerticalScrollbarPosition: ScrollbarPosition
   abstract member Visibility: ViewStates
 
-// This is a hack around the F# compiler. We want to ensure that
-// the default event handlers are values so that they can be effectively
-// cached and don't break record equality
-module private ViewPropsDefaultValues =
-  let layoutParameters = new ViewGroup.LayoutParams(-2, -2)
-
-  let onClick =
-    Func<unit, unit>(fun () -> ())
-
-  let onCreateContextMenu =
-    Func<IContextMenu, IContextMenuContextMenuInfo, unit> (fun _ _ -> ())
-
-  let onDrag =
-    Func<DragEvent, bool> (fun _ -> false)
-
-  let onGenericMotion =
-    Func<MotionEvent, bool>(fun _ -> false)
-
-  let onHover =
-    Func<MotionEvent, bool>(fun _ -> false)
-
-  let onKey =
-    Func<Keycode, KeyEvent, bool>(fun _ _ -> false)
-
-  let onLongClick =
-    Func<unit, bool>(fun _ -> false)
-
-  let onSystemUiVisibilityChange =
-    Func<StatusBarVisibility, unit>(fun _ -> ())
-
-  let onTouch =
-    Func<MotionEvent, bool>(fun _ -> false)
-
 type ViewProps =
   {
     // View Props
-    accessibilityLiveRegion: AccessibilityLiveRegion
+    accessibilityLiveRegion: int
     alpha: float32
     backgroundColor: Color
     backgroundTintMode: PorterDuff.Mode
@@ -152,50 +120,6 @@ type ViewProps =
     verticalScrollBarEnabled: bool
     verticalScrollbarPosition: ScrollbarPosition
     visibility: ViewStates
-  }
-
-  static member Default = {
-    accessibilityLiveRegion = AccessibilityLiveRegion.None
-    alpha = 1.0f
-    backgroundColor = Color.White
-    backgroundTintMode = PorterDuff.Mode.SrcIn
-    clickable = true
-    contentDescription = ""
-    contextClickable = true
-    elevation = 0.0f
-    enabled = true
-    filterTouchesWhenObscured = false
-    focusable = false
-    focusableInTouchMode = false
-    hapticFeedbackEnabled = false
-    horizontalFadingEdgeEnabled = false
-    horizontalScrollBarEnabled = false
-    id = 0
-    layoutParameters = ViewPropsDefaultValues.layoutParameters
-    onClick = ViewPropsDefaultValues.onClick
-    onCreateContextMenu = ViewPropsDefaultValues.onCreateContextMenu
-    onDrag = ViewPropsDefaultValues.onDrag
-    onGenericMotion = ViewPropsDefaultValues.onGenericMotion
-    onHover = ViewPropsDefaultValues.onHover
-    onKey = ViewPropsDefaultValues.onKey
-    onLongClick = ViewPropsDefaultValues.onLongClick
-    onSystemUiVisibilityChange = ViewPropsDefaultValues.onSystemUiVisibilityChange
-    onTouch = ViewPropsDefaultValues.onTouch
-    padding = Unchecked.defaultof<Padding>
-    pivot = Pivot(0.0f, 0.0f)
-    scrollBarSize = 0
-    scrollBarStyle = ScrollbarStyles.InsideOverlay
-    selected = false
-    soundEffectsEnabled = true
-    systemUiVisibility =  StatusBarVisibility.Visible
-    textAlignment = TextAlignment.Inherit
-    textDirection = TextDirection.Inherit
-    transitionName = ""
-    translation = Translation(0.0f, 0.0f, 0.0f)
-    verticalFadingEdgeEnabled = false
-    verticalScrollBarEnabled = false
-    verticalScrollbarPosition = ScrollbarPosition.Default
-    visibility = ViewStates.Visible
   }
 
   interface IViewProps with
@@ -241,6 +165,87 @@ type ViewProps =
     member this.VerticalScrollBarEnabled = this.verticalScrollBarEnabled
     member this.VerticalScrollbarPosition = this.verticalScrollbarPosition
     member this.Visibility = this.visibility
+
+// This is a hack around the F# compiler. We want to ensure that
+// the default event handlers are values so that they can be effectively
+// cached and don't break record equality
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+module private ViewProps =
+  let private layoutParameters = new ViewGroup.LayoutParams(-2, -2)
+
+  let private onClick =
+    Func<unit, unit>(fun () -> ())
+
+  let private onCreateContextMenu =
+    Func<IContextMenu, IContextMenuContextMenuInfo, unit> (fun _ _ -> ())
+
+  let private onDrag =
+    Func<DragEvent, bool> (fun _ -> false)
+
+  let private onGenericMotion =
+    Func<MotionEvent, bool>(fun _ -> false)
+
+  let private onHover =
+    Func<MotionEvent, bool>(fun _ -> false)
+
+  let private onKey =
+    Func<Keycode, KeyEvent, bool>(fun _ _ -> false)
+
+  let private onLongClick =
+    Func<unit, bool>(fun _ -> false)
+
+  let private onSystemUiVisibilityChange =
+    Func<StatusBarVisibility, unit>(fun _ -> ())
+
+  let private onTouch =
+    Func<MotionEvent, bool>(fun _ -> false)
+
+  let defaultProps = {
+    accessibilityLiveRegion = ViewCompat.AccessibilityLiveRegionNone
+    alpha = 1.0f
+    backgroundColor = Color.White
+    backgroundTintMode = PorterDuff.Mode.SrcIn
+    clickable = false
+    contentDescription = ""
+    contextClickable = false
+    elevation = 0.0f
+    enabled = false
+    filterTouchesWhenObscured = false
+    focusable = false
+    focusableInTouchMode = false
+    hapticFeedbackEnabled = false
+    horizontalFadingEdgeEnabled = false
+    horizontalScrollBarEnabled = false
+    id = 0
+    layoutParameters = layoutParameters
+    onClick = onClick
+    onCreateContextMenu = onCreateContextMenu
+    onDrag = onDrag
+    onGenericMotion = onGenericMotion
+    onHover = onHover
+    onKey = onKey
+    onLongClick = onLongClick
+    onSystemUiVisibilityChange = onSystemUiVisibilityChange
+    onTouch = onTouch
+    padding = Unchecked.defaultof<Padding>
+    pivot = Pivot(0.0f, 0.0f)
+    scrollBarSize = 0
+    scrollBarStyle = ScrollbarStyles.InsideOverlay
+    selected = false
+    soundEffectsEnabled = true
+    systemUiVisibility =  StatusBarVisibility.Visible
+    textAlignment = TextAlignment.Inherit
+    textDirection = TextDirection.Inherit
+    transitionName = ""
+    translation = Translation(0.0f, 0.0f, 0.0f)
+    verticalFadingEdgeEnabled = false
+    verticalScrollBarEnabled = false
+    verticalScrollbarPosition = ScrollbarPosition.Default
+    visibility = ViewStates.Visible
+  }
+
+type ViewProps with
+  static member Default = ViewProps.defaultProps
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module View =
@@ -384,6 +389,10 @@ module View =
       member this.OnTouch (view, motionEvent) = onTouch.Invoke(motionEvent)
 
   let setProps (view: View) (props: IViewProps) =
+    // Prevent Android from saving view state and trying to refresh it
+    view.SaveEnabled <- false
+    ViewCompat.SetSaveFromParentEnabled(view, false)
+
     view.SetOnClickListener (OnClickListener.Create props.OnClick)
     view.SetOnCreateContextMenuListener (OnCreateContextMenuListener.Create props.OnCreateContextMenu)
     view.SetOnDragListener (OnDragListener.Create props.OnDrag)
@@ -396,20 +405,18 @@ module View =
     )
     view.SetOnTouchListener(OnTouchListener.Create props.OnTouch)
 
-    // FIXME: Might make sense to take a dependency on the compat package
-    // and hide a lot of the underyling platform differences.
     //view.SetOnContextClickListener null
     //view.SetOnApplyWindowInsetsListener null
 
-    view.AccessibilityLiveRegion <- props.AccessibilityLiveRegion
+    ViewCompat.SetAccessibilityLiveRegion(view, props.AccessibilityLiveRegion)
     //view.Activated
-    view.Alpha <- props.Alpha
+    ViewCompat.SetAlpha(view, props.Alpha)
     view.SetBackgroundColor props.BackgroundColor
-    view.BackgroundTintMode <- props.BackgroundTintMode
+    ViewCompat.SetBackgroundTintMode(view, props.BackgroundTintMode)
     view.Clickable <- props.Clickable
     view.ContentDescription <- props.ContentDescription
     view.ContextClickable <- props.ContextClickable
-    view.Elevation <- props.Elevation
+    ViewCompat.SetElevation(view,props.Elevation)
     view.Enabled <- props.Enabled
     view.FilterTouchesWhenObscured <- props.FilterTouchesWhenObscured
     view.Focusable <- props.Focusable
@@ -419,9 +426,15 @@ module View =
     view.HorizontalScrollBarEnabled <- props.HorizontalScrollBarEnabled
     view.Id <- props.Id
     view.LayoutParameters <- props.LayoutParameters
-    view.SetPaddingRelative(props.Padding.start, props.Padding.top, props.Padding.end_, props.Padding.bottom)
-    view.PivotX <- props.Pivot.x
-    view.PivotY <- props.Pivot.y
+    ViewCompat.SetPaddingRelative(
+      view, 
+      props.Padding.start, 
+      props.Padding.top, 
+      props.Padding.end_, 
+      props.Padding.bottom
+    )
+    ViewCompat.SetPivotX(view, props.Pivot.x)
+    ViewCompat.SetPivotY(view, props.Pivot.y)
     view.ScrollBarSize <- props.ScrollBarSize
     view.ScrollBarStyle <- props.ScrollBarStyle
     view.Selected <- props.Selected
@@ -429,10 +442,10 @@ module View =
     view.SystemUiVisibility <- props.SystemUiVisibility
     view.TextAlignment <- props.TextAlignment
     view.TextDirection <- props.TextDirection
-    view.TransitionName <- props.TransitionName
-    view.TranslationX <- props.Translation.x
-    view.TranslationY <- props.Translation.y
-    view.TranslationZ <- props.Translation.z
+    ViewCompat.SetTransitionName(view, props.TransitionName)
+    ViewCompat.SetTranslationX(view, props.Translation.x)
+    ViewCompat.SetTranslationY(view, props.Translation.y)
+    ViewCompat.SetTranslationZ(view, props.Translation.z)
     view.VerticalFadingEdgeEnabled <- props.VerticalFadingEdgeEnabled
     view.VerticalScrollBarEnabled <- props.VerticalScrollBarEnabled
     view.VerticalScrollbarPosition <- props.VerticalScrollbarPosition

@@ -3,20 +3,18 @@
 open Android.Content
 open Android.Content.Res
 open Android.Graphics
-open Android.Support.V7.Widget
+open Android.Support.V4.Widget
 open Android.Views
 open Android.Widget
+open ImmutableCollections
 open React
-open React.Android
 open React.Android.Views
 open System
 
-type ITextViewProps =
-  inherit IViewProps
+type ISwipeRefreshLayoutProps =
+  inherit IViewGroupProps
 
-  abstract member Text: string
-
-type TextViewProps =
+type SwipeRefreshLayoutProps = 
   {
     // View Props
     accessibilityLiveRegion: int
@@ -60,12 +58,9 @@ type TextViewProps =
     verticalScrollBarEnabled: bool
     verticalScrollbarPosition: ScrollbarPosition
     visibility: ViewStates
-
-    // TextView Props
-    text: string
   }
 
-  interface ITextViewProps with
+  interface ISwipeRefreshLayoutProps with
     // View Props
     member this.AccessibilityLiveRegion = this.accessibilityLiveRegion
     member this.Alpha = this.alpha
@@ -109,77 +104,77 @@ type TextViewProps =
     member this.VerticalScrollbarPosition = this.verticalScrollbarPosition
     member this.Visibility = this.visibility
 
-    // TextView Props
-    member this.Text = this.text
-
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
-module private TextViewProps =
+module private SwipeRefreshLayoutProps =
   let defaultProps = {
     // View Props
-    accessibilityLiveRegion = ViewProps.Default.accessibilityLiveRegion
-    alpha = ViewProps.Default.alpha
-    backgroundColor = ViewProps.Default.backgroundColor
-    backgroundTintMode = ViewProps.Default.backgroundTintMode
-    clickable = ViewProps.Default.clickable
-    contentDescription = ViewProps.Default.contentDescription
-    contextClickable = ViewProps.Default.contextClickable
-    elevation = ViewProps.Default.elevation
-    enabled = ViewProps.Default.enabled
-    filterTouchesWhenObscured = ViewProps.Default.filterTouchesWhenObscured
-    focusable = ViewProps.Default.focusable
-    focusableInTouchMode = ViewProps.Default.focusableInTouchMode
-    hapticFeedbackEnabled = ViewProps.Default.hapticFeedbackEnabled
-    horizontalFadingEdgeEnabled = ViewProps.Default.horizontalFadingEdgeEnabled
-    horizontalScrollBarEnabled = ViewProps.Default.horizontalScrollBarEnabled
-    id = ViewProps.Default.id
-    layoutParameters = ViewProps.Default.layoutParameters
-    onClick = ViewProps.Default.onClick
-    onCreateContextMenu = ViewProps.Default.onCreateContextMenu
-    onDrag = ViewProps.Default.onDrag
-    onGenericMotion = ViewProps.Default.onGenericMotion
-    onHover = ViewProps.Default.onHover
-    onKey = ViewProps.Default.onKey
-    onLongClick = ViewProps.Default.onLongClick
-    onSystemUiVisibilityChange = ViewProps.Default.onSystemUiVisibilityChange
-    onTouch = ViewProps.Default.onTouch
-    padding = ViewProps.Default.padding
-    pivot = ViewProps.Default.pivot
-    scrollBarSize = ViewProps.Default.scrollBarSize
-    scrollBarStyle = ViewProps.Default.scrollBarStyle
-    selected = ViewProps.Default.selected
-    soundEffectsEnabled = ViewProps.Default.soundEffectsEnabled
-    systemUiVisibility =  ViewProps.Default.systemUiVisibility
-    textAlignment = ViewProps.Default.textAlignment
-    textDirection = ViewProps.Default.textDirection
-    transitionName = ViewProps.Default.transitionName
-    translation = ViewProps.Default.translation
-    verticalFadingEdgeEnabled = ViewProps.Default.verticalFadingEdgeEnabled
-    verticalScrollBarEnabled = ViewProps.Default.verticalScrollBarEnabled
-    verticalScrollbarPosition = ViewProps.Default.verticalScrollbarPosition
-    visibility = ViewProps.Default.visibility
-
-    // TextView Props
-    text = ""
+    accessibilityLiveRegion = ViewGroupProps.Default.accessibilityLiveRegion
+    alpha = ViewGroupProps.Default.alpha
+    backgroundColor = ViewGroupProps.Default.backgroundColor
+    backgroundTintMode = ViewGroupProps.Default.backgroundTintMode
+    clickable = ViewGroupProps.Default.clickable
+    contentDescription = ViewGroupProps.Default.contentDescription
+    contextClickable = ViewGroupProps.Default.contextClickable
+    elevation = ViewGroupProps.Default.elevation
+    enabled = ViewGroupProps.Default.enabled
+    filterTouchesWhenObscured = ViewGroupProps.Default.filterTouchesWhenObscured
+    focusable = ViewGroupProps.Default.focusable
+    focusableInTouchMode = ViewGroupProps.Default.focusableInTouchMode
+    hapticFeedbackEnabled = ViewGroupProps.Default.hapticFeedbackEnabled
+    horizontalFadingEdgeEnabled = ViewGroupProps.Default.horizontalFadingEdgeEnabled
+    horizontalScrollBarEnabled = ViewGroupProps.Default.horizontalScrollBarEnabled
+    id = ViewGroupProps.Default.id
+    layoutParameters = ViewGroupProps.Default.layoutParameters
+    onClick = ViewGroupProps.Default.onClick
+    onCreateContextMenu = ViewGroupProps.Default.onCreateContextMenu
+    onDrag = ViewGroupProps.Default.onDrag
+    onGenericMotion = ViewGroupProps.Default.onGenericMotion
+    onHover = ViewGroupProps.Default.onHover
+    onKey = ViewGroupProps.Default.onKey
+    onLongClick = ViewGroupProps.Default.onLongClick
+    onSystemUiVisibilityChange = ViewGroupProps.Default.onSystemUiVisibilityChange
+    onTouch = ViewGroupProps.Default.onTouch
+    padding = ViewGroupProps.Default.padding
+    pivot = ViewGroupProps.Default.pivot
+    scrollBarSize = ViewGroupProps.Default.scrollBarSize
+    scrollBarStyle = ViewGroupProps.Default.scrollBarStyle
+    selected = ViewGroupProps.Default.selected
+    soundEffectsEnabled = ViewGroupProps.Default.soundEffectsEnabled
+    systemUiVisibility =  ViewGroupProps.Default.systemUiVisibility
+    textAlignment = ViewGroupProps.Default.textAlignment
+    textDirection = ViewGroupProps.Default.textDirection
+    transitionName = ViewGroupProps.Default.transitionName
+    translation = ViewGroupProps.Default.translation
+    verticalFadingEdgeEnabled = ViewGroupProps.Default.verticalFadingEdgeEnabled
+    verticalScrollBarEnabled = ViewGroupProps.Default.verticalScrollBarEnabled
+    verticalScrollbarPosition = ViewGroupProps.Default.verticalScrollbarPosition
+    visibility = ViewGroupProps.Default.visibility
   }
 
-type TextViewProps with
-  static member Default = TextViewProps.defaultProps
+type SwipeRefreshLayoutProps with
+  static member Default = SwipeRefreshLayoutProps.defaultProps
+
+type SwipeRefreshLayoutComponentProps = {
+  props: ISwipeRefreshLayoutProps
+  children: seq<string * ReactElement>
+}
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
-module TextView =
-  let private name = typeof<AppCompatTextView>.Name
+module SwipeRefreshLayout =
+  let private name = typeof<SwipeRefreshLayout>.Name
 
-  let setProps (view: TextView) (props: ITextViewProps)  =
-    View.setProps view props
-    view.Text <- props.Text
+  let setProps (view: SwipeRefreshLayout) (props: ISwipeRefreshLayoutProps)   =
+    ViewGroup.setProps view props
 
-  let private createView (context: Context) =
-    let viewProvider () = new AppCompatTextView(context)
-    ReactView.createView name viewProvider setProps
+  let private createView context =
+    let emptyViewProvider () = (new Space(context)) :> View
+    let viewGroupProvider () = new SwipeRefreshLayout(context)
+    ViewGroup.create name viewGroupProvider emptyViewProvider setProps
 
   let viewProvider = (name, createView)
 
-  let internal reactComponent = ReactComponent.makeLazy (fun (props: TextViewProps) -> ReactNativeElement {
+  let internal reactComponent = ReactComponent.makeLazy (fun (props: SwipeRefreshLayoutComponentProps) -> ReactNativeElementGroup {
     Name = name
-    Props = props
-  }) 
+    Props = props.props
+    Children = ImmutableMap.create props.children
+  })

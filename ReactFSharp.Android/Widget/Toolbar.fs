@@ -3,8 +3,10 @@
 open Android.Content
 open Android.Content.Res
 open Android.Graphics
+open Android.Support.V7.Widget
 open Android.Views
 open Android.Widget
+open ImmutableCollections
 open React
 open React.Android
 open React.Android.Views
@@ -16,11 +18,10 @@ type IToolbarProps =
   abstract member SubTitle: string
   abstract member Title: string
 
-
 type ToolbarProps =
   {
     // View Props
-    accessibilityLiveRegion: AccessibilityLiveRegion
+    accessibilityLiveRegion: int
     alpha: float32
     backgroundColor: Color
     backgroundTintMode: PorterDuff.Mode
@@ -65,55 +66,6 @@ type ToolbarProps =
     // Toolbar Props
     subTitle: string
     title: string
-  }
-
-  static member Default = {
-    // View Props
-    accessibilityLiveRegion = ViewProps.Default.accessibilityLiveRegion
-    alpha = ViewProps.Default.alpha
-    backgroundColor = ViewProps.Default.backgroundColor
-    backgroundTintMode = ViewProps.Default.backgroundTintMode
-    clickable = ViewProps.Default.clickable
-    contentDescription = ViewProps.Default.contentDescription
-    contextClickable = ViewProps.Default.contextClickable
-    elevation = ViewProps.Default.elevation
-    enabled = ViewProps.Default.enabled
-    filterTouchesWhenObscured = ViewProps.Default.filterTouchesWhenObscured
-    focusable = ViewProps.Default.focusable
-    focusableInTouchMode = ViewProps.Default.focusableInTouchMode
-    hapticFeedbackEnabled = ViewProps.Default.hapticFeedbackEnabled
-    horizontalFadingEdgeEnabled = ViewProps.Default.horizontalFadingEdgeEnabled
-    horizontalScrollBarEnabled = ViewProps.Default.horizontalScrollBarEnabled
-    id = ViewProps.Default.id
-    layoutParameters = ViewProps.Default.layoutParameters
-    onClick = ViewProps.Default.onClick
-    onCreateContextMenu = ViewProps.Default.onCreateContextMenu
-    onDrag = ViewProps.Default.onDrag
-    onGenericMotion = ViewProps.Default.onGenericMotion
-    onHover = ViewProps.Default.onHover
-    onKey = ViewProps.Default.onKey
-    onLongClick = ViewProps.Default.onLongClick
-    onSystemUiVisibilityChange = ViewProps.Default.onSystemUiVisibilityChange
-    onTouch = ViewProps.Default.onTouch
-    padding = ViewProps.Default.padding
-    pivot = ViewProps.Default.pivot
-    scrollBarSize = ViewProps.Default.scrollBarSize
-    scrollBarStyle = ViewProps.Default.scrollBarStyle
-    selected = ViewProps.Default.selected
-    soundEffectsEnabled = ViewProps.Default.soundEffectsEnabled
-    systemUiVisibility =  ViewProps.Default.systemUiVisibility
-    textAlignment = ViewProps.Default.textAlignment
-    textDirection = ViewProps.Default.textDirection
-    transitionName = ViewProps.Default.transitionName
-    translation = ViewProps.Default.translation
-    verticalFadingEdgeEnabled = ViewProps.Default.verticalFadingEdgeEnabled
-    verticalScrollBarEnabled = ViewProps.Default.verticalScrollBarEnabled
-    verticalScrollbarPosition = ViewProps.Default.verticalScrollbarPosition
-    visibility = ViewProps.Default.visibility
-
-    // Toolbar Props
-    subTitle = ""
-    title = ""
   }
 
   interface IToolbarProps with
@@ -165,19 +117,82 @@ type ToolbarProps =
     member this.Title = this.title
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
-module Toolbar =
-  let name = "Android.Widget.Toolbar"
+module private ToolbarProps =
+  let defaultProps = {
+    // View Props
+    accessibilityLiveRegion = ViewGroupProps.Default.accessibilityLiveRegion
+    alpha = ViewGroupProps.Default.alpha
+    backgroundColor = ViewGroupProps.Default.backgroundColor
+    backgroundTintMode = ViewGroupProps.Default.backgroundTintMode
+    clickable = ViewGroupProps.Default.clickable
+    contentDescription = ViewGroupProps.Default.contentDescription
+    contextClickable = ViewGroupProps.Default.contextClickable
+    elevation = ViewGroupProps.Default.elevation
+    enabled = ViewGroupProps.Default.enabled
+    filterTouchesWhenObscured = ViewGroupProps.Default.filterTouchesWhenObscured
+    focusable = ViewGroupProps.Default.focusable
+    focusableInTouchMode = ViewGroupProps.Default.focusableInTouchMode
+    hapticFeedbackEnabled = ViewGroupProps.Default.hapticFeedbackEnabled
+    horizontalFadingEdgeEnabled = ViewGroupProps.Default.horizontalFadingEdgeEnabled
+    horizontalScrollBarEnabled = ViewGroupProps.Default.horizontalScrollBarEnabled
+    id = ViewGroupProps.Default.id
+    layoutParameters = ViewGroupProps.Default.layoutParameters
+    onClick = ViewGroupProps.Default.onClick
+    onCreateContextMenu = ViewGroupProps.Default.onCreateContextMenu
+    onDrag = ViewGroupProps.Default.onDrag
+    onGenericMotion = ViewGroupProps.Default.onGenericMotion
+    onHover = ViewGroupProps.Default.onHover
+    onKey = ViewGroupProps.Default.onKey
+    onLongClick = ViewGroupProps.Default.onLongClick
+    onSystemUiVisibilityChange = ViewGroupProps.Default.onSystemUiVisibilityChange
+    onTouch = ViewGroupProps.Default.onTouch
+    padding = ViewGroupProps.Default.padding
+    pivot = ViewGroupProps.Default.pivot
+    scrollBarSize = ViewGroupProps.Default.scrollBarSize
+    scrollBarStyle = ViewGroupProps.Default.scrollBarStyle
+    selected = ViewGroupProps.Default.selected
+    soundEffectsEnabled = ViewGroupProps.Default.soundEffectsEnabled
+    systemUiVisibility =  ViewGroupProps.Default.systemUiVisibility
+    textAlignment = ViewGroupProps.Default.textAlignment
+    textDirection = ViewGroupProps.Default.textDirection
+    transitionName = ViewGroupProps.Default.transitionName
+    translation = ViewGroupProps.Default.translation
+    verticalFadingEdgeEnabled = ViewGroupProps.Default.verticalFadingEdgeEnabled
+    verticalScrollBarEnabled = ViewGroupProps.Default.verticalScrollBarEnabled
+    verticalScrollbarPosition = ViewGroupProps.Default.verticalScrollbarPosition
+    visibility = ViewGroupProps.Default.visibility
 
-  let setProps (view: Toolbar) (props: IToolbarProps) =
+    // Toolbar Props
+    subTitle = ""
+    title = ""
+  }
+
+type ToolbarProps with
+  static member Default = ToolbarProps.defaultProps
+
+type ToolbarComponentProps = {
+  props: IToolbarProps
+  children: seq<string * ReactElement>
+}
+
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+module Toolbar =
+  let private name = typeof<Android.Support.V7.Widget.Toolbar>.Name
+
+  let setProps (view: Android.Support.V7.Widget.Toolbar) (props: IToolbarProps) =
     ViewGroup.setProps view props
     view.Subtitle <- props.SubTitle
     view.Title <- props.Title
 
-  let createView context =
-    let viewProvider () = new Toolbar(context)
-    ReactView.createView name viewProvider setProps
+  let private createView context =
+    let emptyViewProvider () = (new Space(context)) :> View
+    let viewGroupProvider () = new Android.Support.V7.Widget.Toolbar(context)
+    ViewGroup.create name viewGroupProvider emptyViewProvider setProps
 
-  let internal reactComponent = ReactComponent.makeLazy (fun (props: ToolbarProps) -> ReactNativeElement {
+  let viewProvider = (name, createView)
+
+  let internal reactComponent = ReactComponent.makeLazy (fun (props: ToolbarComponentProps) -> ReactNativeElementGroup {
     Name = name
-    Props = props
+    Props = props.props
+    Children = ImmutableMap.create props.children
   })

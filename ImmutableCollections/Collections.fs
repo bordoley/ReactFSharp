@@ -50,28 +50,6 @@ module Seq =
   let getEnumerator (seq: seq<_>) =
     seq.GetEnumerator()
 
-  let zipAll (a: seq<'a>) (b: seq<'b>) =
-    let enumA = a.GetEnumerator()
-    let enumB = b.GetEnumerator()
-
-    let rec zipAll (enumA: IEnumerator<'a>) (enumB: IEnumerator<'b>) = seq {
-      let a = enumA.MoveNext()
-      let b = enumB.MoveNext()
-
-      match (a, b) with
-      | (true, true) ->
-          yield (Some enumA.Current, Some enumB.Current)
-      | (true, false) ->
-          yield (Some enumA.Current, None)
-      | (false, true) ->
-          yield (None, Some enumB.Current)
-      | _ -> ()
-
-      if a || b then yield! zipAll enumA enumB
-    }
-
-    zipAll enumA enumB
-
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Collection =
   let count (collection: ICollection) =
@@ -149,6 +127,11 @@ module ImmutableMap =
           | None -> false
         member this.Values = map |> Seq.map (fun (_, v) -> v)
     }
+
+  let containsKey key (map: IImmutableMap<'k, 'v>) =
+    match map |> tryGet key with
+    | Some _ -> true
+    | _ -> false
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ImmutableVector =

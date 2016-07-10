@@ -11,12 +11,10 @@ open React.Android
 open React.Android.Views
 open System
 
-type ITextViewProps =
+type IRatingBarProps =
   inherit IViewProps
 
-  abstract member Text: string
-
-type TextViewProps =
+type RatingBarProps = 
   {
     // View Props
     accessibilityLiveRegion: int
@@ -60,12 +58,9 @@ type TextViewProps =
     verticalScrollBarEnabled: bool
     verticalScrollbarPosition: ScrollbarPosition
     visibility: ViewStates
-
-    // TextView Props
-    text: string
   }
 
-  interface ITextViewProps with
+  interface IRatingBarProps with
     // View Props
     member this.AccessibilityLiveRegion = this.accessibilityLiveRegion
     member this.Alpha = this.alpha
@@ -109,11 +104,8 @@ type TextViewProps =
     member this.VerticalScrollbarPosition = this.verticalScrollbarPosition
     member this.Visibility = this.visibility
 
-    // TextView Props
-    member this.Text = this.text
-
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
-module private TextViewProps =
+module private RatingBarProps =
   let defaultProps = {
     // View Props
     accessibilityLiveRegion = ViewProps.Default.accessibilityLiveRegion
@@ -157,29 +149,25 @@ module private TextViewProps =
     verticalScrollBarEnabled = ViewProps.Default.verticalScrollBarEnabled
     verticalScrollbarPosition = ViewProps.Default.verticalScrollbarPosition
     visibility = ViewProps.Default.visibility
-
-    // TextView Props
-    text = ""
   }
 
-type TextViewProps with
-  static member Default = TextViewProps.defaultProps
+type RatingBarProps with
+  static member Default = RatingBarProps.defaultProps
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
-module TextView =
-  let private name = typeof<AppCompatTextView>.Name
+module RatingBar =
+  let private name = typeof<AppCompatRatingBar>.Name
 
-  let setProps (view: TextView) (props: ITextViewProps)  =
+  let setProps (view: RatingBar) (props: IRatingBarProps)  =
     View.setProps view props
-    view.Text <- props.Text
 
   let private createView (context: Context) =
-    let viewProvider () = new AppCompatTextView(context)
+    let viewProvider () = new AppCompatRatingBar(context)
     ReactView.createView name viewProvider setProps
 
   let viewProvider = (name, createView)
 
-  let internal reactComponent = ReactComponent.makeLazy (fun (props: TextViewProps) -> ReactNativeElement {
+  let internal reactComponent = ReactComponent.makeLazy (fun (props: RatingBarProps) -> ReactNativeElement {
     Name = name
     Props = props
   }) 

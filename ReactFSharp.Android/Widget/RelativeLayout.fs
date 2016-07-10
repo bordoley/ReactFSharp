@@ -3,7 +3,6 @@
 open Android.Content
 open Android.Content.Res
 open Android.Graphics
-open Android.Support.V7.Widget
 open Android.Views
 open Android.Widget
 open ImmutableCollections
@@ -11,18 +10,15 @@ open React
 open React.Android.Views
 open System
 
-type ILinearLayoutProps =
+type IRelativeLayoutProps =
   inherit IViewGroupProps
 
-  abstract member BaselineAligned: bool
-  abstract member BaselineAlignedChildIndex: int
-  abstract member DividerPadding: int
-  abstract member MeasureWithLargestChildEnabled: bool
-  abstract member Orientation: int
-  abstract member ShowDividers: int
-  abstract member WeightSum: Single
+  abstract member Gravity: int
+  abstract member HorizontalGravity: int
+  abstract member IgnoreGravity: int
+  abstract member VerticalGravity: int
 
-type LinearLayoutProps = 
+type RelativeLayoutProps = 
   {
     // View Props
     accessibilityLiveRegion: int
@@ -67,17 +63,14 @@ type LinearLayoutProps =
     verticalScrollbarPosition: ScrollbarPosition
     visibility: ViewStates
 
-    // LinearLayout Props
-    baselineAligned: bool
-    baselineAlignedChildIndex: int
-    dividerPadding: int
-    measureWithLargestChildEnabled: bool
-    orientation: int
-    showDividers: int
-    weightSum: Single
+    // RelativeLayout Props
+    gravity: int
+    horizontalGravity: int
+    ignoreGravity: int
+    verticalGravity: int
   }
 
-  interface ILinearLayoutProps with
+  interface IRelativeLayoutProps with
     // View Props
     member this.AccessibilityLiveRegion = this.accessibilityLiveRegion
     member this.Alpha = this.alpha
@@ -121,17 +114,14 @@ type LinearLayoutProps =
     member this.VerticalScrollbarPosition = this.verticalScrollbarPosition
     member this.Visibility = this.visibility
 
-    // LinearLayout Props
-    member this.BaselineAligned = this.baselineAligned
-    member this.BaselineAlignedChildIndex = this.baselineAlignedChildIndex
-    member this.DividerPadding = this.dividerPadding
-    member this.MeasureWithLargestChildEnabled = this.measureWithLargestChildEnabled
-    member this.Orientation = this.orientation
-    member this.ShowDividers = this.showDividers
-    member this.WeightSum = this.weightSum
+    // RelativeLayout Props
+    member this.Gravity = this.gravity
+    member this.HorizontalGravity = this.horizontalGravity
+    member this.IgnoreGravity = this.ignoreGravity
+    member this.VerticalGravity = this.verticalGravity
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
-module private LinearLayoutProps = 
+module private RelativeLayoutProps =
   let defaultProps = {
     // View Props
     accessibilityLiveRegion = ViewGroupProps.Default.accessibilityLiveRegion
@@ -176,50 +166,37 @@ module private LinearLayoutProps =
     verticalScrollbarPosition = ViewGroupProps.Default.verticalScrollbarPosition
     visibility = ViewGroupProps.Default.visibility
 
-    // LinearLayout Props
-    baselineAligned = true
-    baselineAlignedChildIndex = -1
-    dividerPadding = 0
-    measureWithLargestChildEnabled = false
-    orientation = LinearLayoutCompat.Horizontal
-    showDividers = LinearLayoutCompat.ShowDividerNone
-    weightSum = -1.0f
+    // RelativeLayout Props
+    gravity = 0
+    horizontalGravity = 0
+    ignoreGravity = 0
+    verticalGravity = 0
   }
 
-type LinearLayoutProps with 
-  static member Default = LinearLayoutProps.defaultProps
+type RelativeLayoutProps with
+  static member Default = RelativeLayoutProps.defaultProps
 
-type LinearLayoutComponentProps = {
-  props: ILinearLayoutProps
+type RelativeLayoutComponentProps = {
+  props: IRelativeLayoutProps
   children: seq<string * ReactElement>
 }
 
+
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
-module LinearLayout =
-  let private name = typeof<LinearLayoutCompat>.Name
+module RelativeLayout =
+  let private name = typeof<RelativeLayout>.Name
 
-  let setProps (view: LinearLayoutCompat) (props: ILinearLayoutProps) =
-    ViewGroup.setProps view props 
-
-    view.BaselineAligned <- props.BaselineAligned
-
-    if props.BaselineAlignedChildIndex >= 0 then
-      view.BaselineAlignedChildIndex <- props.BaselineAlignedChildIndex
-
-    view.DividerPadding <- props.DividerPadding
-    view.MeasureWithLargestChildEnabled <- props.MeasureWithLargestChildEnabled
-    view.Orientation <- props.Orientation
-    view.ShowDividers <- props.ShowDividers
-    view.WeightSum <- props.WeightSum
+  let setProps (view: RelativeLayout) (props: IViewGroupProps)   =
+    ViewGroup.setProps view props
 
   let private createView context =
     let emptyViewProvider () = (new Space(context)) :> View
-    let viewGroupProvider () = new LinearLayoutCompat(context)
+    let viewGroupProvider () = new RelativeLayout(context)
     ViewGroup.create name viewGroupProvider emptyViewProvider setProps
 
   let viewProvider = (name, createView)
 
-  let internal reactComponent = ReactComponent.makeLazy (fun (props: LinearLayoutComponentProps) -> ReactNativeElementGroup {
+  let internal reactComponent = ReactComponent.makeLazy (fun (props: RelativeLayoutComponentProps) -> ReactNativeElementGroup {
     Name = name
     Props = props.props
     Children = ImmutableMap.create props.children
