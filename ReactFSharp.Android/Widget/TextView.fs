@@ -47,6 +47,7 @@ type TextViewProps =
     onTouch: Func<MotionEvent, bool>
     padding: Padding
     pivot: Pivot
+    requestFocus: IObservable<unit>
     scrollBarSize: int
     scrollBarStyle: ScrollbarStyles
     selected: bool
@@ -95,6 +96,7 @@ type TextViewProps =
     member this.OnTouch = this.onTouch
     member this.Padding = this.padding
     member this.Pivot = this.pivot
+    member this.RequestFocus = this.requestFocus
     member this.ScrollBarSize = this.scrollBarSize
     member this.ScrollBarStyle = this.scrollBarStyle
     member this.Selected = this.selected
@@ -144,6 +146,7 @@ module private TextViewProps =
     onTouch = ViewProps.Default.onTouch
     padding = ViewProps.Default.padding
     pivot = ViewProps.Default.pivot
+    requestFocus = ViewProps.Default.requestFocus
     scrollBarSize = ViewProps.Default.scrollBarSize
     scrollBarStyle = ViewProps.Default.scrollBarStyle
     selected = ViewProps.Default.selected
@@ -169,13 +172,13 @@ type TextViewProps with
 module TextView =
   let private name = typeof<AppCompatTextView>.Name
 
-  let setProps (view: TextView) (props: ITextViewProps)  =
-    View.setProps view props
+  let setProps (onError: Exception -> unit) (view: TextView) (props: ITextViewProps) =
     view.Text <- props.Text
+    View.setProps onError view props
 
-  let private createView (context: Context) =
-    let viewProvider () = new AppCompatTextView(context)
-    ReactView.createView name viewProvider setProps
+  let private createView (context: Context) (onError: Exception -> unit) =
+    let viewProvider () =  new AppCompatTextView(context)
+    ReactView.createView name viewProvider (setProps onError)
 
   let viewProvider = (name, createView)
 

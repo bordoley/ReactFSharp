@@ -4,8 +4,10 @@ open Android.Content.Res
 open Android.Graphics
 open Android.Support.V4.View
 open Android.Views
-
+open FSharp.Control.Reactive
+open React.Android
 open System
+open System.Reactive.Disposables
 open System.Runtime.CompilerServices
 
 [<Struct>]
@@ -62,6 +64,9 @@ type IViewProps =
   abstract member OnTouch: Func<MotionEvent, bool>
   abstract member Padding: Padding
   abstract member Pivot: Pivot
+
+  // FIXME: There are a couple other variants of this property we might want to use instead.
+  abstract member RequestFocus: IObservable<unit>
   abstract member ScrollBarSize: int
   abstract member ScrollBarStyle: ScrollbarStyles
   abstract member Selected: bool
@@ -107,6 +112,7 @@ type ViewProps =
     onTouch: Func<MotionEvent, bool>
     padding: Padding
     pivot: Pivot
+    requestFocus: IObservable<unit>
     scrollBarSize: int
     scrollBarStyle: ScrollbarStyles
     selected: bool
@@ -152,6 +158,7 @@ type ViewProps =
     member this.OnTouch = this.onTouch
     member this.Padding = this.padding
     member this.Pivot = this.pivot
+    member this.RequestFocus = this.requestFocus
     member this.ScrollBarSize = this.scrollBarSize
     member this.ScrollBarStyle = this.scrollBarStyle
     member this.Selected = this.selected
@@ -171,34 +178,36 @@ type ViewProps =
 // cached and don't break record equality
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module private ViewProps =
-  let private layoutParameters = new ViewGroup.LayoutParams(-2, -2)
+  let private defaultLayoutParameters = new ViewGroup.LayoutParams(-2, -2)
 
-  let private onClick =
+  let private defaultOnClick =
     Func<unit, unit>(fun () -> ())
 
-  let private onCreateContextMenu =
+  let private defaultOnCreateContextMenu =
     Func<IContextMenu, IContextMenuContextMenuInfo, unit> (fun _ _ -> ())
 
-  let private onDrag =
+  let private defaultOnDrag =
     Func<DragEvent, bool> (fun _ -> false)
 
-  let private onGenericMotion =
+  let private defaultOnGenericMotion =
     Func<MotionEvent, bool>(fun _ -> false)
 
-  let private onHover =
+  let private defaultOnHover =
     Func<MotionEvent, bool>(fun _ -> false)
 
-  let private onKey =
+  let private defaultOnKey =
     Func<Keycode, KeyEvent, bool>(fun _ _ -> false)
 
-  let private onLongClick =
+  let private defaultOnLongClick =
     Func<unit, bool>(fun _ -> false)
 
-  let private onSystemUiVisibilityChange =
+  let private defaultOnSystemUiVisibilityChange =
     Func<StatusBarVisibility, unit>(fun _ -> ())
 
-  let private onTouch =
+  let private defaultOnTouch =
     Func<MotionEvent, bool>(fun _ -> false)
+
+  let defaultRequestFocus: IObservable<unit> = Observable.empty<unit>
 
   let defaultProps = {
     accessibilityLiveRegion = ViewCompat.AccessibilityLiveRegionNone
@@ -217,18 +226,19 @@ module private ViewProps =
     horizontalFadingEdgeEnabled = false
     horizontalScrollBarEnabled = false
     id = 0
-    layoutParameters = layoutParameters
-    onClick = onClick
-    onCreateContextMenu = onCreateContextMenu
-    onDrag = onDrag
-    onGenericMotion = onGenericMotion
-    onHover = onHover
-    onKey = onKey
-    onLongClick = onLongClick
-    onSystemUiVisibilityChange = onSystemUiVisibilityChange
-    onTouch = onTouch
+    layoutParameters = defaultLayoutParameters
+    onClick = defaultOnClick
+    onCreateContextMenu = defaultOnCreateContextMenu
+    onDrag = defaultOnDrag
+    onGenericMotion = defaultOnGenericMotion
+    onHover = defaultOnHover
+    onKey = defaultOnKey
+    onLongClick = defaultOnLongClick
+    onSystemUiVisibilityChange = defaultOnSystemUiVisibilityChange
+    onTouch = defaultOnTouch
     padding = Unchecked.defaultof<Padding>
     pivot = Pivot(0.0f, 0.0f)
+    requestFocus = defaultRequestFocus
     scrollBarSize = 0
     scrollBarStyle = ScrollbarStyles.InsideOverlay
     selected = false
@@ -388,7 +398,7 @@ module View =
     interface Android.Views.View.IOnTouchListener with
       member this.OnTouch (view, motionEvent) = onTouch.Invoke(motionEvent)
 
-  let setProps (view: View) (props: IViewProps) =
+  let setProps (onError: Exception -> unit) (view: View) (props: IViewProps): IDisposable =
     // Prevent Android from saving view state and trying to refresh it
     view.SaveEnabled <- false
     ViewCompat.SetSaveFromParentEnabled(view, false)
@@ -450,5 +460,15 @@ module View =
     view.VerticalScrollBarEnabled <- props.VerticalScrollBarEnabled
     view.VerticalScrollbarPosition <- props.VerticalScrollbarPosition
     view.Visibility <- props.Visibility
+
+    if props.RequestFocus <> ViewProps.defaultRequestFocus then
+      props.RequestFocus
+      |> Observable.observeOn Scheduler.mainLoopScheduler
+      |> Observable.iter (view.RequestFocus >> ignore)
+      |> Observable.subscribeWithError
+          (fun _ -> ())
+          onError
+    else Disposable.Empty
+
 
 

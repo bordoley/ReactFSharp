@@ -46,9 +46,9 @@ module ReactView =
 
   let private dispose (disposable: IDisposable) = disposable.Dispose()
 
-  let rec private observe<'view when 'view :> IDisposable> (reactView: ReactView): IObservable<Option<'view>> = 
+  let rec private observe<'view when 'view :> IDisposable> (reactView: ReactView): IObservable<Option<'view>> =
     match reactView with
-    | ReactStatefulView statefulView -> 
+    | ReactStatefulView statefulView ->
         let mapper (reactView: ReactView)=
           observe reactView
 
@@ -59,12 +59,12 @@ module ReactView =
     | ReactViewGroup view ->
         Some (view.View :?> 'view) |> Observable.single
     | ReactViewNone ->
-        None |> Observable.single 
+        None |> Observable.single
 
   let private createViewInternal<'view, 'props when 'view :> IDisposable>
       (name: string)
       (viewProvider: unit -> 'view)
-      (setProps: 'view -> 'props -> unit) = 
+      (setProps: 'view -> 'props -> IDisposable) =
     let createReactView (initialProps: obj) =
       let initialProps = (initialProps :?> 'props)
       let view = viewProvider ()
@@ -74,37 +74,44 @@ module ReactView =
 
       let propsUpdaterSubscription =
         propsSubject
-        |> Observable.iter (setProps view)
-        |> Observable.subscribeWithError 
-            (fun _ -> ()) 
-            (fun exn -> onException.OnNext (Some exn))
+        |> Observable.map (setProps view)
+        |> Observable.scanInit
+            Disposable.Empty
+            (fun acc next -> acc |> dispose; next)
+        |> Observable.iterError
+            (fun _ -> ())
+            (Some >> onException.OnNext)
+        |> Observable.last
+        |> Observable.subscribe dispose
 
       let assertValidState () =
         match onException.Value with
-        | Some exn -> raise exn
+        | Some exn -> raise (AggregateException exn)
         | _ -> ()
 
       { new IReactView with
           member this.Dispose () =
+            propsSubject.OnCompleted ()
+            onException.OnCompleted()
             propsUpdaterSubscription.Dispose()
             view.Dispose()
           member this.Name = name
           member this.Props
             with get () =
               propsSubject.Value :> obj
-            and set props = 
+            and set props =
               let props = (props :?> 'props)
               propsSubject.OnNext props
               assertValidState ()
 
           member this.View = view :> obj
       }
-    createReactView 
+    createReactView
 
   let createView<'view, 'props when 'view :> IDisposable>
       (name: string)
       (viewProvider: unit -> 'view)
-      (setProps: 'view -> 'props -> unit) =
+      (setProps: 'view -> 'props -> IDisposable) =
     let createReactView (initialProps: obj) =
       ReactView <| createViewInternal name viewProvider setProps initialProps
     createReactView
@@ -113,7 +120,7 @@ module ReactView =
       (onError: Exception -> unit)
       (name: string)
       (viewGroupProvider: unit -> 'viewGroup)
-      (setProps: 'viewGroup -> 'props -> unit)
+      (setProps: 'viewGroup -> 'props -> IDisposable)
       (setViewAtIndex: 'viewGroup -> int -> Option<'view> -> unit)
       (removeViewAtIndex: 'viewGroup -> int -> unit) =
 
@@ -136,8 +143,8 @@ module ReactView =
         let subscriber index view =
           match acc |> ImmutableMap.tryGet view with
           | Some disposable -> (view, disposable)
-          | None -> 
-              let subscription = 
+          | None ->
+              let subscription =
                 view |> observe |> Observable.subscribeWithError (setViewAtIndex index) onError
               (view, subscription)
 
@@ -150,13 +157,13 @@ module ReactView =
         acc |> Seq.iter viewDisposer
 
         newAcc
-       
+
       let childrenUpdaterSubscription =
         childrenSubject
         |> Observable.fold updateChildren (ImmutableMap.empty ())
         |> Observable.subscribeWithError
             (ImmutableMap.values >> Seq.iter dispose)
-            (fun exn -> onException.OnNext (Some exn))
+            (Some >> onException.OnNext)
 
       let assertValidState () =
         match onException.Value with
@@ -168,11 +175,13 @@ module ReactView =
           member this.Children
             with get() = childrenSubject.Value
 
-             and set children = 
+             and set children =
                childrenSubject.OnNext children
                assertValidState ()
 
           member this.Dispose () =
+            childrenSubject.OnCompleted()
+            onException.OnCompleted()
             childrenUpdaterSubscription.Dispose ()
             reactView.Dispose ()
 
@@ -187,11 +196,15 @@ module ReactView =
 
     createReactViewGroup
 
-  let render
+  let render<'view when 'view :> IDisposable>
       (scheduler: IScheduler)
-      (createView: string -> obj -> ReactView)
+      (createView: (Exception -> unit) -> string (* view name *) -> obj (* props *) -> ReactView)
       (element: ReactElement) =
-    let rec updateWith (dom: ReactDOMNode) (view: ReactView) =
+
+    let rec updateWith (onError: Exception -> unit) (dom: ReactDOMNode) (view: ReactView) =
+      let updateWith = updateWith onError
+      let createView = createView onError
+
       match (dom, view) with
       | (ReactNoneDOMNode, _) ->
           ReactViewNone
@@ -210,15 +223,15 @@ module ReactView =
           let state =
             node.state
             |> Observable.observeOn scheduler
-            |> Observable.scanInit 
+            |> Observable.scanInit
                 ReactViewNone
-                (fun view dom -> view |> updateWith dom) 
+                (fun view dom -> view |> updateWith dom)
             |> Observable.distinctUntilChanged
             |> Observable.replayBuffer 1
 
           let subscription = state.Connect ()
 
-          ReactStatefulView { 
+          ReactStatefulView {
             new IReactStatefulView with
               member this.Dispose () = subscription.Dispose ()
               member this.Id = id
@@ -226,63 +239,70 @@ module ReactView =
           }
 
       | (ReactNativeDOMNode node, ReactView reactView)
-          when node.Name = reactView.Name ->
-            reactView.Props <- node.Props
-            view
-
-      | (ReactNativeDOMNodeGroup node, ReactViewGroup viewWithChildren)
-          when node.element.Name = viewWithChildren.Name ->
-            let oldChildren = viewWithChildren.Children
-
-            let newChildren =
-              node.children 
-              |> ImmutableMap.map (
-                fun key node ->
-                  let currentChildViewForKey = 
-                    match viewWithChildren.Children |> ImmutableMap.tryGet key with
-                    | Some childView -> childView
-                    | None -> ReactViewNone
-
-                  currentChildViewForKey |> updateWith node
-                ) 
-              |> ImmutableMap.create
-
-            // Update the props after adding the children. On android this is needed
-            // to support the BaselineAlignedChildIndex property
-            viewWithChildren.Children <- newChildren
-
-            if node.element.Props <> viewWithChildren.Props then
-              viewWithChildren.Props <- node.element.Props
-
-            for (name, view) in oldChildren do
-              match newChildren |> ImmutableMap.tryGet name with
-              | Some _ -> ()
-              | None -> dispose view
-
-            view
-
-      | (node, view) ->
-          view |> dispose
-
-          let (name, props) =
-            match node with
-            | ReactNativeDOMNode node -> (node.Name, node.Props)
-            | ReactNativeDOMNodeGroup node -> (node.element.Name, node.element.Props)
-            | _ -> failwith "node must be a ReactNativeDomNode ReactNativeDOMNodeGroup"
-
-          let view = createView name props
-
-          match (node, view) with
-          | (ReactNativeDOMNode node, ReactView _) -> ()
-          | (ReactNativeDOMNodeGroup node, ReactViewGroup view) ->
-              view.Children <-
-                node.children 
-                |> ImmutableMap.map (fun _ node -> ReactViewNone |> updateWith node) 
-                |> ImmutableMap.create
-          | _ -> failwith "node/view mismatch"
-
+            when node.Name = reactView.Name
+              && node.Props = reactView.Props ->
           view
 
-    let dom = ReactDom.render element
-    updateWith dom ReactViewNone |> observe
+      | (ReactNativeDOMNode node, ReactView reactView)
+            when node.Name = reactView.Name ->
+          reactView.Props <- node.Props
+          view
+
+      | (ReactNativeDOMNode node, _) ->
+          view |> dispose
+          createView node.Name node.Props
+
+      // FIXME: Right now we don't have a data model that allows using a quick comparison
+      // to assert the children haven't changed.
+      | (ReactNativeDOMNodeGroup node, ReactViewGroup viewGroup)
+            when node.element.Name = viewGroup.Name ->
+          let oldChildren = viewGroup.Children
+
+          let newChildren =
+            node.children
+            |> ImmutableMap.map (
+              fun key node ->
+                let currentChildViewForKey =
+                  match viewGroup.Children |> ImmutableMap.tryGet key with
+                  | Some childView -> childView
+                  | None -> ReactViewNone
+
+                currentChildViewForKey |> updateWith node
+              )
+            |> ImmutableMap.create
+
+          // Update the props after adding the children. On android this is needed
+          // to support the BaselineAlignedChildIndex property
+          viewGroup.Children <- newChildren
+
+          if node.element.Props <> viewGroup.Props then
+            viewGroup.Props <- node.element.Props
+
+          for (name, view) in oldChildren do
+            match newChildren |> ImmutableMap.tryGet name with
+            | Some _ -> ()
+            | None -> dispose view
+
+          view
+      | (ReactNativeDOMNodeGroup node, _) ->
+          view |> dispose
+          let view = createView node.element.Name node.element.Props
+          let viewGroup =
+            match view with
+            | ReactViewGroup viewGroup -> viewGroup
+            | _ -> failwith "view is not a viewGroup"
+          viewGroup.Children <-
+            node.children
+            |> ImmutableMap.map (fun _ node -> ReactViewNone |> updateWith node)
+            |> ImmutableMap.create
+          view
+
+    let subscribe (observer: IObserver<Option<'view>>) =
+      let dom = ReactDom.render element
+
+      updateWith observer.OnError dom ReactViewNone
+      |> observe<'view>
+      |> Observable.subscribeObserver observer
+
+    Observable.Create(subscribe)
 

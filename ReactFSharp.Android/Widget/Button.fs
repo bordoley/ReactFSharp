@@ -7,16 +7,18 @@ open Android.Widget
 open React
 open React.Android.Views
 
+open System
+
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Button =
   let private name = typeof<AppCompatButton>.Name
 
-  let setProps (view: Button) (props: ITextViewProps)   =
-    TextView.setProps view props
+  let setProps (onError: Exception -> unit) (view: Button) (props: ITextViewProps)   =
+    TextView.setProps onError view props
 
-  let private createView context =
+  let private createView context (onError: Exception -> unit) =
     let viewProvider () = new AppCompatButton(context)
-    ReactView.createView name viewProvider setProps
+    ReactView.createView name viewProvider (setProps onError)
 
   let viewProvider = (name, createView)
 

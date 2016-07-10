@@ -69,7 +69,7 @@ type MainActivity () =
     }
   )
 
-  let MyStatefulComponent =
+  let MyStatefulComponent () =
     let reducer state _ = state + 1
 
     let shouldUpdate old updated = true
@@ -101,9 +101,17 @@ type MainActivity () =
       ImmutableMap.create
         [|
           Button.viewProvider
-          LinearLayout.viewProvider onError
+          FrameLayout.viewProvider
+          GridView.viewProvider
+          ImageView.viewProvider
+          LinearLayout.viewProvider
+          ListView.viewProvider
+          RatingBar.viewProvider
+          RelativeLayout.viewProvider
+          SwipeRefreshLayout.viewProvider
           TextView.viewProvider
-          Toolbar.viewProvider onError
+          Toolbar.viewProvider
+          ViewPager.viewProvider
         |]
 
     let updateView = function
@@ -112,7 +120,7 @@ type MainActivity () =
       | None -> this.SetContentView null
 
     let subscription = 
-      MyStatefulComponent 
+      MyStatefulComponent ()
       |> ReactView.render views this 
       |> Observable.subscribeWithError updateView onError
 

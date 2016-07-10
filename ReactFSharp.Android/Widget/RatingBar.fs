@@ -45,6 +45,7 @@ type RatingBarProps =
     onTouch: Func<MotionEvent, bool>
     padding: Padding
     pivot: Pivot
+    requestFocus: IObservable<unit>
     scrollBarSize: int
     scrollBarStyle: ScrollbarStyles
     selected: bool
@@ -90,6 +91,7 @@ type RatingBarProps =
     member this.OnTouch = this.onTouch
     member this.Padding = this.padding
     member this.Pivot = this.pivot
+    member this.RequestFocus = this.requestFocus
     member this.ScrollBarSize = this.scrollBarSize
     member this.ScrollBarStyle = this.scrollBarStyle
     member this.Selected = this.selected
@@ -136,6 +138,7 @@ module private RatingBarProps =
     onTouch = ViewProps.Default.onTouch
     padding = ViewProps.Default.padding
     pivot = ViewProps.Default.pivot
+    requestFocus = ViewProps.Default.requestFocus
     scrollBarSize = ViewProps.Default.scrollBarSize
     scrollBarStyle = ViewProps.Default.scrollBarStyle
     selected = ViewProps.Default.selected
@@ -158,12 +161,12 @@ type RatingBarProps with
 module RatingBar =
   let private name = typeof<AppCompatRatingBar>.Name
 
-  let setProps (view: RatingBar) (props: IRatingBarProps)  =
-    View.setProps view props
+  let setProps (onError: Exception -> unit) (view: RatingBar) (props: IRatingBarProps)  =
+    View.setProps onError view props
 
-  let private createView (context: Context) =
+  let private createView (context: Context) (onError: Exception -> unit) =
     let viewProvider () = new AppCompatRatingBar(context)
-    ReactView.createView name viewProvider setProps
+    ReactView.createView name viewProvider (setProps onError)
 
   let viewProvider = (name, createView)
 

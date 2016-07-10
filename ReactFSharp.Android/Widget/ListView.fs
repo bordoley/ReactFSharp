@@ -44,6 +44,7 @@ type ListViewProps =
     onTouch: Func<MotionEvent, bool>
     padding: Padding
     pivot: Pivot
+    requestFocus: IObservable<unit>
     scrollBarSize: int
     scrollBarStyle: ScrollbarStyles
     selected: bool
@@ -89,6 +90,7 @@ type ListViewProps =
     member this.OnTouch = this.onTouch
     member this.Padding = this.padding
     member this.Pivot = this.pivot
+    member this.RequestFocus = this.requestFocus
     member this.ScrollBarSize = this.scrollBarSize
     member this.ScrollBarStyle = this.scrollBarStyle
     member this.Selected = this.selected
@@ -135,6 +137,7 @@ module private ListViewProps =
     onTouch = ViewGroupProps.Default.onTouch
     padding = ViewGroupProps.Default.padding
     pivot = ViewGroupProps.Default.pivot
+    requestFocus = ViewGroupProps.Default.requestFocus
     scrollBarSize = ViewGroupProps.Default.scrollBarSize
     scrollBarStyle = ViewGroupProps.Default.scrollBarStyle
     selected = ViewGroupProps.Default.selected
@@ -162,15 +165,15 @@ type ListViewComponentProps = {
 module ListView =
   let private name = typeof<ListView>.Name
 
-  let setProps (view: ListView) (props: IListViewProps)   =
-    ViewGroup.setProps view props
+  let setProps (onError: Exception -> unit) (view: ListView) (props: IListViewProps) =
+    ViewGroup.setProps onError view props
 
-  let private createView onError context =
+  let private createView context onError =
     let emptyViewProvider () = (new Space(context)) :> View
     let viewGroupProvider () = new ListView(context)
-    ViewGroup.create onError name viewGroupProvider emptyViewProvider setProps
+    ViewGroup.create onError name viewGroupProvider emptyViewProvider (setProps onError)
 
-  let viewProvider onError = (name, createView)
+  let viewProvider = (name, createView)
 
   let internal reactComponent = ReactComponent.makeLazy (fun (props: ListViewComponentProps) -> ReactNativeElementGroup {
     Name = name

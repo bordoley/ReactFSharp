@@ -53,6 +53,7 @@ type LinearLayoutProps =
     onTouch: Func<MotionEvent, bool>
     padding: Padding
     pivot: Pivot
+    requestFocus: IObservable<unit>
     scrollBarSize: int
     scrollBarStyle: ScrollbarStyles
     selected: bool
@@ -107,6 +108,7 @@ type LinearLayoutProps =
     member this.OnTouch = this.onTouch
     member this.Padding = this.padding
     member this.Pivot = this.pivot
+    member this.RequestFocus = this.requestFocus
     member this.ScrollBarSize = this.scrollBarSize
     member this.ScrollBarStyle = this.scrollBarStyle
     member this.Selected = this.selected
@@ -162,6 +164,7 @@ module private LinearLayoutProps =
     onTouch = ViewGroupProps.Default.onTouch
     padding = ViewGroupProps.Default.padding
     pivot = ViewGroupProps.Default.pivot
+    requestFocus = ViewGroupProps.Default.requestFocus
     scrollBarSize = ViewGroupProps.Default.scrollBarSize
     scrollBarStyle = ViewGroupProps.Default.scrollBarStyle
     selected = ViewGroupProps.Default.selected
@@ -198,9 +201,7 @@ type LinearLayoutComponentProps = {
 module LinearLayout =
   let private name = typeof<LinearLayoutCompat>.Name
 
-  let setProps (view: LinearLayoutCompat) (props: ILinearLayoutProps) =
-    ViewGroup.setProps view props 
-
+  let setProps (onError: Exception -> unit) (view: LinearLayoutCompat) (props: ILinearLayoutProps) =
     view.BaselineAligned <- props.BaselineAligned
 
     if props.BaselineAlignedChildIndex >= 0 then
@@ -212,12 +213,14 @@ module LinearLayout =
     view.ShowDividers <- props.ShowDividers
     view.WeightSum <- props.WeightSum
 
-  let private createView onError context =
+    ViewGroup.setProps onError view props
+
+  let private createView context onError =
     let emptyViewProvider () = (new Space(context)) :> View
     let viewGroupProvider () = new LinearLayoutCompat(context)
-    ViewGroup.create onError name viewGroupProvider emptyViewProvider setProps
+    ViewGroup.create onError name viewGroupProvider emptyViewProvider (setProps onError)
 
-  let viewProvider onError = (name, createView onError)
+  let viewProvider = (name, createView)
 
   let internal reactComponent = ReactComponent.makeLazy (fun (props: LinearLayoutComponentProps) -> ReactNativeElementGroup {
     Name = name

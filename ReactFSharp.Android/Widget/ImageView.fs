@@ -45,6 +45,7 @@ type ImageViewProps =
     onTouch: Func<MotionEvent, bool>
     padding: Padding
     pivot: Pivot
+    requestFocus: IObservable<unit>
     scrollBarSize: int
     scrollBarStyle: ScrollbarStyles
     selected: bool
@@ -90,6 +91,7 @@ type ImageViewProps =
     member this.OnTouch = this.onTouch
     member this.Padding = this.padding
     member this.Pivot = this.pivot
+    member this.RequestFocus = this.requestFocus
     member this.ScrollBarSize = this.scrollBarSize
     member this.ScrollBarStyle = this.scrollBarStyle
     member this.Selected = this.selected
@@ -136,6 +138,7 @@ module private ImageViewProps =
     onTouch = ViewProps.Default.onTouch
     padding = ViewProps.Default.padding
     pivot = ViewProps.Default.pivot
+    requestFocus = ViewProps.Default.requestFocus
     scrollBarSize = ViewProps.Default.scrollBarSize
     scrollBarStyle = ViewProps.Default.scrollBarStyle
     selected = ViewProps.Default.selected
@@ -158,12 +161,12 @@ type ImageViewProps with
 module ImageView =
   let private name = typeof<AppCompatImageView>.Name
 
-  let setProps (view: ImageView) (props: IImageViewProps)  =
-    View.setProps view props
+  let setProps (onError: Exception -> unit) (view: ImageView) (props: IImageViewProps)  =
+    View.setProps onError view props
 
-  let private createView (context: Context) =
+  let private createView (context: Context) (onError: Exception -> unit) =
     let viewProvider () = new AppCompatImageView(context)
-    ReactView.createView name viewProvider setProps
+    ReactView.createView name viewProvider (setProps onError)
 
   let viewProvider = (name, createView)
 

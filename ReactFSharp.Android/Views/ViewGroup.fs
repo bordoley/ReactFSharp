@@ -42,6 +42,7 @@ type ViewGroupProps =
     onTouch: Func<MotionEvent, bool>
     padding: Padding
     pivot: Pivot
+    requestFocus: IObservable<unit>
     scrollBarSize: int
     scrollBarStyle: ScrollbarStyles
     selected: bool
@@ -87,6 +88,7 @@ type ViewGroupProps =
     member this.OnTouch = this.onTouch
     member this.Padding = this.padding
     member this.Pivot = this.pivot
+    member this.RequestFocus = this.requestFocus
     member this.ScrollBarSize = this.scrollBarSize
     member this.ScrollBarStyle = this.scrollBarStyle
     member this.Selected = this.selected
@@ -133,6 +135,7 @@ module private ViewGroupProps =
     onTouch = ViewProps.Default.onTouch
     padding = ViewProps.Default.padding
     pivot = ViewProps.Default.pivot
+    requestFocus = ViewProps.Default.requestFocus
     scrollBarSize = ViewProps.Default.scrollBarSize
     scrollBarStyle = ViewProps.Default.scrollBarStyle
     selected = ViewProps.Default.selected
@@ -174,7 +177,7 @@ module ViewGroup =
       (name: string)
       (viewGroupProvider: unit -> 'viewGroup)
       (emptyViewProvider: unit -> View)
-      (setProps: 'viewGroup -> 'props -> unit) =
+      (setProps: 'viewGroup -> 'props -> IDisposable) =
     let createViewGroup initialProps =
       ReactView.createViewGroup 
         onError
@@ -186,7 +189,7 @@ module ViewGroup =
         initialProps
     createViewGroup
 
-  let setProps (view: View) (props: IViewGroupProps)  = 
-    View.setProps view props 
+  let setProps (onError: Exception -> unit) (view: View) (props: IViewGroupProps) =
+    View.setProps onError view props
 
    

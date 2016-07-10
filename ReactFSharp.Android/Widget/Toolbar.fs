@@ -49,6 +49,7 @@ type ToolbarProps =
     onTouch: Func<MotionEvent, bool>
     padding: Padding
     pivot: Pivot
+    requestFocus: IObservable<unit>
     scrollBarSize: int
     scrollBarStyle: ScrollbarStyles
     selected: bool
@@ -98,6 +99,7 @@ type ToolbarProps =
     member this.OnTouch = this.onTouch
     member this.Padding = this.padding
     member this.Pivot = this.pivot
+    member this.RequestFocus = this.requestFocus
     member this.ScrollBarSize = this.scrollBarSize
     member this.ScrollBarStyle = this.scrollBarStyle
     member this.Selected = this.selected
@@ -148,6 +150,7 @@ module private ToolbarProps =
     onTouch = ViewGroupProps.Default.onTouch
     padding = ViewGroupProps.Default.padding
     pivot = ViewGroupProps.Default.pivot
+    requestFocus = ViewGroupProps.Default.requestFocus
     scrollBarSize = ViewGroupProps.Default.scrollBarSize
     scrollBarStyle = ViewGroupProps.Default.scrollBarStyle
     selected = ViewGroupProps.Default.selected
@@ -179,17 +182,17 @@ type ToolbarComponentProps = {
 module Toolbar =
   let private name = typeof<Android.Support.V7.Widget.Toolbar>.Name
 
-  let setProps (view: Android.Support.V7.Widget.Toolbar) (props: IToolbarProps) =
-    ViewGroup.setProps view props
+  let setProps (onError: Exception -> unit) (view: Android.Support.V7.Widget.Toolbar) (props: IToolbarProps) =
     view.Subtitle <- props.SubTitle
     view.Title <- props.Title
+    ViewGroup.setProps onError view props
 
-  let private createView onError context =
+  let private createView context onError =
     let emptyViewProvider () = (new Space(context)) :> View
     let viewGroupProvider () = new Android.Support.V7.Widget.Toolbar(context)
-    ViewGroup.create onError name viewGroupProvider emptyViewProvider setProps
+    ViewGroup.create onError name viewGroupProvider emptyViewProvider (setProps onError)
 
-  let viewProvider onError = (name, createView onError)
+  let viewProvider = (name, createView)
 
   let internal reactComponent = ReactComponent.makeLazy (fun (props: ToolbarComponentProps) -> ReactNativeElementGroup {
     Name = name
