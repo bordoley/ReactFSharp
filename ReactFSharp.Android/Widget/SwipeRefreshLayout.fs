@@ -166,12 +166,12 @@ module SwipeRefreshLayout =
   let setProps (view: SwipeRefreshLayout) (props: ISwipeRefreshLayoutProps)   =
     ViewGroup.setProps view props
 
-  let private createView context =
+  let private createView onError context =
     let emptyViewProvider () = (new Space(context)) :> View
     let viewGroupProvider () = new SwipeRefreshLayout(context)
-    ViewGroup.create name viewGroupProvider emptyViewProvider setProps
+    ViewGroup.create onError name viewGroupProvider emptyViewProvider setProps
 
-  let viewProvider = (name, createView)
+  let viewProvider onError = (name, createView onError)
 
   let internal reactComponent = ReactComponent.makeLazy (fun (props: SwipeRefreshLayoutComponentProps) -> ReactNativeElementGroup {
     Name = name

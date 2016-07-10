@@ -212,12 +212,12 @@ module LinearLayout =
     view.ShowDividers <- props.ShowDividers
     view.WeightSum <- props.WeightSum
 
-  let private createView context =
+  let private createView onError context =
     let emptyViewProvider () = (new Space(context)) :> View
     let viewGroupProvider () = new LinearLayoutCompat(context)
-    ViewGroup.create name viewGroupProvider emptyViewProvider setProps
+    ViewGroup.create onError name viewGroupProvider emptyViewProvider setProps
 
-  let viewProvider = (name, createView)
+  let viewProvider onError = (name, createView onError)
 
   let internal reactComponent = ReactComponent.makeLazy (fun (props: LinearLayoutComponentProps) -> ReactNativeElementGroup {
     Name = name

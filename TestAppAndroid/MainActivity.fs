@@ -93,26 +93,27 @@ type MainActivity () =
   override this.OnCreate (bundle) =
     base.OnCreate (bundle)
 
+    let onError exn =
+      Console.WriteLine (exn.ToString ())
+      raise exn
+
     let views =
       ImmutableMap.create
         [|
           Button.viewProvider
-          LinearLayout.viewProvider
+          LinearLayout.viewProvider onError
           TextView.viewProvider
-          Toolbar.viewProvider
+          Toolbar.viewProvider onError
         |]
-
-    let view = MyStatefulComponent |> ReactView.render views this
 
     let updateView = function
       | Some (view: View) ->
           this.SetContentView (view)
       | None -> this.SetContentView null
 
-    let onError exn =
-      Console.WriteLine (exn.ToString ())
-      raise exn
+    let subscription = 
+      MyStatefulComponent 
+      |> ReactView.render views this 
+      |> Observable.subscribeWithError updateView onError
 
-    let viewSubscription = 
-      view |> ReactView.observe |> Observable.subscribeWithError updateView onError
     ()

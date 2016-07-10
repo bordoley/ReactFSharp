@@ -165,12 +165,12 @@ module FrameLayout =
   let setProps (view: FrameLayout) (props: IFrameLayoutProps)   =
     ViewGroup.setProps view props
 
-  let private createView context =
+  let private createView onError context =
     let emptyViewProvider () = (new Space(context)) :> View
     let viewGroupProvider () = new FrameLayout(context)
-    ViewGroup.create name viewGroupProvider emptyViewProvider setProps
+    ViewGroup.create onError name viewGroupProvider emptyViewProvider setProps
 
-  let viewProvider = (name, createView)
+  let viewProvider onError = (name, createView onError)
 
   let internal reactComponent = ReactComponent.makeLazy (fun (props: FrameLayoutComponentProps) -> ReactNativeElementGroup {
     Name = name

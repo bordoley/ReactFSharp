@@ -46,30 +46,20 @@ module ReactView =
 
   let private dispose (disposable: IDisposable) = disposable.Dispose()
 
-  let rec observe<'view> (reactView: ReactView): IObservable<Option<'view>> = 
-    let createObservable (observer: IObserver<Option<'view>>) =
-      match reactView with
-      | ReactStatefulView statefulView -> 
-          let mapper (reactView: ReactView)=
-            observe reactView
+  let rec private observe<'view when 'view :> IDisposable> (reactView: ReactView): IObservable<Option<'view>> = 
+    match reactView with
+    | ReactStatefulView statefulView -> 
+        let mapper (reactView: ReactView)=
+          observe reactView
 
-          statefulView.State
-          |> Observable.flatmap mapper
-          |> Observable.subscribeObserver observer
-      | ReactView view ->
-          Some (view.View :?> 'view) |> observer.OnNext
-          observer.OnCompleted ()
-          Disposable.Empty
-      | ReactViewGroup view ->
-          Some (view.View :?> 'view) |> observer.OnNext
-          observer.OnCompleted ()
-          Disposable.Empty
-      | ReactViewNone ->
-          None |> observer.OnNext
-          observer.OnCompleted ()
-          Disposable.Empty
-      
-    Observable.Create(createObservable)
+        statefulView.State
+        |> Observable.flatmap mapper
+    | ReactView view ->
+        Some (view.View :?> 'view) |> Observable.single
+    | ReactViewGroup view ->
+        Some (view.View :?> 'view) |> Observable.single
+    | ReactViewNone ->
+        None |> Observable.single 
 
   let private createViewInternal<'view, 'props when 'view :> IDisposable>
       (name: string)
@@ -119,7 +109,7 @@ module ReactView =
       ReactView <| createViewInternal name viewProvider setProps initialProps
     createReactView
 
-  let createViewGroup<'view, 'viewGroup, 'props when 'viewGroup :> IDisposable>
+  let createViewGroup<'view, 'viewGroup, 'props when 'view :> IDisposable and 'viewGroup :> IDisposable>
       (onError: Exception -> unit)
       (name: string)
       (viewGroupProvider: unit -> 'viewGroup)
@@ -294,5 +284,5 @@ module ReactView =
           view
 
     let dom = ReactDom.render element
-    updateWith dom ReactViewNone
+    updateWith dom ReactViewNone |> observe
 

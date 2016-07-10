@@ -170,14 +170,11 @@ module ViewGroup =
     viewGroup.RemoveViewAt index
 
   let create<'viewGroup, 'props when 'viewGroup :> ViewGroup>
+      (onError: Exception -> unit)
       (name: string)
       (viewGroupProvider: unit -> 'viewGroup)
       (emptyViewProvider: unit -> View)
       (setProps: 'viewGroup -> 'props -> unit) =
-    let onError exn =
-      Console.WriteLine (exn.ToString ())
-      raise exn
-
     let createViewGroup initialProps =
       ReactView.createViewGroup 
         onError

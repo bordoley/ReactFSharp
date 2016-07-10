@@ -189,12 +189,12 @@ module RelativeLayout =
   let setProps (view: RelativeLayout) (props: IViewGroupProps)   =
     ViewGroup.setProps view props
 
-  let private createView context =
+  let private createView onError context =
     let emptyViewProvider () = (new Space(context)) :> View
     let viewGroupProvider () = new RelativeLayout(context)
-    ViewGroup.create name viewGroupProvider emptyViewProvider setProps
+    ViewGroup.create onError name viewGroupProvider emptyViewProvider setProps
 
-  let viewProvider = (name, createView)
+  let viewProvider onError = (name, createView onError)
 
   let internal reactComponent = ReactComponent.makeLazy (fun (props: RelativeLayoutComponentProps) -> ReactNativeElementGroup {
     Name = name

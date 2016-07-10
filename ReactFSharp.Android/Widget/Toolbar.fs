@@ -184,12 +184,12 @@ module Toolbar =
     view.Subtitle <- props.SubTitle
     view.Title <- props.Title
 
-  let private createView context =
+  let private createView onError context =
     let emptyViewProvider () = (new Space(context)) :> View
     let viewGroupProvider () = new Android.Support.V7.Widget.Toolbar(context)
-    ViewGroup.create name viewGroupProvider emptyViewProvider setProps
+    ViewGroup.create onError name viewGroupProvider emptyViewProvider setProps
 
-  let viewProvider = (name, createView)
+  let viewProvider onError = (name, createView onError)
 
   let internal reactComponent = ReactComponent.makeLazy (fun (props: ToolbarComponentProps) -> ReactNativeElementGroup {
     Name = name
