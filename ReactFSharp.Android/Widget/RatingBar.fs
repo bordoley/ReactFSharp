@@ -6,6 +6,7 @@ open Android.Graphics
 open Android.Support.V7.Widget
 open Android.Views
 open Android.Widget
+open ImmutableCollections
 open React
 open React.Android
 open React.Android.Views
@@ -161,16 +162,17 @@ type RatingBarProps with
 module RatingBar =
   let private name = typeof<AppCompatRatingBar>.Name
 
-  let setProps (onError: Exception -> unit) (view: RatingBar) (props: IRatingBarProps)  =
+  let setProps (onError: Exception -> unit) (view: RatingBar) (props: IRatingBarProps) =
     View.setProps onError view props
 
-  let private createView (context: Context) (onError: Exception -> unit) =
-    let viewProvider () = new AppCompatRatingBar(context)
-    ReactView.createView name viewProvider (setProps onError)
+  let private createView (context: Context) =
+    let viewProvider () = new AppCompatRatingBar (context) :> RatingBar
+    View.create name viewProvider setProps
 
   let viewProvider = (name, createView)
 
   let internal reactComponent = ReactComponent.makeLazy (fun (props: RatingBarProps) -> ReactNativeElement {
     Name = name
     Props = props
+    Children = ImmutableMap.empty ()
   }) 

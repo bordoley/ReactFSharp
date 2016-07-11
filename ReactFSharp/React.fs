@@ -9,7 +9,6 @@ type [<ReferenceEquality>] ReactElement =
   | ReactStatefulElement of ReactStatefulElement
   | ReactLazyElement of ReactLazyElement
   | ReactNativeElement of ReactNativeElement
-  | ReactNativeElementGroup of ReactNativeElementGroup
   | ReactNoneElement
 
 and ReactStatefulElement private (id: obj, comp: ReactStatefulComponent<obj>, props: obj) =
@@ -40,11 +39,6 @@ and ReactLazyElement private (id: obj, comp: ReactComponent<obj>, props: obj) =
   member this.Props = props
 
 and [<ReferenceEquality>] ReactNativeElement = {
-    Name: string
-    Props: obj
-  }
-
-and [<ReferenceEquality>] ReactNativeElementGroup = {
     Name: string
     Props: obj
     Children: IImmutableMap<string, ReactElement>

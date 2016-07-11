@@ -6,6 +6,7 @@ open Android.Graphics
 open Android.Support.V7.Widget
 open Android.Views
 open Android.Widget
+open ImmutableCollections
 open React
 open React.Android
 open React.Android.Views
@@ -161,16 +162,17 @@ type ImageViewProps with
 module ImageView =
   let private name = typeof<AppCompatImageView>.Name
 
-  let setProps (onError: Exception -> unit) (view: ImageView) (props: IImageViewProps)  =
+  let setProps (onError: Exception -> unit) (view: ImageView) (props: IImageViewProps) =
     View.setProps onError view props
 
-  let private createView (context: Context) (onError: Exception -> unit) =
-    let viewProvider () = new AppCompatImageView(context)
-    ReactView.createView name viewProvider (setProps onError)
+  let private createView (context: Context) =
+    let viewProvider () = new AppCompatImageView(context) :> ImageView
+    View.create name viewProvider setProps
 
   let viewProvider = (name, createView)
 
   let internal reactComponent = ReactComponent.makeLazy (fun (props: ImageViewProps) -> ReactNativeElement {
     Name = name
     Props = props
-  }) 
+    Children = ImmutableMap.empty ()
+  })

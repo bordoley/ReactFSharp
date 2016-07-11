@@ -151,7 +151,5 @@ type MainActivity () =
       MyStatefulComponent ()
       |> ReactView.render views this 
       |> Observable.subscribeWithError updateView onError
-     
-    let x = this.Resources
 
     ()

@@ -168,14 +168,16 @@ module ListView =
   let setProps (onError: Exception -> unit) (view: ListView) (props: IListViewProps) =
     ViewGroup.setProps onError view props
 
-  let private createView context onError =
-    let emptyViewProvider () = (new Space(context)) :> View
-    let viewGroupProvider () = new ListView(context)
-    ViewGroup.create onError name viewGroupProvider emptyViewProvider (setProps onError)
+  let private createView (context: Context) =
+    let emptyViewProvider () = new Space (context) :> View
+    let viewGroupProvider () = new ListView (context)
+
+    // FIXME: This won't work
+    ViewGroup.create emptyViewProvider name viewGroupProvider setProps
 
   let viewProvider = (name, createView)
 
-  let internal reactComponent = ReactComponent.makeLazy (fun (props: ListViewComponentProps) -> ReactNativeElementGroup {
+  let internal reactComponent = ReactComponent.makeLazy (fun (props: ViewPagerComponentProps) -> ReactNativeElement {
     Name = name
     Props = props.props
     Children = ImmutableMap.create props.children

@@ -168,14 +168,16 @@ module GridView =
   let setProps (onError: Exception -> unit) (view: GridView) (props: IGridViewProps) =
     ViewGroup.setProps onError view props
 
-  let private createView context onError =
-    let emptyViewProvider () = (new Space(context)) :> View
-    let viewGroupProvider () = new GridView(context)
-    ViewGroup.create onError name viewGroupProvider emptyViewProvider (setProps onError)
+  let private createView (context: Context) =
+    let emptyViewProvider () = new Space (context) :> View
+    let viewGroupProvider () = new GridView (context)
+
+    // FIXME: This won't work
+    ViewGroup.create emptyViewProvider name viewGroupProvider setProps
 
   let viewProvider = (name, createView)
 
-  let internal reactComponent = ReactComponent.makeLazy (fun (props: GridViewComponentProps) -> ReactNativeElementGroup {
+  let internal reactComponent = ReactComponent.makeLazy (fun (props: ViewPagerComponentProps) -> ReactNativeElement {
     Name = name
     Props = props.props
     Children = ImmutableMap.create props.children

@@ -6,6 +6,7 @@ open Android.Graphics
 open Android.Support.V7.Widget
 open Android.Views
 open Android.Widget
+open ImmutableCollections
 open React
 open React.Android
 open React.Android.Views
@@ -180,13 +181,14 @@ module TextView =
     view.SetTextIsSelectable true
     View.setProps onError view props
 
-  let private createView (context: Context) (onError: Exception -> unit) =
-    let viewProvider () =  new AppCompatTextView(context)
-    ReactView.createView name viewProvider (setProps onError)
+  let private createView (context: Context) =
+    let viewProvider () = new AppCompatTextView (context) :> TextView
+    View.create name viewProvider setProps
 
   let viewProvider = (name, createView)
 
   let internal reactComponent = ReactComponent.makeLazy (fun (props: TextViewProps) -> ReactNativeElement {
     Name = name
     Props = props
+    Children = ImmutableMap.empty ()
   }) 

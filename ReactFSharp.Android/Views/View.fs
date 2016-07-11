@@ -5,6 +5,7 @@ open Android.Graphics
 open Android.Support.V4.View
 open Android.Views
 open FSharp.Control.Reactive
+open React
 open React.Android
 open System
 open System.Reactive.Disposables
@@ -437,10 +438,10 @@ module View =
     view.Id <- props.Id
     view.LayoutParameters <- props.LayoutParameters
     ViewCompat.SetPaddingRelative(
-      view, 
-      props.Padding.start, 
-      props.Padding.top, 
-      props.Padding.end_, 
+      view,
+      props.Padding.start,
+      props.Padding.top,
+      props.Padding.end_,
       props.Padding.bottom
     )
     ViewCompat.SetPivotX(view, props.Pivot.x)
@@ -470,5 +471,16 @@ module View =
           onError
     else Disposable.Empty
 
+  let create<'props, 'view when 'view :> View>
+      (name: string)
+      (viewProvider: unit -> 'view)
+      (setProps: (Exception -> unit) -> 'view -> 'props -> IDisposable)
+      (onError: Exception -> unit)
+      (updateViewWith: ReactDOMNode -> ReactView<View> -> ReactView<View>)
+      (initialProps: obj) =
+    let viewProvider () =
+      viewProvider () :> View
+    let setProps onError (view: View) props =
+      setProps onError (view :?> 'view) props
 
-
+    ReactView.createViewWithoutChildren name viewProvider (setProps onError) initialProps

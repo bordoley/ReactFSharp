@@ -6,6 +6,7 @@ open Android.Graphics
 open Android.Support.V7.Widget
 open Android.Views
 open Android.Widget
+open ImmutableCollections
 open React
 open React.Android
 open React.Android.Views
@@ -175,13 +176,14 @@ module EditText =
     view.SetTextColor Color.Blue
     TextView.setProps onError view props
 
-  let private createView (context: Context) (onError: Exception -> unit) =
-    let viewProvider () =  new AppCompatEditText(context)
-    ReactView.createView name viewProvider (setProps onError)
+  let private createView (context: Context) =
+    let viewProvider () = new AppCompatEditText (context) :> EditText
+    View.create name viewProvider setProps
 
   let viewProvider = (name, createView)
 
   let internal reactComponent = ReactComponent.makeLazy (fun (props: EditTextProps) -> ReactNativeElement {
     Name = name
     Props = props
+    Children = ImmutableMap.empty ()
   }) 

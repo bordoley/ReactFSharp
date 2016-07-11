@@ -4,14 +4,15 @@ open Android.Content.Res
 open Android.Graphics
 open Android.Support.V4.View
 open Android.Views
-
+open ImmutableCollections
 open React
 open System
+open System.Runtime.CompilerServices
 
-type IViewGroupProps = 
+type IViewGroupProps =
   inherit IViewProps
 
-type ViewGroupProps = 
+type ViewGroupProps =
   {
     // View Props
     accessibilityLiveRegion: int
@@ -104,7 +105,7 @@ type ViewGroupProps =
     member this.Visibility = this.visibility
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
-module private ViewGroupProps = 
+module private ViewGroupProps =
   let internal defaultProps = {
     // View Props
     accessibilityLiveRegion = ViewProps.Default.accessibilityLiveRegion
@@ -151,45 +152,54 @@ module private ViewGroupProps =
     visibility = ViewProps.Default.visibility
   }
 
-type ViewGroupProps with 
+type ViewGroupProps with
   static member Default = ViewGroupProps.defaultProps
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ViewGroup =
-  let private setViewAtIndex<'view,'viewGroup when 'view :> View and 'viewGroup :> ViewGroup>
+  let private viewChildrenCache =
+    new ConditionalWeakTable<View, IImmutableMap<string, ReactView<View>>>()
+
+  let private removeAllViews (view: View) =
+    let view = view :?> ViewGroup
+    view.RemoveAllViews()
+
+  let private setViewAtIndex
       (emptyViewProvider: unit -> View)
-      (viewGroup: ViewGroup)
-      (index: int) 
-      (view: Option<'view>) =
+      (view: View)
+      (index: int)
+      (viewAtIndex: Option<'view>) =
+    let viewGroup = view :?> ViewGroup
+
     if index < viewGroup.ChildCount then
       viewGroup.RemoveViewAt index
-    match view with
+    match viewAtIndex with
     | Some view -> viewGroup.AddView(view, index)
     | None _ -> viewGroup.AddView(emptyViewProvider (), index)
 
-  let private removeViewAtIndex<'view when 'view :> ViewGroup>
-      (viewGroup: 'view) 
-      (index: int) =
-    viewGroup.RemoveViewAt index
-
-  let create<'viewGroup, 'props when 'viewGroup :> ViewGroup>
-      (onError: Exception -> unit)
+  let create<'props, 'viewGroup when 'viewGroup :> ViewGroup>
+      (emptyViewProvider: unit -> View)
       (name: string)
       (viewGroupProvider: unit -> 'viewGroup)
-      (emptyViewProvider: unit -> View)
-      (setProps: 'viewGroup -> 'props -> IDisposable) =
-    let createViewGroup initialProps =
-      ReactView.createViewGroup 
-        onError
-        name 
-        viewGroupProvider
-        setProps 
-        (setViewAtIndex emptyViewProvider)
-        removeViewAtIndex
-        initialProps
-    createViewGroup
+      (setProps: (Exception -> unit) -> 'viewGroup -> 'props -> IDisposable)
+      (onError: Exception -> unit)
+      (updateViewWith: ReactDOMNode -> ReactView<View> -> ReactView<View>)
+      (initialProps: obj) =
+    let viewGroupProvider () =
+      viewGroupProvider () :> ViewGroup
+    let setProps onError (view: View) props =
+      setProps onError (view :?> 'viewGroup) props
 
-  let setProps (onError: Exception -> unit) (view: View) (props: IViewGroupProps) =
+    ReactView.createViewImmediatelyRenderingAllChildren
+      onError
+      viewChildrenCache
+      updateViewWith
+      removeAllViews
+      (setViewAtIndex emptyViewProvider)
+      name
+      (fun () -> viewGroupProvider () :> View)
+      (setProps onError)
+      initialProps
+
+  let setProps (onError: Exception -> unit) (view: ViewGroup) (props: IViewGroupProps) =
     View.setProps onError view props
-
-   

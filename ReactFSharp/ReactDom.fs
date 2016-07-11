@@ -5,14 +5,13 @@ open ImmutableCollections
 open System
 open System.Reactive.Subjects
 
-type [<ReferenceEquality>] internal ReactDOMNode =
+type [<ReferenceEquality>] ReactDOMNode =
   | ReactStatefulDOMNode of ReactStatefulDOMNode
   | ReactLazyDOMNode of ReactLazyDOMNode
-  | ReactNativeDOMNode of ReactNativeElement
-  | ReactNativeDOMNodeGroup of ReactNativeDOMNodeGroup
+  | ReactNativeDOMNode of ReactNativeDOMNode
   | ReactNoneDOMNode
 
-and [<ReferenceEquality>] internal ReactStatefulDOMNode =
+and [<ReferenceEquality>] ReactStatefulDOMNode =
   {
     element: ReactStatefulElement
     id: obj
@@ -23,13 +22,13 @@ and [<ReferenceEquality>] internal ReactStatefulDOMNode =
   interface IDisposable with
     member this.Dispose() = this.dispose ()
 
-and [<ReferenceEquality>] internal ReactLazyDOMNode = {
+and [<ReferenceEquality>] ReactLazyDOMNode = {
   element: ReactLazyElement
   child: ReactDOMNode
 }
 
-and [<ReferenceEquality>] internal ReactNativeDOMNodeGroup = {
-  element: ReactNativeElementGroup
+and [<ReferenceEquality>] ReactNativeDOMNode = {
+  element: ReactNativeElement
   children: IImmutableMap<string, ReactDOMNode>
 }
 
@@ -48,14 +47,9 @@ module internal ReactDom =
         tree
 
     | (ReactNativeElement ele, ReactNativeDOMNode node)
-          when node.Name = ele.Name
-            && node.Props = ele.Props ->
-        tree
-
-    | (ReactNativeElementGroup ele, ReactNativeDOMNodeGroup node)
           when node.element.Name = ele.Name
             && node.element.Props = ele.Props
-            && node.element.Children = ele.Children->
+            && node.element.Children = ele.Children ->
         tree
 
 
@@ -72,12 +66,8 @@ module internal ReactDom =
         }
 
     | (ReactNativeElement ele, ReactNativeDOMNode node)
-          when node.Name = ele.Name ->
-        ReactNativeDOMNode ele
-
-    | (ReactNativeElementGroup ele, ReactNativeDOMNodeGroup node)
           when node.element.Name = ele.Name ->
-        ReactNativeDOMNodeGroup {
+        ReactNativeDOMNode {
           element = ele
           children = node.children |> updateChildrenWith ele.Children
         }
@@ -96,7 +86,7 @@ module internal ReactDom =
             let props = new BehaviorSubject<obj>(ele.Props);
             let state =
               (ele.Component (props |> Observable.asObservable))
-              |> Observable.scanInit ReactNoneDOMNode reducer
+              |> Observable.scanInit ReactNoneDOMNode (fun dom ele -> dom |> updateWith ele)
               |> Observable.multicast (new BehaviorSubject<ReactDOMNode>(ReactNoneDOMNode))
 
             let connection = state.Connect()
@@ -118,9 +108,7 @@ module internal ReactDom =
             child = ReactNoneDOMNode |> updateWith (ele.Component ele.Props)
           }
 
-        | ReactNativeElement ele -> ReactNativeDOMNode ele
-
-        | ReactNativeElementGroup ele -> ReactNativeDOMNodeGroup {
+        | ReactNativeElement ele -> ReactNativeDOMNode {
             element = ele
             children = ImmutableMap.empty () |> updateChildrenWith ele.Children
           }
@@ -143,8 +131,6 @@ module internal ReactDom =
       |> Seq.map keyToNodeMapper
       |> Seq.toArray
       |> ImmutableMap.create
-
-  and private reducer dom ele = dom |> updateWith ele
 
   let render (element: ReactElement) =
     updateWith element ReactNoneDOMNode
