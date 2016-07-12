@@ -97,6 +97,8 @@ type MainActivity () =
   )
 
   let MyStatefulComponent () =
+    let scheduler = System.Reactive.Concurrency.NewThreadScheduler()
+
     let reducer state _ = state + 1
 
     let shouldUpdate old updated = true
@@ -109,9 +111,7 @@ type MainActivity () =
       count = state
     }
 
-    let actions =
-      actions.Publish
-      |> Observable.observeOn (System.Reactive.Concurrency.NewThreadScheduler())
+    let actions = actions.Publish |> Observable.observeOn scheduler
 
     let StatefulComponent = ReactComponent.stateReducing render reducer shouldUpdate 0 actions
 

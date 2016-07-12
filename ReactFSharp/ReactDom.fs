@@ -87,6 +87,7 @@ module internal ReactDom =
             let state =
               (ele.Component (props |> Observable.asObservable))
               |> Observable.scanInit ReactNoneDOMNode (fun dom ele -> dom |> updateWith ele)
+              |> Observable.distinctUntilChangedCompare EqualityComparer.referenceEquality
               |> Observable.multicast (new BehaviorSubject<ReactDOMNode>(ReactNoneDOMNode))
 
             let connection = state.Connect()

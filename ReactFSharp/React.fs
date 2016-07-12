@@ -3,6 +3,7 @@
 open FSharp.Control.Reactive
 open ImmutableCollections
 open System
+open System.Reactive.Concurrency
 open System.Reactive.Linq
 
 type [<ReferenceEquality>] ReactElement =

@@ -89,7 +89,7 @@ module ReactView =
             |> Observable.scanInit
                 ReactViewNone
                 (fun view dom -> view |> updateWith dom)
-            |> Observable.distinctUntilChanged
+            |> Observable.distinctUntilChangedCompare EqualityComparer.referenceEquality
             |> Observable.replayBuffer 1
 
           let subscription = state.Connect ()
@@ -163,7 +163,6 @@ module ReactView =
 
     let childrenSubscription =
       childrenSubject
-      // FIXME: Maps don't currently implement equality
       |> Observable.distinctUntilChanged
       |> Observable.map (setChildren view)
       |> Observable.scanInit

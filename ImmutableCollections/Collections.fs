@@ -3,6 +3,7 @@
 open System
 open System.Collections
 open System.Collections.Generic
+open System.Runtime.CompilerServices;
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Array =
@@ -49,6 +50,16 @@ module Array =
 module Seq =
   let getEnumerator (seq: seq<_>) =
     seq.GetEnumerator()
+
+module EqualityComparer =
+  let referenceEquality =
+    { new IEqualityComparer<'t> with
+        member __.Equals(this, that) =
+          Object.ReferenceEquals(this, that)
+
+        member __.GetHashCode(obj) =
+          RuntimeHelpers.GetHashCode(obj);
+    }
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Collection =
