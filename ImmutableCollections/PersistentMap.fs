@@ -4,11 +4,6 @@ open System
 open System.Collections
 open System.Collections.Generic
 
-type [<ReferenceEquality>] KeyValueComparer<'k, 'v> = {
-  key: IEqualityComparer<'k>
-  value: IEqualityComparer<'v>
-}
-
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module private PersistentMapImpl =
   let inline countBits value =
@@ -60,13 +55,11 @@ module private PersistentMapImpl =
     | NoneRootNode
 
   type [<ReferenceEquality>] HashedTriePersistentMap<'k, 'v> = {
-    comparer: KeyValueComparer<'k, 'v>
     count: int
     root: RootNode<'k, 'v>
   }
 
-  let createWithComparer (comparer: KeyValueComparer<'k, 'v>) = {
-    comparer = comparer
+  let empty = {
     count = 0
     root = NoneRootNode
   }
@@ -80,22 +73,18 @@ module private PersistentMapImpl =
   let private putInHashCollisionNodeWithMutator
       (owner: obj)
       (mutator: int -> 'k * 'v -> HashCollisionNode<'k, 'v> -> HashCollisionNode<'k, 'v>)
-      (comparer: KeyValueComparer<'k, 'v>)
       (newEntry: 'k * 'v)
       (hashCollisionNode: HashCollisionNode<'k, 'v>) =
-
-    let keyComparer = comparer.key
-    let valueComparer = comparer.value
 
     let (newKey, newValue) = newEntry
 
     let element =
       hashCollisionNode.entries
       |> Seq.mapi (fun i v -> (i, v))
-      |> Seq.tryFind (fun (_, (key, value)) ->  keyComparer.Equals(key, newKey))
+      |> Seq.tryFind (fun (_, (key, value)) ->  key = newKey)
 
     match element with
-    | Some (index, (key, value)) when valueComparer.Equals(value, newValue) ->
+    | Some (index, (key, value)) when value = newValue ->
         (hashCollisionNode, 0)
 
     | Some (index, (key, value)) -> 
@@ -114,17 +103,14 @@ module private PersistentMapImpl =
       (owner: obj)
       (hashCollisionNodeMutator: int -> 'k * 'v -> HashCollisionNode<'k, 'v> -> HashCollisionNode<'k, 'v>)
       (bitmapIndexedNodeMutator: int -> BitmapIndexedNodeNode<'k, 'v> -> BitmapIndexedNode<'k, 'v> -> BitmapIndexedNode<'k, 'v>)
-      (comparer: KeyValueComparer<'k, 'v>)
       (depth: int)
       (newHash: int)
       (newEntry: 'k * 'v)
       (bitmapIndexedNode: BitmapIndexedNode<'k, 'v>) : (BitmapIndexedNode<'k, 'v> * int) =
 
     let putInBitmapIndexedNode = 
-      putInBitmapIndexedNodeWithMutators owner hashCollisionNodeMutator bitmapIndexedNodeMutator comparer
+      putInBitmapIndexedNodeWithMutators owner hashCollisionNodeMutator bitmapIndexedNodeMutator
 
-    let keyComparer = comparer.key
-    let valueComparer = comparer.value
     let (newKey, newValue) = newEntry
 
     let bit = bitpos newHash depth
@@ -135,14 +121,14 @@ module private PersistentMapImpl =
 
       let (newChildNode, increment) =
         match childNode with
-        | Entry (key, value) when keyComparer.Equals(key, newKey) && valueComparer.Equals(value, newValue) ->
+        | Entry (key, value) when key = newKey && value = newValue ->
             (childNode, 0)
 
-        | Entry (key, _) when keyComparer.Equals(key, newKey) ->
+        | Entry (key, _) when key = newKey ->
             (Entry newEntry, 0)
 
         | Entry ((key, value) as entry) ->
-            let hash = keyComparer.GetHashCode (key)
+            let hash = hash key
 
             if hash = newHash then
               let hashCollisionNode =
@@ -168,7 +154,7 @@ module private PersistentMapImpl =
         | HashCollisionNode hashCollisionNode ->
             let (newHashCollisionNode, increment) = 
               hashCollisionNode 
-              |> putInHashCollisionNodeWithMutator owner hashCollisionNodeMutator comparer newEntry
+              |> putInHashCollisionNodeWithMutator owner hashCollisionNodeMutator newEntry
 
             if Object.ReferenceEquals(hashCollisionNode, newHashCollisionNode) then
               (childNode, 0)
@@ -207,15 +193,10 @@ module private PersistentMapImpl =
       (owner: obj)
       putInBitmapIndexedNode
       arrayMapNodeMutator
-      (comparer: KeyValueComparer<'k, 'v>)
       (hash: int)
       (newEntry: 'k * 'v)
       (arrayMap: ArrayMapRootNode<'k, 'v>) =
-
-    let putInBitmapIndexedNode = putInBitmapIndexedNode comparer
-
-    let keyComparer = comparer.key
-    let valueComparer = comparer.value
+  
     let (newKey, newValue) = newEntry
 
     let element =
@@ -223,14 +204,14 @@ module private PersistentMapImpl =
       |> Seq.mapi (fun i v -> (i, v))
       |> Seq.tryFind (
         fun (_, { hash = hash; entry = (key, _)}) ->
-          hash = hash && keyComparer.Equals(key, newKey)
+          hash = hash && key = newKey
       )
 
     let count = arrayMap.entries.Length
 
     match element with
     | Some (index, { hash = hash; entry = (key, value)})
-          when valueComparer.Equals (value, newValue) ->
+          when value = newValue ->
         (ArrayMapRootNode arrayMap, 0)
 
     | Some (index, _) ->
@@ -267,7 +248,6 @@ module private PersistentMapImpl =
       (map: HashedTriePersistentMap<'k, 'v>) =
 
     let putInBitmapIndexedNode 
-        (comparer: KeyValueComparer<'k, 'v>)
         (depth: int)
         (newHash: int)
         (newEntry: 'k * 'v)
@@ -276,14 +256,12 @@ module private PersistentMapImpl =
         owner
         hashCollisionNodeMutator 
         bitmapIndexedNodeMutator 
-        comparer
         depth
         newHash
         newEntry
         bitmapIndexedNode
   
     let putInArrayMap
-        (comparer: KeyValueComparer<'k, 'v>)
         (hash: int)
         (newEntry: 'k * 'v)
         (arrayMap: ArrayMapRootNode<'k, 'v>) =
@@ -291,27 +269,23 @@ module private PersistentMapImpl =
         owner
         putInBitmapIndexedNode 
         arrayMapNodeMutator
-        comparer
         hash
         newEntry
         arrayMap
-    
-    let keyComparer = map.comparer.key
-    let valueComparer = map.comparer.value
 
     let (newKey, newValue) = newEntry
-    let newHash = map.comparer.key.GetHashCode(newKey)
+    let newHash = newKey.GetHashCode()
 
     match map.root with
     | NoneRootNode ->
         { map with count = 1; root = KeyValueRootNode { hash = newHash; entry = newEntry } }
 
     | KeyValueRootNode { hash = hash; entry = (key, value) }
-          when newHash = hash && keyComparer.Equals(key, newKey) && valueComparer.Equals(value, newValue) ->
+          when newHash = hash && key = newKey && value = newValue ->
         map
 
     | KeyValueRootNode { hash = hash; entry = (key, _) }
-          when hash = newHash && keyComparer.Equals(key, newKey) ->
+          when hash = newHash && key = newKey ->
         { map with root = KeyValueRootNode { hash = hash; entry = newEntry } }
 
     | KeyValueRootNode keyValueNode ->
@@ -326,7 +300,7 @@ module private PersistentMapImpl =
         }
 
     | ArrayMapRootNode arrayMap ->
-        let (newRootNode, increment) = arrayMap |> putInArrayMap map.comparer newHash newEntry
+        let (newRootNode, increment) = arrayMap |> putInArrayMap newHash newEntry
 
         match (map.root, newRootNode) with
         | (ArrayMapRootNode arrayMap, ArrayMapRootNode newArrayMap)
@@ -337,7 +311,7 @@ module private PersistentMapImpl =
           { map with count = map.count + increment; root = newRootNode }
 
     | BitmapIndexedMapRootNode bitmapIndexedNode ->
-        let (newBitmapIndexedNode, increment) = bitmapIndexedNode |> putInBitmapIndexedNode map.comparer 0 newHash newEntry
+        let (newBitmapIndexedNode, increment) = bitmapIndexedNode |> putInBitmapIndexedNode 0 newHash newEntry
         if Object.ReferenceEquals(bitmapIndexedNode, newBitmapIndexedNode) then
           map
         else
@@ -383,7 +357,6 @@ module private PersistentMapImpl =
       map
 
   let rec private tryFindInBitmapIndexedNode
-      (comparer: KeyValueComparer<'k, 'v>)
       (depth: int)
       (keyHash: int)
       (key: 'k)
@@ -397,18 +370,18 @@ module private PersistentMapImpl =
         Some entry
 
     | Some (HashCollisionNode { hash = hash; entries = entries }) when hash = keyHash ->
-        entries |>  Array.tryFind (fun (k, _) -> comparer.key.Equals(key, k))
+        entries |>  Array.tryFind (fun (k, _) -> key = k)
 
     | Some (BitmapIndexedNode bitmapIndexedNode) ->
-        bitmapIndexedNode|> tryFindInBitmapIndexedNode comparer (depth + 1) keyHash key
+        bitmapIndexedNode|> tryFindInBitmapIndexedNode (depth + 1) keyHash key
     | _ -> None
 
   let tryGet (key: 'k) (map: HashedTriePersistentMap<'k, 'v>) =
-    let keyHash = map.comparer.key.GetHashCode(key)
+    let keyHash = key.GetHashCode()
 
     match map.root with
     | BitmapIndexedMapRootNode root ->
-        let entry = root |> tryFindInBitmapIndexedNode map.comparer 0 keyHash key
+        let entry = root |> tryFindInBitmapIndexedNode 0 keyHash key
         match entry with
         | Some (key, value) -> Some value
         | _ -> None
@@ -417,14 +390,14 @@ module private PersistentMapImpl =
           root.entries
           |> Array.tryFind (
             fun { hash = hash; entry = (entryKey, _) } ->
-              hash = keyHash && map.comparer.key.Equals(key, entryKey)
+              hash = keyHash && key = entryKey
           )
         match node with
         | Some { entry = (_, value) } -> Some value
         | _ -> None
 
     | KeyValueRootNode { hash = hash; entry = (entryKey, value) }
-        when hash = keyHash && map.comparer.key.Equals(key, entryKey) -> Some value
+        when hash = keyHash && key = entryKey -> Some value
     | _ -> None
 
   let rec private bitmapIndexedNodeToSeq (bitmapIndexedNode: BitmapIndexedNode<'k, 'v>) = seq {
@@ -447,20 +420,19 @@ module private PersistentMapImpl =
   let rec private removeFromBitmapIndexedNodeWithMutators
       owner
       (bitmapIndexedNodeMutator: int -> BitmapIndexedNodeNode<'k, 'v> -> BitmapIndexedNode<'k, 'v> -> BitmapIndexedNode<'k, 'v>)
-      (comparer: KeyValueComparer<'k, 'v>)
       (depth: int)
       (keyHash: int)
       (key: 'k)
       (bitmapIndexedNode: BitmapIndexedNode<'k, 'v>) : BitmapIndexedNode<'k, 'v> =
 
     let removeFromBitmapIndexedNode = 
-      removeFromBitmapIndexedNodeWithMutators owner bitmapIndexedNodeMutator comparer
+      removeFromBitmapIndexedNodeWithMutators owner bitmapIndexedNodeMutator
 
     let bit = bitpos keyHash depth
     let index = index bitmapIndexedNode.bitmap bit |> int
 
     match bitmapIndexedNode.nodes |> Array.tryItem index with
-    | Some (Entry (entryKey, _)) when comparer.key.Equals(key, entryKey) ->
+    | Some (Entry (entryKey, _)) when key = entryKey ->
         { 
           bitmap = bitmapIndexedNode.bitmap ^^^ bit   
           nodes = bitmapIndexedNode.nodes |> Array.remove index
@@ -468,7 +440,7 @@ module private PersistentMapImpl =
         }
 
     | Some ((HashCollisionNode { hash = hash; entries = entries }) as hashCollisionNode) when hash = keyHash ->
-        let entryIndex = entries |> Array.tryFindIndex (fun (k, _) -> comparer.key.Equals(key, k))
+        let entryIndex = entries |> Array.tryFindIndex (fun (k, _) -> key = k)
         let newNodeAtIndex =
           match entryIndex with
           | Some entryIndex when entries.Length > 2 ->
@@ -514,9 +486,9 @@ module private PersistentMapImpl =
       (map: HashedTriePersistentMap<'k, 'v>) : HashedTriePersistentMap<'k, 'v> =
 
     let removeFromBitmapIndexedNode = 
-      removeFromBitmapIndexedNodeWithMutators owner bitmapIndexedNodeMutator map.comparer
+      removeFromBitmapIndexedNodeWithMutators owner bitmapIndexedNodeMutator
 
-    let keyHash = map.comparer.key.GetHashCode(key)
+    let keyHash = key.GetHashCode()
 
     match map.root with
     | BitmapIndexedMapRootNode root -> 
@@ -527,7 +499,7 @@ module private PersistentMapImpl =
         else if (map.count - 1) = maxArrayMapSize then
           let newRoot = 
             newRoot |> bitmapIndexedNodeToSeq 
-            |> Seq.map (fun ((key, _) as entry) -> { hash = map.comparer.key.GetHashCode(key); entry = entry})
+            |> Seq.map (fun ((key, _) as entry) -> { hash = key.GetHashCode(); entry = entry})
             |> Seq.toArray 
 
           { map with 
@@ -544,7 +516,7 @@ module private PersistentMapImpl =
           root.entries
           |> Array.tryFindIndex (
             fun { hash = hash; entry = (entryKey, _) } ->
-              hash = keyHash && map.comparer.key.Equals(key, entryKey)
+              hash = keyHash && key = entryKey
           )
         match index with
         | Some index when root.entries.Length > 2 -> 
@@ -560,8 +532,8 @@ module private PersistentMapImpl =
         | _ -> map
 
     | KeyValueRootNode { hash = hash; entry = (entryKey, value) }
-        when hash = keyHash && map.comparer.key.Equals(key, entryKey) ->
-          createWithComparer map.comparer
+        when hash = keyHash && key = entryKey ->
+          empty
     | _ -> map
 
   let remove (key: 'k) (map: HashedTriePersistentMap<'k, 'v>) : HashedTriePersistentMap<'k, 'v> =
@@ -706,14 +678,9 @@ module PersistentMap =
         override this.TryItem k = backingMap |> tryGet k
     }) :> IPersistentMap<'k, 'v>
 
-  let emptyWithComparer (comparer: KeyValueComparer<'k, 'v>) =
-    let backingMap = PersistentMapImpl.createWithComparer comparer
+  let empty () =
+    let backingMap = PersistentMapImpl.empty
     createInternal backingMap
-
-  let empty () = emptyWithComparer {
-    key = EqualityComparer.Default
-    value = EqualityComparer.Default
-  }
 
   let count (map: IPersistentMap<'k, 'v>) =
     map.Count
@@ -726,16 +693,8 @@ module PersistentMap =
     |> Seq.fold (fun (acc: ITransientMap<'k, 'v>) i -> acc.Put i) (map |> mutate)
     |> TransientMap.persist
 
-  let createWithComparer (comparer: KeyValueComparer<'k, 'v>) (values: seq<'k * 'v>) =
-    emptyWithComparer comparer |> putAll values
-
-  let create (values: seq<'k * 'v>) =
-    createWithComparer 
-      {
-        key = EqualityComparer.Default
-        value = EqualityComparer.Default
-      }
-      values
+  let create(values: seq<'k * 'v>) =
+    empty () |> putAll values
 
   let put k v (map: IPersistentMap<'k, 'v>) =
     map.Put (k, v)

@@ -20,12 +20,8 @@ module ReactView =
       (context: Context)
       (element: ReactElement) =
 
-    let nativeViews =
-      nativeViews
-      |> Seq.map (fun (name, f) -> (name, (f context)))
-      |> ImmutableMap.create
-
     let createView onError viewCreator name props =
-      (nativeViews |> ImmutableMap.get name) onError viewCreator props
+      let createAndroidView = (nativeViews |> ImmutableMap.get name) context
+      createAndroidView onError viewCreator props
 
     ReactView.render Scheduler.mainLoopScheduler createView element

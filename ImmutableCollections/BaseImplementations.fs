@@ -5,30 +5,46 @@ open System.Collections
 open System.Collections.Generic
 
 [<AbstractClass>]
-type private ImmutableCollectionBase<'T> () =
+type private ImmutableCollectionBase<[<EqualityConditionalOn>] 'T> () =
   abstract Count: int
   abstract GetEnumerator: unit -> IEnumerator<'T>
   abstract CopyTo: Array * int -> unit
 
-  default this.CopyTo (array, index) = 
+  default this.CopyTo (array, index) =
     let mutable i = 0;
     for ele in this do
       (array :> IList).[index + i] <- ele
       i <- i + 1
-  
+
+  override this.Equals(that: obj) =
+    (this :> IStructuralEquatable).Equals(that, EqualityComparer.Default)
+
+  override this.GetHashCode() =
+     (this :> IStructuralEquatable).GetHashCode(EqualityComparer.Default)
+
+  member private this.DoEquals(that: IImmutableCollection<'T>, comparer: IEqualityComparer) =
+    if this.Count <> that.Count then false
+    else
+      Seq.zip this that
+      |> Seq.map (fun (this, that) -> comparer.Equals(this, that))
+      |> Seq.tryFind (fun result -> result = false)
+      |> Option.isNone
+
   interface IEnumerable<'T> with
     member this.GetEnumerator () = this.GetEnumerator()
 
   interface IReadOnlyCollection<'T> with
     member this.Count = this.Count
 
-  interface ICollection with
+  interface IImmutableCollection<'T> with
     member this.Count = this.Count
-    member this.CopyTo (array, index) = 
+    member this.CopyTo (array, index) =
       let mutable i = 0;
       for ele in this do
         (array :> IList).[index + i] <- ele
         i <- i + 1
+    member this.Equals(that: IImmutableCollection<'T>) =
+      Object.ReferenceEquals(this, that) || this.DoEquals(that, EqualityComparer.Default)
 
     member this.IsSynchronized = true
     member this.SyncRoot with get () = new Object()
@@ -36,8 +52,22 @@ type private ImmutableCollectionBase<'T> () =
   interface IEnumerable with
     member this.GetEnumerator () = ((this :> IEnumerable<'T>).GetEnumerator()) :> IEnumerator
 
+  interface IStructuralEquatable with
+    member this.Equals(that, comparer) =
+      match that with
+      | :? IImmutableCollection<'T> as that ->
+          this.DoEquals (that, comparer)
+      | _ -> false
+
+    member this.GetHashCode(comparer: IEqualityComparer) =
+      let combineHash x y = (x <<< 1) + y + 631
+      let mutable res = 0
+      for t in this do
+        res <- combineHash res (comparer.GetHashCode(t))
+      abs res
+
 [<AbstractClass>]
-type private ImmutableMapBase<'k, 'v> () =
+type private ImmutableMapBase<[<EqualityConditionalOn>] 'k, [<EqualityConditionalOn>] 'v> () =
   inherit ImmutableCollectionBase<'k * 'v>()
 
   abstract Item: 'k -> 'v
@@ -48,7 +78,7 @@ type private ImmutableMapBase<'k, 'v> () =
     member this.TryItem key = this.TryItem key
 
 [<AbstractClass>]
-type private PersistentMapBase<'k, 'v> () =
+type private PersistentMapBase<[<EqualityConditionalOn>] 'k, [<EqualityConditionalOn>] 'v> () =
   inherit ImmutableMapBase<'k, 'v>()
 
   abstract Mutate: unit -> ITransientMap<'k, 'v>
@@ -61,16 +91,16 @@ type private PersistentMapBase<'k, 'v> () =
     member this.Remove key = this.Remove key
 
 [<AbstractClass>]
-type private ImmutableVectorBase<'v> () =
+type private ImmutableVectorBase<[<EqualityConditionalOn>] 'v> () =
   inherit ImmutableCollectionBase<int * 'v>()
 
   abstract CopyTo: int * array<'v> * int * int -> unit
   abstract Item: int -> 'v
   abstract TryItem: int -> Option<'v>
 
-  default this.CopyTo (sourceIndex: int, 
-                       destinationArray: array<'v>, 
-                       destinationIndex: int, 
+  default this.CopyTo (sourceIndex: int,
+                       destinationArray: array<'v>,
+                       destinationIndex: int,
                        length: int) =
     // FIXME: Bounds checking
     // FIXME: Maybe add some heuristics to choose between item looks up
@@ -82,13 +112,13 @@ type private ImmutableVectorBase<'v> () =
   interface IImmutableVector<'v> with
     member this.Item key = this.Item key
     member this.TryItem key = this.TryItem key
-    member this.CopyTo (sourceIndex: int, 
-                        destinationArray: array<'v>, 
-                        destinationIndex: int, 
+    member this.CopyTo (sourceIndex: int,
+                        destinationArray: array<'v>,
+                        destinationIndex: int,
                         length: int) = this.CopyTo (sourceIndex, destinationArray, destinationIndex, length)
 
 [<AbstractClass>]
-type private PersistentVectorBase<'v> () =
+type private PersistentVectorBase<[<EqualityConditionalOn>] 'v> () =
   inherit ImmutableVectorBase<'v>()
 
   abstract Add: 'v -> IPersistentVector<'v>
@@ -103,7 +133,7 @@ type private PersistentVectorBase<'v> () =
     member this.Update(index, value) = this.Update(index, value)
 
 [<AbstractClass>]
-type private ImmutableSetBase<'v> () =
+type private ImmutableSetBase<[<EqualityConditionalOn>] 'v> () =
   inherit ImmutableCollectionBase<'v>()
 
   abstract Item: 'v -> bool
@@ -112,7 +142,7 @@ type private ImmutableSetBase<'v> () =
     member this.Item v = this.Item v
 
 [<AbstractClass>]
-type private PersistentSetBase<'v> () =
+type private PersistentSetBase<[<EqualityConditionalOn>] 'v> () =
   inherit ImmutableSetBase<'v> ()
 
   abstract member Mutate: unit -> ITransientSet<'v>
@@ -125,7 +155,7 @@ type private PersistentSetBase<'v> () =
     member this.Remove v = this.Remove v
 
 [<AbstractClass>]
-type private ImmutableMultisetBase<'v> () = 
+type private ImmutableMultisetBase<[<EqualityConditionalOn>] 'v> () =
   inherit ImmutableCollectionBase<'v * int>()
 
   abstract member Item: 'v -> int
@@ -134,7 +164,7 @@ type private ImmutableMultisetBase<'v> () =
     member this.Item v = this.Item v
 
 [<AbstractClass>]
-type private PersistentMultisetBase<'v> () = 
+type private PersistentMultisetBase<[<EqualityConditionalOn>] 'v> () =
   inherit ImmutableMultisetBase<'v>()
 
   abstract member Mutate: unit -> ITransientMultiset<'v>
@@ -145,7 +175,7 @@ type private PersistentMultisetBase<'v> () =
     member this.SetItemCount (v, count) = this.SetItemCount(v, count)
 
 [<AbstractClass>]
-type private ImmutableMultimapBase<'k, 'v> () = 
+type private ImmutableMultimapBase<[<EqualityConditionalOn>] 'k, [<EqualityConditionalOn>] 'v> () =
   inherit ImmutableCollectionBase<'k * 'v> ()
 
   abstract member Item: 'k -> seq<'v>
@@ -154,7 +184,7 @@ type private ImmutableMultimapBase<'k, 'v> () =
     member this.Item k = this.Item k
 
 [<AbstractClass>]
-type private ImmutableSetMultimapBase<'k, 'v> () =
+type private ImmutableSetMultimapBase<[<EqualityConditionalOn>] 'k, [<EqualityConditionalOn>] 'v> () =
   inherit ImmutableMultimapBase<'k, 'v>()
 
   abstract member Item: 'k -> IImmutableSet<'v>
@@ -165,7 +195,7 @@ type private ImmutableSetMultimapBase<'k, 'v> () =
     member this.Item k = this.Item k
 
 [<AbstractClass>]
-type private PersistentSetMultimapBase<'k, 'v> () = 
+type private PersistentSetMultimapBase<[<EqualityConditionalOn>] 'k, [<EqualityConditionalOn>] 'v> () =
   inherit ImmutableSetMultimapBase<'k, 'v>()
 
   abstract member Mutate: unit -> ITransientSetMultimap<'k, 'v>
@@ -178,7 +208,7 @@ type private PersistentSetMultimapBase<'k, 'v> () =
     member this.Remove (k, values) = this.Remove(k, values)
 
 [<AbstractClass>]
-type private ImmutableListMultimapBase<'k, 'v> () =
+type private ImmutableListMultimapBase<[<EqualityConditionalOn>] 'k, [<EqualityConditionalOn>] 'v> () =
   inherit ImmutableMultimapBase<'k, 'v>()
 
   abstract member Item: 'k -> 'v list
@@ -189,7 +219,7 @@ type private ImmutableListMultimapBase<'k, 'v> () =
     member this.Item k = this.Item k
 
 [<AbstractClass>]
-type private PersistentListMultimapBase<'k, 'v> () = 
+type private PersistentListMultimapBase<[<EqualityConditionalOn>] 'k, [<EqualityConditionalOn>] 'v> () =
   inherit ImmutableListMultimapBase<'k, 'v> ()
 
   abstract member Add: 'k * 'v -> IPersistentListMultimap<'k, 'v>
@@ -202,7 +232,7 @@ type private PersistentListMultimapBase<'k, 'v> () =
     member this.Pop (k, count) = this.Pop (k, count)
 
 [<AbstractClass>]
-type private ImmutableTableBase<'row, 'column, 'value> () =
+type private ImmutableTableBase<[<EqualityConditionalOn>] 'row, [<EqualityConditionalOn>] 'column, [<EqualityConditionalOn>] 'value> () =
   inherit ImmutableCollectionBase<'row * 'column * 'value> ()
 
   abstract member Item: 'row * 'column -> 'value
@@ -213,7 +243,7 @@ type private ImmutableTableBase<'row, 'column, 'value> () =
     member this.TryItem (r, c) = this.TryItem (r, c)
 
 [<AbstractClass>]
-type private PersistentTableBase<'row, 'column, 'value> () =
+type private PersistentTableBase<[<EqualityConditionalOn>] 'row, [<EqualityConditionalOn>] 'column, [<EqualityConditionalOn>] 'value> () =
   inherit ImmutableTableBase<'row, 'column, 'value> ()
 
   abstract member Mutate: unit -> ITransientTable<'row, 'column, 'value>
@@ -225,8 +255,8 @@ type private PersistentTableBase<'row, 'column, 'value> () =
     member this.Put (r, c, v) = this.Put (r, c, v)
     member this.Remove (r, c) = this.Remove (r, c)
 
-[<AbstractClass>] 
-type private ImmutableCountingTableBase<'row, 'column> () =
+[<AbstractClass>]
+type private ImmutableCountingTableBase<[<EqualityConditionalOn>] 'row, [<EqualityConditionalOn>] 'column> () =
   inherit ImmutableCollectionBase<'row * 'column * int> ()
 
   abstract member Item: 'row * 'column -> int
@@ -235,7 +265,7 @@ type private ImmutableCountingTableBase<'row, 'column> () =
     member this.Item (r, c) = this.Item (r, c)
 
 [<AbstractClass>]
-type private PersistentCountingTableBase<'row, 'column> () =
+type private PersistentCountingTableBase<[<EqualityConditionalOn>] 'row, [<EqualityConditionalOn>] 'column> () =
   inherit ImmutableCountingTableBase<'row, 'column> ()
 
   abstract member Mutate: unit -> ITransientCountingTable<'row, 'column>
@@ -243,4 +273,4 @@ type private PersistentCountingTableBase<'row, 'column> () =
 
   interface IPersistentCountingTable<'row, 'column> with
     member this.Mutate () = this.Mutate ()
-    member this.SetItemCount (r, c, count) = this.SetItemCount (r, c, count) 
+    member this.SetItemCount (r, c, count) = this.SetItemCount (r, c, count)

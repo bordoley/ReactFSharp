@@ -30,7 +30,6 @@ module private PersistentVectorImpl =
   }
 
   type [<ReferenceEquality>] HashedTriePersistentVector<'v> = {
-    comparer: IEqualityComparer<'v>
     count: int
     root: Option<TrieNode<'v>>
     tail: ValuesNode<'v>
@@ -45,8 +44,7 @@ module private PersistentVectorImpl =
     let ret = (index >>> level) &&& mask
     ret
 
-  let create (comparer: IEqualityComparer<'v>) (owner: obj) = {
-    comparer = comparer
+  let create (owner: obj) = {
     count = 0
     root = None
     tail = 
@@ -223,7 +221,7 @@ module private PersistentVectorImpl =
       let nodeIndex = computeIndex 0 index
       let currentValue = vec.tail.values.[nodeIndex]
 
-      if vec.comparer.Equals(currentValue, v) then
+      if currentValue = v then
         vec
       else
         let newTail = vec.tail |> valuesNodeMutator nodeIndex v
@@ -235,7 +233,7 @@ module private PersistentVectorImpl =
             let index = computeIndex 0 index
             let currentValue = valuesNode.values.[index]
 
-            if vec.comparer.Equals(currentValue, v) then
+            if currentValue = v then
               node
             else ValuesNode (valuesNode|> valuesNodeMutator index v)
         | LeafNode leafNode ->
@@ -245,7 +243,7 @@ module private PersistentVectorImpl =
             let valueIndex = computeIndex 0 index
             let currentValue = valuesNode.values.[valueIndex]
 
-            if vec.comparer.Equals(currentValue, v) then
+            if currentValue = v then
               node
             else
               let newValuesNode = valuesNode |> valuesNodeMutator valueIndex v
@@ -303,7 +301,7 @@ module private PersistentVectorImpl =
     if vec.count = 0 then
       failwith "Can't pop empty vector"
     elif vec.count = 1 then
-        create vec.comparer Unchecked.defaultof<obj>
+        create Unchecked.defaultof<obj>
     elif vec.tail.values.Length > 1 then
       { vec with
           count = vec.count - 1
@@ -356,7 +354,6 @@ module PersistentVector =
 
     let mutable vec = 
       {
-        comparer = vec.comparer
         count = vec.count
         root = vec.root
         tail = 
@@ -467,7 +464,7 @@ module PersistentVector =
           if vec.count = 0 then
             failwith "Can't pop empty vector"
           elif vec.count = 1 then
-            vec <- create vec.comparer owner
+            vec <- create owner
           elif vec.count - tailOffset > 1 then
             let count = vec.count
             let tail = ensureValuesNodeEditable vec.tail
@@ -532,23 +529,17 @@ module PersistentVector =
           else createInternal newBackingVector
     }) :> IPersistentVector<'v>
 
-  and emptyWithComparer (comparer: IEqualityComparer<'v>) =
-    let backingVector = PersistentVectorImpl.create comparer Unchecked.defaultof<obj>
-    createInternal backingVector
-
   and empty () =
-    emptyWithComparer EqualityComparer.Default
+    let backingVector = PersistentVectorImpl.create Unchecked.defaultof<obj>
+    createInternal backingVector
 
   let append (values: seq<'v>) (vec: IPersistentVector<'v>) =
     values
     |> Seq.fold (fun (acc: ITransientVector<'v>) i -> acc.Add i) (vec |> mutate)
     |> TransientVector.persist
 
-  let createWithComparer (comparer: IEqualityComparer<'v>) (values: seq<'v>) =
-    emptyWithComparer comparer |> append values
-
   let create (values: seq<'v>) =
-    createWithComparer EqualityComparer.Default values
+    empty () |> append values
 
   let add (v: 'v) (vec: IPersistentVector<'v>) = vec.Add v
    

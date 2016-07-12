@@ -75,8 +75,8 @@ module ImmutableMap =
   let values (map: IImmutableMap<'k, 'v>) =
     map |> Seq.map (fun (k, v) -> v)
 
-  let createWithComparer (comparer: IEqualityComparer<'k>) (entries: seq<'k * 'v>) =
-    let backingDictionary = new Dictionary<'k, 'v>(comparer)
+  let create (entries: seq<'k * 'v>) =
+    let backingDictionary = new Dictionary<'k, 'v>()
     entries |> Seq.iter (fun (k, v) -> backingDictionary.Add(k, v))
 
     ({ new ImmutableMapBase<'k, 'v>() with
@@ -90,9 +90,6 @@ module ImmutableMap =
             | (true, v) -> Some v
             | _ -> None
     }) :> IImmutableMap<'k, 'v>
-
-  let create (entries: seq<'k * 'v>) =
-    createWithComparer EqualityComparer.Default entries
 
   let empty () =
     ({
@@ -261,8 +258,8 @@ module ImmutableVector =
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ImmutableSet =
-  let createWithComparer (comparer: IEqualityComparer<'v>) (items: seq<'v>): IImmutableSet<'v> =
-    let backingDictionary = new System.Collections.Generic.Dictionary<'v, 'v>(comparer)
+  let create (items: seq<'v>): IImmutableSet<'v> =
+    let backingDictionary = new System.Collections.Generic.Dictionary<'v, 'v>()
     items |> Seq.iter (fun v -> backingDictionary.Add(v, v))
 
     ({ new ImmutableSetBase<'v> () with
@@ -270,9 +267,6 @@ module ImmutableSet =
         override this.GetEnumerator () = backingDictionary.Keys |> Seq.getEnumerator
         override this.Item v = backingDictionary.ContainsKey v
     }) :> IImmutableSet<'v>
-
-  let create (items: seq<'k>) =
-    createWithComparer EqualityComparer.Default items
 
   let empty () =
     ({ new ImmutableSetBase<'v> () with

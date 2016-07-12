@@ -39,15 +39,9 @@ module PersistentSet =
           else createInternal map   
     }) :> IPersistentSet<'v>
 
-  let emptyWithComparer (comparer: IEqualityComparer<'k>) =
-    let backingMap =
-      PersistentMap.emptyWithComparer {
-        key = comparer
-        value = comparer
-      }
+  let empty () =
+    let backingMap = PersistentMap.empty ()
     createInternal backingMap
-
-  let empty () = emptyWithComparer EqualityComparer.Default
 
   let put v (set: IPersistentSet<'v>) =
     set.Put v
@@ -96,15 +90,10 @@ module PersistentMultiset =
             createInternal map 
     }) :> IPersistentMultiset<'v>
 
-  let emptyWithComparer (comparer: IEqualityComparer<'v>) : IPersistentMultiset<'v> =
+  let empty () : IPersistentMultiset<'v> =
     let backingMap =
-      PersistentMap.emptyWithComparer {
-        key = comparer
-        value = EqualityComparer.Default
-      }
+      PersistentMap.empty ()
     createInternal backingMap
-
-  let empty () = emptyWithComparer System.Collections.Generic.EqualityComparer.Default
 
   let get v (multiset: IPersistentMultiset<'v>) =
     multiset.Item v
@@ -130,8 +119,7 @@ module PersistentMultiset =
 module PersistentSetMultimap =
   let rec private createInternal 
       (map: IPersistentMap<'k, IPersistentSet<'v>>) 
-      (count: int) 
-      (valueComparer: IEqualityComparer<'v>) =
+      (count: int) =
     ({ new PersistentSetMultimapBase<'k, 'v>() with
         override this.Count = count
         override this.GetEnumerator () =
@@ -151,11 +139,11 @@ module PersistentSetMultimap =
           | Some set ->
               let newSet = set |> PersistentSet.put v
               let newMap = map |> PersistentMap.put k newSet
-              createInternal newMap (count + 1) valueComparer
+              createInternal newMap (count + 1)
           | None ->
-              let newSet = (PersistentSet.emptyWithComparer valueComparer) |> PersistentSet.put v
+              let newSet = (PersistentSet.empty ()) |> PersistentSet.put v
               let newMap = map |> PersistentMap.put k newSet
-              createInternal newMap (count + 1) valueComparer
+              createInternal newMap (count + 1)
   
         override this.Remove (k, valuesToRemove) =
           match map |> ImmutableMap.tryGet k with
@@ -167,20 +155,13 @@ module PersistentSetMultimap =
               let newCount = count + newSet.Count- setCount
               let newMap = map |> PersistentMap.put k newSet
   
-              createInternal newMap newCount valueComparer
+              createInternal newMap newCount
     }) :> IPersistentSetMultimap<'k, 'v>
 
-  let emptyWithComparer (comparer: KeyValueComparer<'k, 'v>) =
-    let backingMap = PersistentMap.emptyWithComparer {
-      key = comparer.key
-      value = System.Collections.Generic.EqualityComparer.Default
-    }
-    createInternal backingMap 0 comparer.value
+  let empty () =
+    let backingMap = PersistentMap.empty ()
+    createInternal backingMap 0
 
-  let empty () = emptyWithComparer {
-    key = System.Collections.Generic.EqualityComparer.Default
-    value = System.Collections.Generic.EqualityComparer.Default
-  }
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module PersistentListMultimap =
@@ -222,29 +203,15 @@ module PersistentListMultimap =
           | None -> this :> IPersistentListMultimap<'k, 'v>
     }) :> IPersistentListMultimap<'k, 'v>
 
-  let emptyWithComparer (comparer: KeyValueComparer<'k, 'v>) =
-    let backingMap = PersistentMap.emptyWithComparer {
-      key = comparer.key
-      value = System.Collections.Generic.EqualityComparer.Default
-    }
+  let empty () =
+    let backingMap = PersistentMap.empty ()
     createInternal backingMap 0
-
-  let empty () = emptyWithComparer {
-    key = System.Collections.Generic.EqualityComparer.Default
-    value = System.Collections.Generic.EqualityComparer.Default
-  }
-
-type [<ReferenceEquality>] CountingTableComparer<'row, 'column> = {
-  row: IEqualityComparer<'row>
-  column: IEqualityComparer<'column>
-}
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module PersistentCountingTable =
   let rec private createInternal 
       (map: IPersistentMap<'row, IPersistentMultiset<'column>>)
-      (count: int)
-      (comparer: CountingTableComparer<'row, 'column>) =
+      (count: int) =
     ({ new PersistentCountingTableBase<'row, 'column> () with
         override this.Count = count
   
@@ -270,11 +237,11 @@ module PersistentCountingTable =
               this :> IPersistentCountingTable<'row, 'column>
           | None ->
               let newMultiset =
-                PersistentMultiset.emptyWithComparer comparer.column
+                PersistentMultiset.empty ()
                 |> PersistentMultiset.setItemCount columnKey itemCount
               let newMap = map |> PersistentMap.put rowKey newMultiset
               let newCount = count + itemCount
-              createInternal newMap newCount comparer
+              createInternal newMap newCount
           | Some row ->
               match row |> PersistentMultiset.get columnKey with
               | 0 when itemCount = 0 ->
@@ -286,33 +253,18 @@ module PersistentCountingTable =
                     if newRow |> Collection.isEmpty then
                       map |> PersistentMap.remove rowKey
                     else map |> PersistentMap.put rowKey newRow
-                  createInternal newMap newCount comparer
+                  createInternal newMap newCount
     }) :> IPersistentCountingTable<'row, 'column>
 
-  let emptyWithComparer (comparer: CountingTableComparer<'row, 'column>) =
-    let backingMap = PersistentMap.emptyWithComparer {
-      key = comparer.row
-      value = EqualityComparer.Default
-    }
-    createInternal backingMap 0 comparer
-
-  let empty () = emptyWithComparer {
-    row = System.Collections.Generic.EqualityComparer.Default
-    column = System.Collections.Generic.EqualityComparer.Default
-  }
-
-type [<ReferenceEquality>] TableComparer<'row, 'column, 'value> = {
-  row: IEqualityComparer<'row>
-  column: IEqualityComparer<'column>
-  value: IEqualityComparer<'value>
-}
+  let empty () =
+    let backingMap = PersistentMap.empty ()
+    createInternal backingMap 0
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module PersistentTable =
   let rec createInternal 
       (map: IPersistentMap<'row, IPersistentMap<'column, 'value>>)
-      (count: int)
-      (columnComparer: KeyValueComparer<'column, 'value>) =
+      (count: int) =
     ({ new PersistentTableBase<'row, 'column, 'value> () with
         override this.Count = count
   
@@ -337,12 +289,12 @@ module PersistentTable =
           match map |> ImmutableMap.tryGet rowKey with
           | None -> 
               let newColumn = 
-                PersistentMap.emptyWithComparer columnComparer
+                PersistentMap.empty ()
                 |> PersistentMap.put columnKey newValue
               let newMap = map |> PersistentMap.put rowKey newColumn
               let newCount = count + 1
   
-              createInternal newMap newCount columnComparer
+              createInternal newMap newCount
   
           | Some column -> 
               let newColumn = column |> PersistentMap.put columnKey newValue
@@ -352,8 +304,8 @@ module PersistentTable =
               else
                 let newMap = map |> PersistentMap.put rowKey newColumn
                 let newCount = count + 1
-                createInternal newMap newCount columnComparer                
-  
+                createInternal newMap newCount
+
          override this.Remove (rowKey, columnKey) =
            match map |> ImmutableMap.tryGet rowKey with
            | None -> 
@@ -367,33 +319,14 @@ module PersistentTable =
                else if newColumn |> Collection.isEmpty then
                  let newMap = map |> PersistentMap.remove rowKey
                  let newCount = count - 1
-                 createInternal newMap newCount columnComparer
+                 createInternal newMap newCount
   
                else 
                  let newMap = map |> PersistentMap.put rowKey newColumn
                  let newCount = count - 1
-                 createInternal newMap newCount columnComparer
+                 createInternal newMap newCount
     }) :> IPersistentTable<'row, 'column, 'value>
 
-  let emptyWithComparer (comparer: TableComparer<'row, 'column, 'value>) =
-    let rowComparer = {
-      key = comparer.row
-      value = EqualityComparer.Default
-    }
-
-    let columnComparer = {
-      key = comparer.column
-      value = comparer.value
-    }
-
-    let backingMap = PersistentMap.emptyWithComparer {
-      key = comparer.row
-      value = EqualityComparer.Default
-    }
-    createInternal backingMap 0 columnComparer
- 
-  let empty () = emptyWithComparer {
-    row = EqualityComparer.Default
-    column = EqualityComparer.Default
-    value = EqualityComparer.Default
-  }
+  let empty () =
+    let backingMap = PersistentMap.empty ()
+    createInternal backingMap 0
