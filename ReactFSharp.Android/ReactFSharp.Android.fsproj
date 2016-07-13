@@ -82,6 +82,7 @@
     <Compile Include="Views\ReactView.fs" />
     <Compile Include="Views\View.fs" />
     <Compile Include="Views\ViewGroup.fs" />
+    <Compile Include="Widget\Space.fs" />
     <Compile Include="Widget\TextView.fs" />
     <Compile Include="Widget\EditText.fs" />
     <Compile Include="Widget\Button.fs" />

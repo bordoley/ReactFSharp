@@ -476,11 +476,14 @@ module View =
       (viewProvider: unit -> 'view)
       (setProps: (Exception -> unit) -> 'view -> 'props -> IDisposable)
       (onError: Exception -> unit)
-      (updateViewWith: ReactDOMNode -> ReactView<View> -> ReactView<View>)
+      (createNativeView: string (* view name *) -> obj (* initialProps *) -> IReactView<View>)
       (initialProps: obj) =
-    let viewProvider () =
-      viewProvider () :> View
-    let setProps onError (view: View) props =
-      setProps onError (view :?> 'view) props
 
-    ReactView.createViewWithoutChildren name viewProvider (setProps onError) initialProps
+    let viewProvider () = viewProvider () :> View
+    let setProps onError (view: View) props = setProps onError (view :?> 'view) props
+
+    ReactView.createViewWithoutChildren 
+      name 
+      viewProvider 
+      (setProps onError) 
+      initialProps

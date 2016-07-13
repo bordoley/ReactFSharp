@@ -33,7 +33,21 @@ and [<ReferenceEquality>] ReactNativeDOMNode = {
 }
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
-module internal ReactDom =
+module ReactDom =
+  let rec observe<'view> (dom: ReactDOMNode): IObservable<Option<ReactNativeDOMNode>> =
+    match dom with
+    | ReactStatefulDOMNode dom ->
+        let mapper (reactView: ReactDOMNode)=
+          observe reactView
+
+        dom.state
+        |> Observable.flatmap mapper
+    | ReactLazyDOMNode dom ->
+       observe dom.child
+    | ReactNativeDOMNode dom ->
+        Some dom |> Observable.single
+    | ReactNoneDOMNode -> None |> Observable.single
+
   let rec private updateWith (element: ReactElement) (tree: ReactDOMNode) =
     match (element, tree) with
     | (ReactStatefulElement ele, ReactStatefulDOMNode node)
@@ -133,5 +147,5 @@ module internal ReactDom =
       |> Seq.toArray
       |> ImmutableMap.create
 
-  let render (element: ReactElement) =
+  let internal render (element: ReactElement) =
     updateWith element ReactNoneDOMNode

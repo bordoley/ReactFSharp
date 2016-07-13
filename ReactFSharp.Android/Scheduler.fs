@@ -17,10 +17,14 @@ module private Scheduler =
         let innerDisp = new SerialDisposable()
         innerDisp.Disposable <- Disposable.Empty
 
-        if (threadID = Java.Lang.Thread.CurrentThread().Id) 
-        then action.Invoke(this, state)
+        let currentThread = Java.Lang.Thread.CurrentThread().Id
+
+        if threadID = currentThread then 
+          action.Invoke(this, state)
         else 
-          let handlerCb () = if isCancelled then () else innerDisp.Disposable <- action.Invoke(this, state)
+          let handlerCb () = 
+            if isCancelled then () 
+            else innerDisp.Disposable <- action.Invoke(this, state)
           let handlerAction = Action handlerCb
           handler.Post(handlerAction) |> ignore
           let result = 

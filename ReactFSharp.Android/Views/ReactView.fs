@@ -9,9 +9,9 @@ open System
 open System.Reactive.Concurrency
 
 type AndroidViewCreator = (Exception -> unit) (* onError *) ->
-                            (ReactDOMNode -> ReactView<View> -> ReactView<View>) (* updateWith *) ->
+                            (string (* view name *) -> obj (* initialProps *) -> IReactView<View>) ->
                             obj (* initialProps *) ->
-                            IReactNativeView<View>
+                            IReactView<View>
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ReactView =
@@ -20,8 +20,8 @@ module ReactView =
       (context: Context)
       (element: ReactElement) =
 
-    let createView onError viewCreator name props =
+    let createNativeView onError viewCreator name (props: obj) =
       let createAndroidView = (nativeViews |> ImmutableMap.get name) context
       createAndroidView onError viewCreator props
 
-    ReactView.render Scheduler.mainLoopScheduler createView element
+    ReactView.render Scheduler.mainLoopScheduler createNativeView element

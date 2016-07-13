@@ -5,10 +5,14 @@ open Android.Content.Res
 open Android.Graphics
 open Android.Views
 open Android.Widget
+open FSharp.Control.Reactive
 open ImmutableCollections
 open React
 open React.Android.Views
 open System
+open System.Reactive.Disposables
+open System.Reactive.Subjects
+open System.Runtime.CompilerServices
 
 type IListViewProps =
   inherit IViewGroupProps
@@ -160,25 +164,93 @@ type ListViewComponentProps = {
   props: IListViewProps
   children: seq<string * ReactElement>
 }
-
+(*
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ListView =
+  [<Sealed>]
+  type ReactListAdapter (createNativeView: string (* view name *) -> obj (* initialProps *) -> IReactNativeView<View>,
+                         emptyViewProvider: unit -> View) =
+    inherit BaseAdapter()
+
+    let updateNativeView = ReactView.updateNativeView createNativeView
+
+    let reactViewCache = new ConditionalWeakTable<View, ReactView<View>>()
+
+    let onSetDomChildren = new Subject<seq<ReactDOMNode>>()
+    let state = new BehaviorSubject<IImmutableVector<Option<ReactNativeDOMNode>>>(ImmutableVector.empty ())
+
+    let stateSubscription =
+      onSetDomChildren
+      |> Observable.map (
+            Seq.map (fun dom -> ReactDom.observe dom) 
+            >> Observable.combineLatestSeq 
+            >> Observable.map ImmutableVector.create
+          )
+      |> Observable.flatmap (fun obs -> obs)
+      |> Observable.subscribeObserver state          
+
+    override this.Count = state.Value.Count
+
+    override this.GetItemId position =
+      state.Value.Item position |> hash |> int64
+
+    override this.GetView (position: int, convertView: View, parent: ViewGroup) =
+      let nativeDomNode = state.Value.Item position
+
+      let reactView = 
+        match (reactViewCache.TryGetValue(convertView), nativeDomNode) with 
+        | ((true, reactView), Some domNode) -> reactView |> updateNativeView domNode |> Some
+        | (_ , Some domNode) -> ReactViewNone |> updateNativeView domNode |> Some
+        | _ -> None
+      
+      match reactView with
+      | Some reactView ->
+           reactViewCache.Remove reactView.View |> ignore
+           reactViewCache.Add (reactView.View, ReactNativeView reactView)
+           reactView.View
+      | _  when convertView.Id = -8 -> convertView
+      | _ -> 
+        let emptyView = emptyViewProvider ()
+        emptyView.Id <- -8
+        emptyView
+
+    override this.HasStableIds = true
+
+    member this.SetDomChildren children =
+      children 
+      |> ImmutableMap.values
+      |> onSetDomChildren.OnNext
+
+    interface IListAdapter with
+      member this.AreAllItemsEnabled () = true
+      member this.IsEnabled index = true
+
   let private name = typeof<ListView>.Name
 
-  let setProps (onError: Exception -> unit) (view: ListView) (props: IListViewProps) =
+  let private listViewAdapterCache =
+    new ConditionalWeakTable<ListView, IImmutableMap<string, ReactView<View>>>()
+
+  let setProps (onError: Exception -> unit) (view: View) (props: IListViewProps) =
+    let view = (view :?> ListView)
     ViewGroup.setProps onError view props
 
-  let private createView (context: Context) =
-    let emptyViewProvider () = new Space (context) :> View
-    let viewGroupProvider () = new ListView (context)
+  let private createView (context: Context): AndroidViewCreator =
+    let viewGroupProvider () = new ListView (context) :> View
 
-    // FIXME: This won't work
-    ViewGroup.create emptyViewProvider name viewGroupProvider setProps
+    let createView onError updateWith initialProps =
+      let onDispose () = ()
+      let setChildren view children =
+        Disposable.Empty
+   
+      ReactView.createView name viewGroupProvider (setProps onError) setChildren onDispose initialProps
+
+    createView
 
   let viewProvider = (name, createView)
 
-  let internal reactComponent = ReactComponent.makeLazy (fun (props: ViewPagerComponentProps) -> ReactNativeElement {
+  let internal reactComponent = ReactComponent.makeLazy (fun (props: ListViewComponentProps) -> ReactNativeElement {
     Name = name
     Props = props.props
     Children = ImmutableMap.create props.children
   })
+  *)

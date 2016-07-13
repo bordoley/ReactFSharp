@@ -3,31 +3,14 @@
 open FSharp.Control.Reactive
 open ImmutableCollections
 open System
+open System.Collections.Generic
 open System.Reactive.Concurrency
 open System.Reactive.Disposables
 open System.Reactive.Linq
 open System.Reactive.Subjects
 open System.Runtime.CompilerServices
 
-type [<ReferenceEquality>] ReactView<'view> =
-  | ReactStatefulView of IReactStatefulView<'view>
-  | ReactNativeView of IReactNativeView<'view>
-  | ReactViewNone
-
-  interface IDisposable with
-    member this.Dispose() =
-      match this with
-      | ReactNativeView view -> view.Dispose()
-      | ReactStatefulView view -> view.Dispose()
-      | ReactViewNone -> ()
-
-and IReactStatefulView<'view> =
-  inherit IDisposable
-
-  abstract member Id: obj
-  abstract member State: IObservable<ReactView<'view>>
-
-and IReactNativeView<'view> =
+type IReactView<'view> =
   inherit IDisposable
 
   abstract member Name: string with get
@@ -39,97 +22,59 @@ and IReactNativeView<'view> =
 module ReactView =
   let private dispose (disposable: IDisposable) = disposable.Dispose()
 
-  let rec private observe<'view> (reactView: ReactView<'view>): IObservable<Option<'view>> =
-    match reactView with
-    | ReactStatefulView statefulView ->
-        let mapper (reactView: ReactView<'view>)=
-          observe reactView
+  let updateNativeView 
+      (createNativeView: string (* view name *) -> obj (* initialProps *) -> IReactView<'view>)
+      (view: Option<IReactView<'view>>)
+      (dom: Option<ReactNativeDOMNode>): Option<IReactView<'view>> =
+    match (view, dom) with
+    | (Some reactView, Some dom)
+          when dom.element.Name = reactView.Name ->
+        if dom.element.Props = reactView.Props then 
+          if dom.children = reactView.Children then ()
+          else reactView.Children <- dom.children
+        else reactView.Props <- dom.element.Props
+        view
+    | (_, Some dom) ->
+        view |> Option.iter dispose
 
-        statefulView.State
-        |> Observable.flatmap mapper
-    | ReactNativeView view ->
-        Some view.View |> Observable.single
-    | ReactViewNone ->
-        None |> Observable.single
+        let newReactView = createNativeView dom.element.Name dom.element.Props
+        newReactView.Children <- dom.children
+        Some newReactView
+    | _ ->
+        view |> Option.iter dispose
+        None
 
-  let render<'view when 'view :> IDisposable>
+  let render<'view>
       (scheduler: IScheduler)
       (createNativeView:
         (Exception -> unit) (* onError *) ->
-        (ReactDOMNode -> ReactView<'view> -> ReactView<'view>) (* updateWith *) ->
+        (string (* view name *) -> obj (* initialProps *) -> IReactView<'view>) ->
         string (* view name *) ->
         obj (* initialProps *) ->
-        IReactNativeView<'view>
+        IReactView<'view>
       )
-      (element: ReactElement) =
+      (element: ReactElement): IObservable<Option<'view>>=
 
-    let rec updateWith (onError: Exception -> unit) (dom: ReactDOMNode) (view: ReactView<'view>) =
-      let updateWith = updateWith onError
-      let createNativeView = createNativeView onError updateWith
+    let curryCreateNativeView onError = 
+      let createNativeViewRef = 
+        let dummy (viewName: string) (initialProps: obj): IReactView<'view> = failwith "oops"
+        ref dummy
 
-      match (dom, view) with
-      | (ReactNoneDOMNode, _) ->
-          ReactViewNone
+      let createNativeView (viewName: string) (initialProps: obj) = 
+          createNativeView onError (!createNativeViewRef) viewName initialProps
 
-      | (ReactLazyDOMNode node, _) ->
-          view |> updateWith node.child
-
-      | (ReactStatefulDOMNode node, ReactStatefulView statefulView)
-            when node.id = statefulView.Id ->
-          view
-
-      | (ReactStatefulDOMNode node, _) ->
-          view |> dispose
-
-          let id = node.id
-
-          let state =
-            node.state
-            |> Observable.observeOn scheduler
-            |> Observable.scanInit
-                ReactViewNone
-                (fun view dom -> view |> updateWith dom)
-            |> Observable.distinctUntilChangedCompare EqualityComparer.referenceEquality
-            |> Observable.replayBuffer 1
-
-          let subscription = state.Connect ()
-
-          ReactStatefulView {
-            new IReactStatefulView<'view> with
-              member this.Dispose () = subscription.Dispose ()
-              member this.Id = id
-              member this.State = state :> IObservable<ReactView<'view>>
-          }
-
-      | (ReactNativeDOMNode node, ReactNativeView reactView)
-            when node.element.Name = reactView.Name
-              && node.element.Props = reactView.Props
-              && node.children = reactView.Children ->
-          view
-
-      | (ReactNativeDOMNode node, ReactNativeView reactView)
-            when node.element.Name = reactView.Name
-              && node.children = reactView.Children ->
-          reactView.Props <- node.element.Props
-          view
-
-      | (ReactNativeDOMNode node, ReactNativeView reactView)
-            when node.element.Name = reactView.Name ->
-          reactView.Props <- node.element.Props
-          reactView.Children <- node.children
-          view
-
-      | (ReactNativeDOMNode node, _) ->
-          view |> dispose
-          let view = createNativeView node.element.Name node.element.Props
-          view.Children <- node.children
-          ReactNativeView view
+      createNativeViewRef := createNativeView
+      createNativeView
 
     let subscribe (observer: IObserver<Option<'view>>) =
-      let dom = ReactDom.render element
+      let createNativeView = curryCreateNativeView observer.OnError
+      let updateNativeView = updateNativeView createNativeView
 
-      updateWith observer.OnError dom ReactViewNone
-      |> observe<'view>
+      ReactDom.render element
+      |> ReactDom.observe 
+      |> Observable.observeOn scheduler
+      |> Observable.scanInit None updateNativeView
+      |> Observable.map (Option.map (fun x -> x.View))
       |> Observable.subscribeObserver observer
 
     Observable.Create(subscribe)
@@ -139,7 +84,8 @@ module ReactView =
       (viewProvider: unit -> 'view)
       (setProps: 'view -> 'props -> IDisposable)
       (setChildren: 'view -> IImmutableMap<string, ReactDOMNode> -> IDisposable)
-      (initialProps: obj) : IReactNativeView<'view> =
+      (onDispose: unit -> unit)
+      (initialProps: obj) : IReactView<'view> =
 
     let initialProps = (initialProps :?> 'props)
     let view = viewProvider ()
@@ -180,8 +126,9 @@ module ReactView =
       | _ -> ()
 
     {
-      new IReactNativeView<'view> with
+      new IReactView<'view> with
         member this.Dispose () =
+          onDispose ()
           propsSubject.OnCompleted ()
           childrenSubject.OnCompleted ()
           propsSubscription.Dispose ()
@@ -204,49 +151,79 @@ module ReactView =
       (viewProvider: unit -> 'view)
       (setProps: 'view -> 'props -> IDisposable)
       (initialProps: obj) =
-    createView name viewProvider setProps (fun _ _ -> Disposable.Empty) initialProps
+    createView name viewProvider setProps (fun _ _ -> Disposable.Empty) (fun () -> ()) initialProps
 
   let createViewImmediatelyRenderingAllChildren<'view, 'props when 'view :not struct>
+      (scheduler: IScheduler)
       (onError: Exception -> unit)
-      (viewChildrenCache: ConditionalWeakTable<'view, IImmutableMap<string, ReactView<'view>>>)
-      (updateViewWith: ReactDOMNode -> ReactView<'view> -> ReactView<'view>)
+      (createNativeView: string (* view name *) -> obj (* initialProps *) -> IReactView<'view>)
       (removeAllViews: 'view -> unit)
-      (setViewAtIndex: 'view -> int -> Option<'view> -> unit)
+      (addViews: 'view (* parent *) -> seq<'view> (* children *)-> unit)
       (name: string)
       (viewProvider: unit -> 'view)
       (setProps: 'view -> 'props -> IDisposable)
       (initialProps: obj) =
 
+    let updateNativeView = updateNativeView createNativeView
+
+    let reactViewCache: IPersistentMap<string, IReactView<'view>> ref = ref (PersistentMap.empty ())
+
+    let cleanseCache (currentKeys: IImmutableSet<string>) =
+      let currentViewCache = reactViewCache.contents
+      let viewCacheWithoutRemovedKeys =
+        currentViewCache
+        |> Seq.fold
+            (fun (acc: ITransientMap<string, IReactView<'view>>) (key, reactView) -> 
+              if not (currentKeys |> ImmutableSet.contains key) then
+                reactView.Dispose ()
+                acc.Remove key 
+              else acc
+            )
+            (currentViewCache.Mutate ())
+        |> TransientMap.persist
+      reactViewCache := viewCacheWithoutRemovedKeys
+    
+    let updateCache (key: string) (view: IReactView<'view>) =
+      reactViewCache := reactViewCache.contents |> PersistentMap.put key view
+
     let setChildren (view: 'view) (domNodeChildren: IImmutableMap<string, ReactDOMNode>) =
-      let currentViewChildren =
-        viewChildrenCache.GetValue(view, fun view -> ImmutableMap.empty ())
+      domNodeChildren
+      |> Seq.map (
+          fun (key, dom) -> 
+            ReactDom.observe dom |> Observable.map (fun nativeDomNode -> (key, nativeDomNode))
+        )
+      |> Observable.combineLatestSeq
+      |> Observable.observeOn scheduler
+      |> Observable.map (
+          Seq.map (
+            fun (key, dom) ->
+              let currentReactView = reactViewCache.contents |> ImmutableMap.tryGet key
+              let newReactView = updateNativeView currentReactView dom
 
-      let updateView (key, domNode) =
-        let view =
-          match currentViewChildren |> ImmutableMap.tryGet key with
-          | Some view -> view |> updateViewWith domNode
-          | None -> ReactViewNone |> updateViewWith domNode
-        (key, view)
+              match newReactView with
+              | Some reactView -> updateCache key reactView
+              | None -> ()
 
-      let newViewChildren =
-        domNodeChildren
-        |> Seq.map updateView
-        |> ImmutableMap.create
+              (key, newReactView)
+          )
+          >> Seq.filter (fun (_, dom) -> dom |> Option.isSome)
+          >> Seq.map (fun (key, dom) -> (key,  Option.get dom))
+          >> ImmutableMap.create
+        )
+      |> Observable.iter (ImmutableMap.keySet >> cleanseCache)
+      |> Observable.map (ImmutableMap.values >> Seq.map (fun reactView -> reactView.View))
+      |> Observable.map ImmutableVector.create
+      |> Observable.distinctUntilChanged
+      |> Observable.iter (
+          fun childViews -> 
+            removeAllViews view
+            addViews view (childViews |> ImmutableMap.values)
+          )
+      |> Observable.subscribeWithError (fun _ -> ()) onError
 
-      viewChildrenCache.Remove (view) |> ignore
-      viewChildrenCache.Add (view, newViewChildren)
-      view |> removeAllViews
-
-      let observeViewAtIndex index reactView =
-        observe reactView
-        |> Observable.iter (fun viewAtIndex ->
-            setViewAtIndex view  index viewAtIndex)
-        |> Observable.subscribeWithError (fun _ -> ()) onError
-
-      newViewChildren
+    let onDispose () =
+      reactViewCache.contents
       |> ImmutableMap.values
-      |> Seq.mapi observeViewAtIndex
-      |> Seq.toArray
-      |> Disposables.compose
+      |> Seq.iter (fun view -> view.Dispose ())
 
-    createView name viewProvider setProps setChildren initialProps
+    createView name viewProvider setProps setChildren onDispose initialProps

@@ -97,7 +97,7 @@ type MainActivity () =
   )
 
   let MyStatefulComponent () =
-    let scheduler = System.Reactive.Concurrency.NewThreadScheduler()
+    let scheduler = System.Reactive.Concurrency.Scheduler.TaskPool
 
     let reducer state _ = state + 1
 
@@ -133,9 +133,10 @@ type MainActivity () =
           GridView.viewProvider
           ImageView.viewProvider
           LinearLayout.viewProvider
-          ListView.viewProvider
+          //ListView.viewProvider
           RatingBar.viewProvider
           RelativeLayout.viewProvider
+          Space.viewProvider
           SwipeRefreshLayout.viewProvider
           TextView.viewProvider
           Toolbar.viewProvider

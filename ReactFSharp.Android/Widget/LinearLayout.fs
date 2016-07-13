@@ -201,9 +201,7 @@ type LinearLayoutComponentProps = {
 module LinearLayout =
   let private name = typeof<LinearLayoutCompat>.Name
 
-  let setProps (onError: Exception -> unit) (view: LinearLayoutCompat) (props: ILinearLayoutProps) =
-    let view = view :?> LinearLayoutCompat
-
+  let setProps (onError: Exception -> unit) (view: LinearLayoutCompat) (props: ILinearLayoutProps) = 
     view.BaselineAligned <- props.BaselineAligned
 
     if props.BaselineAlignedChildIndex >= 0 then
@@ -218,9 +216,8 @@ module LinearLayout =
     ViewGroup.setProps onError view props
 
   let private createView (context: Context) =
-    let emptyViewProvider () = new Space (context) :> View
     let viewGroupProvider () = new LinearLayoutCompat (context)
-    ViewGroup.create emptyViewProvider name viewGroupProvider setProps
+    ViewGroup.create name viewGroupProvider setProps
 
   let viewProvider = (name, createView)
 

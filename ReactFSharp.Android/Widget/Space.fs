@@ -3,22 +3,19 @@
 open Android.Content
 open Android.Content.Res
 open Android.Graphics
+open Android.Support.V7.Widget
 open Android.Views
 open Android.Widget
 open ImmutableCollections
 open React
+open React.Android
 open React.Android.Views
 open System
 
-type IRelativeLayoutProps =
-  inherit IViewGroupProps
+type ISpaceProps =
+  inherit IViewProps
 
-  abstract member Gravity: int
-  abstract member HorizontalGravity: int
-  abstract member IgnoreGravity: int
-  abstract member VerticalGravity: int
-
-type RelativeLayoutProps = 
+type SpaceProps = 
   {
     // View Props
     accessibilityLiveRegion: int
@@ -63,15 +60,9 @@ type RelativeLayoutProps =
     verticalScrollBarEnabled: bool
     verticalScrollbarPosition: ScrollbarPosition
     visibility: ViewStates
-
-    // RelativeLayout Props
-    gravity: int
-    horizontalGravity: int
-    ignoreGravity: int
-    verticalGravity: int
   }
 
-  interface IRelativeLayoutProps with
+  interface ISpaceProps with
     // View Props
     member this.AccessibilityLiveRegion = this.accessibilityLiveRegion
     member this.Alpha = this.alpha
@@ -116,89 +107,72 @@ type RelativeLayoutProps =
     member this.VerticalScrollbarPosition = this.verticalScrollbarPosition
     member this.Visibility = this.visibility
 
-    // RelativeLayout Props
-    member this.Gravity = this.gravity
-    member this.HorizontalGravity = this.horizontalGravity
-    member this.IgnoreGravity = this.ignoreGravity
-    member this.VerticalGravity = this.verticalGravity
-
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
-module private RelativeLayoutProps =
+module private SpaceProps =
   let internal defaultProps = {
     // View Props
-    accessibilityLiveRegion = ViewGroupProps.Default.accessibilityLiveRegion
-    alpha = ViewGroupProps.Default.alpha
-    backgroundColor = ViewGroupProps.Default.backgroundColor
-    backgroundTintMode = ViewGroupProps.Default.backgroundTintMode
-    clickable = ViewGroupProps.Default.clickable
-    contentDescription = ViewGroupProps.Default.contentDescription
-    contextClickable = ViewGroupProps.Default.contextClickable
-    elevation = ViewGroupProps.Default.elevation
-    enabled = ViewGroupProps.Default.enabled
-    filterTouchesWhenObscured = ViewGroupProps.Default.filterTouchesWhenObscured
-    focusable = ViewGroupProps.Default.focusable
-    focusableInTouchMode = ViewGroupProps.Default.focusableInTouchMode
-    hapticFeedbackEnabled = ViewGroupProps.Default.hapticFeedbackEnabled
-    horizontalFadingEdgeEnabled = ViewGroupProps.Default.horizontalFadingEdgeEnabled
-    horizontalScrollBarEnabled = ViewGroupProps.Default.horizontalScrollBarEnabled
-    id = ViewGroupProps.Default.id
-    layoutParameters = ViewGroupProps.Default.layoutParameters
-    onClick = ViewGroupProps.Default.onClick
-    onCreateContextMenu = ViewGroupProps.Default.onCreateContextMenu
-    onDrag = ViewGroupProps.Default.onDrag
-    onGenericMotion = ViewGroupProps.Default.onGenericMotion
-    onHover = ViewGroupProps.Default.onHover
-    onKey = ViewGroupProps.Default.onKey
-    onLongClick = ViewGroupProps.Default.onLongClick
-    onSystemUiVisibilityChange = ViewGroupProps.Default.onSystemUiVisibilityChange
-    onTouch = ViewGroupProps.Default.onTouch
-    padding = ViewGroupProps.Default.padding
-    pivot = ViewGroupProps.Default.pivot
-    requestFocus = ViewGroupProps.Default.requestFocus
-    scrollBarSize = ViewGroupProps.Default.scrollBarSize
-    scrollBarStyle = ViewGroupProps.Default.scrollBarStyle
-    selected = ViewGroupProps.Default.selected
-    soundEffectsEnabled = ViewGroupProps.Default.soundEffectsEnabled
-    systemUiVisibility =  ViewGroupProps.Default.systemUiVisibility
-    textAlignment = ViewGroupProps.Default.textAlignment
-    textDirection = ViewGroupProps.Default.textDirection
-    transitionName = ViewGroupProps.Default.transitionName
-    translation = ViewGroupProps.Default.translation
-    verticalFadingEdgeEnabled = ViewGroupProps.Default.verticalFadingEdgeEnabled
-    verticalScrollBarEnabled = ViewGroupProps.Default.verticalScrollBarEnabled
-    verticalScrollbarPosition = ViewGroupProps.Default.verticalScrollbarPosition
-    visibility = ViewGroupProps.Default.visibility
-
-    // RelativeLayout Props
-    gravity = 0
-    horizontalGravity = 0
-    ignoreGravity = 0
-    verticalGravity = 0
+    accessibilityLiveRegion = ViewProps.Default.accessibilityLiveRegion
+    alpha = ViewProps.Default.alpha
+    backgroundColor = ViewProps.Default.backgroundColor
+    backgroundTintMode = ViewProps.Default.backgroundTintMode
+    clickable = ViewProps.Default.clickable
+    contentDescription = ViewProps.Default.contentDescription
+    contextClickable = ViewProps.Default.contextClickable
+    elevation = ViewProps.Default.elevation
+    enabled = ViewProps.Default.enabled
+    filterTouchesWhenObscured = ViewProps.Default.filterTouchesWhenObscured
+    focusable = ViewProps.Default.focusable
+    focusableInTouchMode = ViewProps.Default.focusableInTouchMode
+    hapticFeedbackEnabled = ViewProps.Default.hapticFeedbackEnabled
+    horizontalFadingEdgeEnabled = ViewProps.Default.horizontalFadingEdgeEnabled
+    horizontalScrollBarEnabled = ViewProps.Default.horizontalScrollBarEnabled
+    id = ViewProps.Default.id
+    layoutParameters = ViewProps.Default.layoutParameters
+    onClick = ViewProps.Default.onClick
+    onCreateContextMenu = ViewProps.Default.onCreateContextMenu
+    onDrag = ViewProps.Default.onDrag
+    onGenericMotion = ViewProps.Default.onGenericMotion
+    onHover = ViewProps.Default.onHover
+    onKey = ViewProps.Default.onKey
+    onLongClick = ViewProps.Default.onLongClick
+    onSystemUiVisibilityChange = ViewProps.Default.onSystemUiVisibilityChange
+    onTouch = ViewProps.Default.onTouch
+    padding = ViewProps.Default.padding
+    pivot = ViewProps.Default.pivot
+    requestFocus = ViewProps.Default.requestFocus
+    scrollBarSize = ViewProps.Default.scrollBarSize
+    scrollBarStyle = ViewProps.Default.scrollBarStyle
+    selected = ViewProps.Default.selected
+    soundEffectsEnabled = ViewProps.Default.soundEffectsEnabled
+    systemUiVisibility =  ViewProps.Default.systemUiVisibility
+    textAlignment = ViewProps.Default.textAlignment
+    textDirection = ViewProps.Default.textDirection
+    transitionName = ViewProps.Default.transitionName
+    translation = ViewProps.Default.translation
+    verticalFadingEdgeEnabled = ViewProps.Default.verticalFadingEdgeEnabled
+    verticalScrollBarEnabled = ViewProps.Default.verticalScrollBarEnabled
+    verticalScrollbarPosition = ViewProps.Default.verticalScrollbarPosition
+    visibility = ViewProps.Default.visibility
   }
 
-type RelativeLayoutProps with
-  static member Default = RelativeLayoutProps.defaultProps
-
-type RelativeLayoutComponentProps = {
-  props: IRelativeLayoutProps
-  children: seq<string * ReactElement>
-}
+type SpaceProps with
+  static member Default = SpaceProps.defaultProps
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
-module RelativeLayout =
-  let private name = typeof<RelativeLayout>.Name
+module Space =
+  let internal name = typeof<Space>.Name
 
-  let setProps (onError: Exception -> unit) (view: RelativeLayout) (props: IViewGroupProps) =
-    ViewGroup.setProps onError view props
+  let setProps (onError: Exception -> unit) (view: Space) (props: ISpaceProps) =
+    View.setProps onError view props
 
-  let private createView (context: Context) =
-    let viewGroupProvider () = new RelativeLayout (context)
-    ViewGroup.create name viewGroupProvider setProps
+  let internal createView (context: Context) =
+    let viewProvider () = new Space(context)
+    View.create name viewProvider setProps
 
   let viewProvider = (name, createView)
 
-  let internal reactComponent = ReactComponent.makeLazy (fun (props: RelativeLayoutComponentProps) -> ReactNativeElement {
+  let internal reactComponent = ReactComponent.makeLazy (fun (props: SpaceProps) -> ReactNativeElement {
     Name = name
-    Props = props.props
-    Children = ImmutableMap.create props.children
+    Props = props
+    Children = ImmutableMap.empty ()
   })

@@ -169,9 +169,8 @@ module FrameLayout =
     ViewGroup.setProps onError view props
 
   let private createView (context: Context) =
-    let emptyViewProvider () = new Space (context) :> View
     let viewGroupProvider () = new FrameLayout (context)
-    ViewGroup.create emptyViewProvider name viewGroupProvider setProps
+    ViewGroup.create name viewGroupProvider setProps
 
   let viewProvider = (name, createView)
 

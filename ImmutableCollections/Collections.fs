@@ -141,6 +141,13 @@ module ImmutableMap =
     | Some _ -> true
     | _ -> false
 
+  let keySet (map: IImmutableMap<'k, 'v>) =
+    ({ new ImmutableSetBase<'k> () with
+        override this.Count = map.Count
+        override this.GetEnumerator () = map |> keys |> Seq.getEnumerator
+        override this.Item k = map |> containsKey k
+    }) :> IImmutableSet<'k>
+
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ImmutableVector =
   let empty () =

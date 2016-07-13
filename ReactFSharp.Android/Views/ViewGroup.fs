@@ -6,6 +6,7 @@ open Android.Support.V4.View
 open Android.Views
 open ImmutableCollections
 open React
+open React.Android
 open System
 open System.Runtime.CompilerServices
 
@@ -157,47 +158,38 @@ type ViewGroupProps with
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ViewGroup =
-  let private viewChildrenCache =
-    new ConditionalWeakTable<View, IImmutableMap<string, ReactView<View>>>()
-
   let private removeAllViews (view: View) =
     let view = view :?> ViewGroup
     view.RemoveAllViews()
 
-  let private setViewAtIndex
-      (emptyViewProvider: unit -> View)
-      (view: View)
-      (index: int)
-      (viewAtIndex: Option<'view>) =
-    let viewGroup = view :?> ViewGroup
-
-    if index < viewGroup.ChildCount then
-      viewGroup.RemoveViewAt index
-    match viewAtIndex with
-    | Some view -> viewGroup.AddView(view, index)
-    | None _ -> viewGroup.AddView(emptyViewProvider (), index)
+  let private addViews
+      (viewGroup: View)
+      (children: seq<View>) =
+    let viewGroup = viewGroup :?> ViewGroup
+    for child in children do
+      viewGroup.AddView child
+    (viewGroup :> View).Invalidate ()
 
   let create<'props, 'viewGroup when 'viewGroup :> ViewGroup>
-      (emptyViewProvider: unit -> View)
       (name: string)
       (viewGroupProvider: unit -> 'viewGroup)
       (setProps: (Exception -> unit) -> 'viewGroup -> 'props -> IDisposable)
       (onError: Exception -> unit)
-      (updateViewWith: ReactDOMNode -> ReactView<View> -> ReactView<View>)
+      (createNativeView: string (* view name *) -> obj (* initialProps *) -> IReactView<View>)
       (initialProps: obj) =
-    let viewGroupProvider () =
-      viewGroupProvider () :> ViewGroup
+
+    let viewGroupProvider () = viewGroupProvider () :> View
     let setProps onError (view: View) props =
       setProps onError (view :?> 'viewGroup) props
 
     ReactView.createViewImmediatelyRenderingAllChildren
+      Scheduler.mainLoopScheduler
       onError
-      viewChildrenCache
-      updateViewWith
+      createNativeView
       removeAllViews
-      (setViewAtIndex emptyViewProvider)
+      addViews
       name
-      (fun () -> viewGroupProvider () :> View)
+      viewGroupProvider
       (setProps onError)
       initialProps
 
