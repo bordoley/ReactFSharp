@@ -156,11 +156,6 @@ module private GridViewProps =
 type GridViewProps with
   static member Default = GridViewProps.defaultProps
 
-type GridViewComponentProps = {
-  props: IGridViewProps
-  children: IImmutableMap<int, ReactElement>
-}
-
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module GridView =
   let private name = typeof<GridView>.FullName
@@ -176,9 +171,11 @@ module GridView =
 
   let viewProvider = (name, createView)
 
-  let internal reactComponent (props: GridViewComponentProps) = ReactNativeElement {
+  let internal reactComponent
+      (props: GridViewProps)
+      (children: IImmutableMap<int, ReactElement>) = ReactNativeElement {
     Name = name
-    Props = props.props
-    Children = props.children
+    Props = props
+    Children = children
   }
 

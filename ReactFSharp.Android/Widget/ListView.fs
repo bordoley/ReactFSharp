@@ -161,11 +161,6 @@ module private ListViewProps =
 type ListViewProps with
   static member Default = ListViewProps.defaultProps
 
-type ListViewComponentProps = {
-  props: IListViewProps
-  children: IImmutableMap<int, ReactElement>
-}
-
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ListView =
   [<Sealed>]
@@ -264,8 +259,10 @@ module ListView =
     createView
 
   let viewProvider = (name, createView)
-  let internal reactComponent (props: ListViewComponentProps) = ReactNativeElement {
+  let internal reactComponent
+      (props: ListViewProps)
+      (children: IImmutableMap<int, ReactElement>) = ReactNativeElement {
     Name = name
-    Props = props.props
-    Children = props.children
+    Props = props
+    Children = children
   }

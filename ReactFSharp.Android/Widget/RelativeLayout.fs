@@ -179,11 +179,6 @@ module private RelativeLayoutProps =
 type RelativeLayoutProps with
   static member Default = RelativeLayoutProps.defaultProps
 
-type RelativeLayoutComponentProps = {
-  props: IRelativeLayoutProps
-  children: IImmutableMap<int, ReactElement>
-}
-
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module RelativeLayout =
   let private name = typeof<RelativeLayout>.FullName
@@ -197,8 +192,10 @@ module RelativeLayout =
 
   let viewProvider = (name, createView)
 
-  let internal reactComponent (props: RelativeLayoutComponentProps) = ReactNativeElement {
+  let internal reactComponent
+      (props: RelativeLayoutProps)
+      (children: IImmutableMap<int, ReactElement>) = ReactNativeElement {
     Name = name
-    Props = props.props
-    Children = props.children
+    Props = props
+    Children = children
   }

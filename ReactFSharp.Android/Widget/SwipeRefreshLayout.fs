@@ -157,11 +157,6 @@ module private SwipeRefreshLayoutProps =
 type SwipeRefreshLayoutProps with
   static member Default = SwipeRefreshLayoutProps.defaultProps
 
-type SwipeRefreshLayoutComponentProps = {
-  props: ISwipeRefreshLayoutProps
-  children: IImmutableMap<int, ReactElement>
-}
-
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module SwipeRefreshLayout =
   let private name = typeof<SwipeRefreshLayout>.FullName
@@ -175,8 +170,10 @@ module SwipeRefreshLayout =
 
   let viewProvider = (name, createView)
 
-  let internal reactComponent (props: SwipeRefreshLayoutComponentProps) = ReactNativeElement {
+  let internal reactComponent
+      (props: SwipeRefreshLayoutProps)
+      (children: IImmutableMap<int, ReactElement>) = ReactNativeElement {
     Name = name
-    Props = props.props
-    Children = props.children
+    Props = props
+    Children = children
   }

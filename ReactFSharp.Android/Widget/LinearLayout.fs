@@ -192,11 +192,6 @@ module private LinearLayoutProps =
 type LinearLayoutProps with 
   static member Default = LinearLayoutProps.defaultProps
 
-type LinearLayoutComponentProps = {
-  props: ILinearLayoutProps
-  children: IImmutableMap<int, ReactElement>
-}
-
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module LinearLayout =
   let private name = typeof<LinearLayoutCompat>.FullName
@@ -221,8 +216,10 @@ module LinearLayout =
 
   let viewProvider = (name, createView)
 
-  let internal reactComponent (props: LinearLayoutComponentProps) = ReactNativeElement {
+  let internal reactComponent
+      (props: LinearLayoutProps)
+      (children: IImmutableMap<int, ReactElement>) = ReactNativeElement {
     Name = name
-    Props = props.props
-    Children = props.children
+    Props = props
+    Children = children
   }

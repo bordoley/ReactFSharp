@@ -29,61 +29,56 @@ type MainActivity () =
   let MyComponent = ReactComponent.makeLazy (fun (props: MyComponentProps) ->
     let focusEvent = new Event<unit>()
 
-    Components.LinearLayout {
-      props =
-        { LinearLayoutProps.Default with
-            orientation = (int) Orientation.Vertical
-        }
-      children = ImmutableVector.createUnsafe
-        [|
-          Components.Toolbar {
-            props = 
-              { ToolbarProps.Default with
-                  layoutParameters = fillWidthWrapHeightLayoutParams
-                  subTitle = "a subtitle"
-                  title = "React FSharp App"
-              }
-            children = ImmutableMap.empty ()
-          }
+    Components.LinearLayout { 
+      LinearLayoutProps.Default with
+        orientation = (int) Orientation.Vertical
+    } ( ImmutableVector.createUnsafe
+          [|
+            Components.Toolbar {
+              ToolbarProps.Default with
+                layoutParameters = fillWidthWrapHeightLayoutParams
+                subTitle = "a subtitle"
+                title = "React FSharp App"
+            } (ImmutableMap.empty ())
 
-          Components.Button {
-            TextViewProps.Default with
-              backgroundColor = Color.Black
-              enabled = true
-              layoutParameters = fillWidthWrapHeightLayoutParams
-              text = "Click on me to increment"
-              onClick = props.onClick
-           }
+            Components.Button {
+              TextViewProps.Default with
+                backgroundColor = Color.Black
+                enabled = true
+                layoutParameters = fillWidthWrapHeightLayoutParams
+                text = "Click on me to increment"
+                onClick = props.onClick
+             }
 
-          Components.Button {
-            TextViewProps.Default with
-              backgroundColor = Color.Black
-              enabled = true
-              layoutParameters = fillWidthWrapHeightLayoutParams
-              text = "Move focus"
-              onClick = Func<unit, unit>(focusEvent.Trigger)
-           }
+            Components.Button {
+              TextViewProps.Default with
+                backgroundColor = Color.Black
+                enabled = true
+                layoutParameters = fillWidthWrapHeightLayoutParams
+                text = "Move focus"
+                onClick = Func<unit, unit>(focusEvent.Trigger)
+             }
 
-          Components.TextView {
-            TextViewProps.Default with
-              enabled = true
-              focusable = true
-              focusableInTouchMode = true
-              layoutParameters = fillWidthWrapHeightLayoutParams
-              text = sprintf "count %i" props.count
-          }
+            Components.TextView {
+              TextViewProps.Default with
+                enabled = true
+                focusable = true
+                focusableInTouchMode = true
+                layoutParameters = fillWidthWrapHeightLayoutParams
+                text = sprintf "count %i" props.count
+            }
 
-          Components.EditText {
-            EditTextProps.Default with
-              enabled = true
-              focusable = true
-              focusableInTouchMode = true
-              layoutParameters = fillWidthWrapHeightLayoutParams
-              requestFocus = focusEvent.Publish
-              text = "I should have focus"
-          }
-        |]
-    }
+            Components.EditText {
+              EditTextProps.Default with
+                enabled = true
+                focusable = true
+                focusableInTouchMode = true
+                layoutParameters = fillWidthWrapHeightLayoutParams
+                requestFocus = focusEvent.Publish
+                text = "I should have focus"
+            }
+          |]
+        )
   )
 
   let MyStatefulComponent () =

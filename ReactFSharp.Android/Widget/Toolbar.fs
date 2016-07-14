@@ -173,11 +173,6 @@ module private ToolbarProps =
 type ToolbarProps with
   static member Default = ToolbarProps.defaultProps
 
-type ToolbarComponentProps = {
-  props: IToolbarProps
-  children: IImmutableMap<int, ReactElement>
-}
-
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Toolbar =
   let private name = typeof<Android.Support.V7.Widget.Toolbar>.FullName
@@ -193,8 +188,10 @@ module Toolbar =
 
   let viewProvider = (name, createView)
 
-  let internal reactComponent (props: ToolbarComponentProps) = ReactNativeElement {
+  let internal reactComponent
+      (props: ToolbarProps)
+      (children: IImmutableMap<int, ReactElement>) = ReactNativeElement {
     Name = name
-    Props = props.props
-    Children = props.children
+    Props = props
+    Children = children
   }

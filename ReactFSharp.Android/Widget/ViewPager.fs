@@ -157,11 +157,6 @@ module private ViewPagerProps =
 type ViewPagerProps with
   static member Default = ViewPagerProps.defaultProps
 
-type ViewPagerComponentProps = {
-  props: IViewPagerProps
-  children: IImmutableMap<int, ReactElement>
-}
-
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ViewPager =
   let private name = typeof<ViewPager>.FullName
@@ -175,8 +170,10 @@ module ViewPager =
 
   let viewProvider = (name, createView)
 
-  let internal reactComponent (props: ViewPagerComponentProps) = ReactNativeElement {
+  let internal reactComponent
+      (props: ViewPagerProps)
+      (children: IImmutableMap<int, ReactElement>) = ReactNativeElement {
     Name = name
-    Props = props.props
-    Children = props.children
+    Props = props
+    Children = children
   }

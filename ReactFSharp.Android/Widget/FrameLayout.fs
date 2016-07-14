@@ -156,11 +156,6 @@ module private FrameLayoutProps =
 type FrameLayoutProps with
   static member Default = FrameLayoutProps.defaultProps
 
-type FrameLayoutComponentProps = {
-  props: IFrameLayoutProps
-  children: IImmutableMap<int, ReactElement>
-}
-
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module FrameLayout =
   let private name = typeof<FrameLayout>.FullName
@@ -174,9 +169,11 @@ module FrameLayout =
 
   let viewProvider = (name, createView)
 
-  let internal reactComponent (props: FrameLayoutComponentProps) = ReactNativeElement {
+  let internal reactComponent
+      (props: FrameLayoutProps)
+      (children: IImmutableMap<int, ReactElement>) = ReactNativeElement {
     Name = name
-    Props = props.props
-    Children = props.children
+    Props = props
+    Children = children
   }
 
