@@ -162,7 +162,7 @@ type ListViewProps with
 
 type ListViewComponentProps = {
   props: IListViewProps
-  children: seq<string * ReactElement>
+  children: IImmutableMap<int, ReactElement>
 }
 (*
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
@@ -251,6 +251,6 @@ module ListView =
   let internal reactComponent = ReactComponent.makeLazy (fun (props: ListViewComponentProps) -> ReactNativeElement {
     Name = name
     Props = props.props
-    Children = ImmutableMap.create props.children
+    Children = props.children
   })
   *)

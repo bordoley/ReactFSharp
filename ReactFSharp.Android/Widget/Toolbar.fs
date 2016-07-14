@@ -175,7 +175,7 @@ type ToolbarProps with
 
 type ToolbarComponentProps = {
   props: IToolbarProps
-  children: seq<string * ReactElement>
+  children: IImmutableMap<int, ReactElement>
 }
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
@@ -196,5 +196,5 @@ module Toolbar =
   let internal reactComponent (props: ToolbarComponentProps) = ReactNativeElement {
     Name = name
     Props = props.props
-    Children = ImmutableMap.create props.children
+    Children = props.children
   }

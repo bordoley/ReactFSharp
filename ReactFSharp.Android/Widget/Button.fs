@@ -26,5 +26,5 @@ module Button =
   let internal reactComponent (props: TextViewProps) = ReactNativeElement {
     Name = name
     Props = props
-    Children = ImmutableMap.empty ()
+    Children = ImmutableVector.empty ()
   }

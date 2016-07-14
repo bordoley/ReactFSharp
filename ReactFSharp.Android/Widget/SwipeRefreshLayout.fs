@@ -159,7 +159,7 @@ type SwipeRefreshLayoutProps with
 
 type SwipeRefreshLayoutComponentProps = {
   props: ISwipeRefreshLayoutProps
-  children: seq<string * ReactElement>
+  children: IImmutableMap<int, ReactElement>
 }
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
@@ -178,5 +178,5 @@ module SwipeRefreshLayout =
   let internal reactComponent (props: SwipeRefreshLayoutComponentProps) = ReactNativeElement {
     Name = name
     Props = props.props
-    Children = ImmutableMap.create props.children
+    Children = props.children
   }

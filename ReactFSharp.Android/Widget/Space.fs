@@ -174,5 +174,5 @@ module Space =
   let internal reactComponent (props: SpaceProps) = ReactNativeElement {
     Name = name
     Props = props
-    Children = ImmutableMap.empty ()
+    Children = ImmutableVector.empty ()
   }

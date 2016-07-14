@@ -34,64 +34,54 @@ type MainActivity () =
         { LinearLayoutProps.Default with
             orientation = (int) Orientation.Vertical
         }
-      children =
+      children = ImmutableVector.createUnsafe
         [|
-          ( "Toolbar",
-            Components.Toolbar {
-              props = 
-                { ToolbarProps.Default with
-                    layoutParameters = fillWidthWrapHeightLayoutParams
-                    subTitle = "a subtitle"
-                    title = "React FSharp App"
-                }
-              children = ImmutableMap.empty ()
-            }
-          )
+          Components.Toolbar {
+            props = 
+              { ToolbarProps.Default with
+                  layoutParameters = fillWidthWrapHeightLayoutParams
+                  subTitle = "a subtitle"
+                  title = "React FSharp App"
+              }
+            children = ImmutableMap.empty ()
+          }
 
-          ( "button",
-            Components.Button {
-              TextViewProps.Default with
-                backgroundColor = Color.Black
-                enabled = true
-                layoutParameters = fillWidthWrapHeightLayoutParams
-                text = "Click on me to increment"
-                onClick = props.onClick
-             }
-          )
+          Components.Button {
+            TextViewProps.Default with
+              backgroundColor = Color.Black
+              enabled = true
+              layoutParameters = fillWidthWrapHeightLayoutParams
+              text = "Click on me to increment"
+              onClick = props.onClick
+           }
 
-          ( "button2",
-            Components.Button {
-              TextViewProps.Default with
-                backgroundColor = Color.Black
-                enabled = true
-                layoutParameters = fillWidthWrapHeightLayoutParams
-                text = "Move focus"
-                onClick = Func<unit, unit>(focusEvent.Trigger)
-             }
-          )
+          Components.Button {
+            TextViewProps.Default with
+              backgroundColor = Color.Black
+              enabled = true
+              layoutParameters = fillWidthWrapHeightLayoutParams
+              text = "Move focus"
+              onClick = Func<unit, unit>(focusEvent.Trigger)
+           }
 
-          ( "textView",
-            Components.TextView {
-              TextViewProps.Default with
-                enabled = true
-                focusable = true
-                focusableInTouchMode = true
-                layoutParameters = fillWidthWrapHeightLayoutParams
-                text = sprintf "count %i" props.count
-            }
-          )
+          Components.TextView {
+            TextViewProps.Default with
+              enabled = true
+              focusable = true
+              focusableInTouchMode = true
+              layoutParameters = fillWidthWrapHeightLayoutParams
+              text = sprintf "count %i" props.count
+          }
 
-          ( "textView2",
-            Components.EditText {
-              EditTextProps.Default with
-                enabled = true
-                focusable = true
-                focusableInTouchMode = true
-                layoutParameters = fillWidthWrapHeightLayoutParams
-                requestFocus = focusEvent.Publish
-                text = "I should have focus"
-            }
-          )
+          Components.EditText {
+            EditTextProps.Default with
+              enabled = true
+              focusable = true
+              focusableInTouchMode = true
+              layoutParameters = fillWidthWrapHeightLayoutParams
+              requestFocus = focusEvent.Publish
+              text = "I should have focus"
+          }
         |]
     }
   )

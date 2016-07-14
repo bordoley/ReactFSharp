@@ -185,5 +185,5 @@ module EditText =
   let internal reactComponent (props: EditTextProps) = ReactNativeElement {
     Name = name
     Props = props
-    Children = ImmutableMap.empty ()
+    Children = ImmutableVector.empty ()
   }

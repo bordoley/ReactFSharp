@@ -174,5 +174,5 @@ module RatingBar =
   let internal reactComponent (props: RatingBarProps) = ReactNativeElement {
     Name = name
     Props = props
-    Children = ImmutableMap.empty ()
+    Children = ImmutableVector.empty ()
   }

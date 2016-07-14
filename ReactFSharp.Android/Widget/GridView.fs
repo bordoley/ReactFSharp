@@ -158,7 +158,7 @@ type GridViewProps with
 
 type GridViewComponentProps = {
   props: IGridViewProps
-  children: seq<string * ReactElement>
+  children: IImmutableMap<int, ReactElement>
 }
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
@@ -179,6 +179,6 @@ module GridView =
   let internal reactComponent (props: GridViewComponentProps) = ReactNativeElement {
     Name = name
     Props = props.props
-    Children = ImmutableMap.create props.children
+    Children = props.children
   }
 

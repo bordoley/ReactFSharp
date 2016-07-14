@@ -174,5 +174,5 @@ module ImageView =
   let internal reactComponent (props: ImageViewProps) = ReactNativeElement {
     Name = name
     Props = props
-    Children = ImmutableMap.empty ()
+    Children = ImmutableVector.empty ()
   }

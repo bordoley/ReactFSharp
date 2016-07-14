@@ -181,7 +181,7 @@ type RelativeLayoutProps with
 
 type RelativeLayoutComponentProps = {
   props: IRelativeLayoutProps
-  children: seq<string * ReactElement>
+  children: IImmutableMap<int, ReactElement>
 }
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
@@ -200,5 +200,5 @@ module RelativeLayout =
   let internal reactComponent (props: RelativeLayoutComponentProps) = ReactNativeElement {
     Name = name
     Props = props.props
-    Children = ImmutableMap.create props.children
+    Children = props.children
   }

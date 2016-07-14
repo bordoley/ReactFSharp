@@ -158,7 +158,7 @@ type FrameLayoutProps with
 
 type FrameLayoutComponentProps = {
   props: IFrameLayoutProps
-  children: seq<string * ReactElement>
+  children: IImmutableMap<int, ReactElement>
 }
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
@@ -177,6 +177,6 @@ module FrameLayout =
   let internal reactComponent (props: FrameLayoutComponentProps) = ReactNativeElement {
     Name = name
     Props = props.props
-    Children = ImmutableMap.create props.children
+    Children = props.children
   }
 

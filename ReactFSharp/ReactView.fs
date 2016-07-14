@@ -16,7 +16,7 @@ type IReactView<'view when 'view :> IDisposable> =
   abstract member Name: string with get
   abstract member Props: obj with get, set
   abstract member View: 'view
-  abstract member Children: IImmutableMap<string, ReactDOMNode> with get, set
+  abstract member Children: IImmutableMap<int, ReactDOMNode> with get, set
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ReactView =
@@ -83,14 +83,14 @@ module ReactView =
       (name: string)
       (view: 'view)
       (setProps: 'props -> IDisposable)
-      (setChildren: IImmutableMap<string, ReactDOMNode> -> unit)
+      (setChildren: IImmutableMap<int, ReactDOMNode> -> unit)
       (onDispose: unit -> unit)
       (initialProps: obj) : IReactView<'view> =
 
     let initialProps = (initialProps :?> 'props)
 
     let propsSubject = new BehaviorSubject<'props>(initialProps)
-    let childrenSubject = new BehaviorSubject<IImmutableMap<string, ReactDOMNode>>(ImmutableMap.empty ())
+    let childrenSubject = new BehaviorSubject<IImmutableMap<int, ReactDOMNode>>(ImmutableMap.empty ())
     let errors = new BehaviorSubject<Option<Exception>>(None)
 
     let propsSubscription =
@@ -150,14 +150,14 @@ module ReactView =
     let view = viewProvider ()
     let updateNativeView = updateNativeView createNativeView
 
-    let reactViewCache: IPersistentMap<string, IReactView<'view>> ref = ref (PersistentMap.empty ())
+    let reactViewCache: IPersistentMap<int, IReactView<'view>> ref = ref (PersistentMap.empty ())
 
-    let cleanseCache (currentKeys: IImmutableSet<string>) =
+    let cleanseCache (currentKeys: IImmutableSet<int>) =
       let currentViewCache = reactViewCache.contents
       let viewCacheWithoutRemovedKeys =
         currentViewCache
         |> Seq.fold
-            (fun (acc: ITransientMap<string, IReactView<'view>>) (key, reactView) ->
+            (fun (acc: ITransientMap<int, IReactView<'view>>) (key, reactView) ->
               if not (currentKeys |> ImmutableSet.contains key) then
                 reactView.Dispose ()
                 acc.Remove key
@@ -167,10 +167,10 @@ module ReactView =
         |> TransientMap.persist
       reactViewCache := viewCacheWithoutRemovedKeys
 
-    let addToCache (key: string) (view: IReactView<'view>) =
+    let addToCache (key: int) (view: IReactView<'view>) =
       reactViewCache := reactViewCache.contents |> PersistentMap.put key view
 
-    let setChildrenSubject = new Subject<IImmutableMap<string, ReactDOMNode>>()
+    let setChildrenSubject = new Subject<IImmutableMap<int, ReactDOMNode>>()
     let setChildrenSubscription =
       setChildrenSubject
       |> Observable.flatmap (

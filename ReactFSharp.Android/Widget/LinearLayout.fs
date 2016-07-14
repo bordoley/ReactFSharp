@@ -194,7 +194,7 @@ type LinearLayoutProps with
 
 type LinearLayoutComponentProps = {
   props: ILinearLayoutProps
-  children: seq<string * ReactElement>
+  children: IImmutableMap<int, ReactElement>
 }
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
@@ -224,5 +224,5 @@ module LinearLayout =
   let internal reactComponent (props: LinearLayoutComponentProps) = ReactNativeElement {
     Name = name
     Props = props.props
-    Children = ImmutableMap.create props.children
+    Children = props.children
   }

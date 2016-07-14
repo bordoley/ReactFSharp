@@ -29,7 +29,7 @@ and ReactLazyDOMNode = {
 
 and ReactNativeDOMNode = {
   element: ReactNativeElement
-  children: IImmutableMap<string, ReactDOMNode>
+  children: IImmutableMap<int, ReactDOMNode>
 }
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]

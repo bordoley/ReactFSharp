@@ -27,7 +27,7 @@ and ReactLazyElement = {
 and ReactNativeElement = {
     Name: string
     Props: obj
-    Children: IImmutableMap<string, ReactElement>
+    Children: IImmutableMap<int, ReactElement>
   }
 
 and ReactStatefulComponent<'Props> = IObservable<'Props> -> IObservable<ReactElement>
