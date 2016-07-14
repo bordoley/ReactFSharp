@@ -160,7 +160,7 @@ type SpaceProps with
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Space =
-  let internal name = typeof<Space>.Name
+  let internal name = typeof<Space>.FullName
 
   let setProps (onError: Exception -> unit) (view: Space) (props: ISpaceProps) =
     View.setProps onError view props
@@ -171,8 +171,8 @@ module Space =
 
   let viewProvider = (name, createView)
 
-  let internal reactComponent = ReactComponent.makeLazy (fun (props: SpaceProps) -> ReactNativeElement {
+  let internal reactComponent (props: SpaceProps) = ReactNativeElement {
     Name = name
     Props = props
     Children = ImmutableMap.empty ()
-  })
+  }

@@ -164,7 +164,7 @@ type SwipeRefreshLayoutComponentProps = {
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module SwipeRefreshLayout =
-  let private name = typeof<SwipeRefreshLayout>.Name
+  let private name = typeof<SwipeRefreshLayout>.FullName
 
   let setProps (onError: Exception -> unit) (view: SwipeRefreshLayout) (props: ISwipeRefreshLayoutProps) =
     ViewGroup.setProps onError view props
@@ -175,8 +175,8 @@ module SwipeRefreshLayout =
 
   let viewProvider = (name, createView)
 
-  let internal reactComponent = ReactComponent.makeLazy (fun (props: SwipeRefreshLayoutComponentProps) -> ReactNativeElement {
+  let internal reactComponent (props: SwipeRefreshLayoutComponentProps) = ReactNativeElement {
     Name = name
     Props = props.props
     Children = ImmutableMap.create props.children
-  })
+  }

@@ -12,7 +12,7 @@ open System
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Button =
-  let private name = typeof<AppCompatButton>.Name
+  let private name = typeof<AppCompatButton>.FullName
 
   let setProps (onError: Exception -> unit) (view: Button) (props: ITextViewProps) =
     TextView.setProps onError view props
@@ -23,8 +23,8 @@ module Button =
 
   let viewProvider = (name, createView)
 
-  let internal reactComponent = ReactComponent.makeLazy (fun (props: TextViewProps) -> ReactNativeElement {
+  let internal reactComponent (props: TextViewProps) = ReactNativeElement {
     Name = name
     Props = props
     Children = ImmutableMap.empty ()
-  })
+  }

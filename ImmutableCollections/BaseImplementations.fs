@@ -23,10 +23,11 @@ type private ImmutableCollectionBase<[<EqualityConditionalOn>] 'T> () =
      (this :> IStructuralEquatable).GetHashCode(EqualityComparer.Default)
 
   member private this.DoEquals(that: IImmutableCollection<'T>, comparer: IEqualityComparer) =
-    if this.Count <> that.Count then false
+    if Object.ReferenceEquals(this, that) then true
+    elif this.Count <> that.Count then false
     else
       Seq.zip this that
-      |> Seq.map (fun (this, that) -> comparer.Equals(this, that))
+      |> Seq.map comparer.Equals
       |> Seq.tryFind (fun result -> result = false)
       |> Option.isNone
 
@@ -44,7 +45,7 @@ type private ImmutableCollectionBase<[<EqualityConditionalOn>] 'T> () =
         (array :> IList).[index + i] <- ele
         i <- i + 1
     member this.Equals(that: IImmutableCollection<'T>) =
-      Object.ReferenceEquals(this, that) || this.DoEquals(that, EqualityComparer.Default)
+      this.DoEquals(that, EqualityComparer.Default)
 
     member this.IsSynchronized = true
     member this.SyncRoot with get () = new Object()

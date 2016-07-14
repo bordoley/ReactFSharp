@@ -5,29 +5,29 @@ open ImmutableCollections
 open System
 open System.Reactive.Subjects
 
-type [<ReferenceEquality>] ReactDOMNode =
+type ReactDOMNode =
   | ReactStatefulDOMNode of ReactStatefulDOMNode
   | ReactLazyDOMNode of ReactLazyDOMNode
   | ReactNativeDOMNode of ReactNativeDOMNode
   | ReactNoneDOMNode
 
-and [<ReferenceEquality>] ReactStatefulDOMNode =
+and ReactStatefulDOMNode =
   {
     element: ReactStatefulElement
     id: obj
-    updateProps: obj -> unit
+    updateProps: Func<obj, unit>
     state: IObservable<ReactDOMNode>
-    dispose: unit -> unit
+    dispose: Func<unit, unit>
   }
   interface IDisposable with
-    member this.Dispose() = this.dispose ()
+    member this.Dispose() = this.dispose.Invoke ()
 
-and [<ReferenceEquality>] ReactLazyDOMNode = {
+and ReactLazyDOMNode = {
   element: ReactLazyElement
   child: ReactDOMNode
 }
 
-and [<ReferenceEquality>] ReactNativeDOMNode = {
+and ReactNativeDOMNode = {
   element: ReactNativeElement
   children: IImmutableMap<string, ReactDOMNode>
 }
@@ -69,14 +69,14 @@ module ReactDom =
 
     | (ReactStatefulElement element, ReactStatefulDOMNode node)
           when Object.ReferenceEquals(node.element.Id, element.Id) ->
-        node.updateProps element.Props
+        node.updateProps.Invoke element.Props
         ReactStatefulDOMNode { node with element = element }
 
     | (ReactLazyElement ele, ReactLazyDOMNode node)
           when Object.ReferenceEquals(node.element.Id, ele.Id) ->
         ReactLazyDOMNode {
           element = ele
-          child = node.child |> updateWith (ele.Component ele.Props)
+          child = node.child |> updateWith (ele.Component.Invoke ele.Props)
         }
 
     | (ReactNativeElement ele, ReactNativeDOMNode node)
@@ -92,14 +92,15 @@ module ReactDom =
 
     | (ele, tree) ->
         match tree with
-        | ReactStatefulDOMNode node -> node.dispose ()
+        | ReactStatefulDOMNode node -> 
+            node.dispose.Invoke ()
         | _ -> ()
 
         match ele with
         | ReactStatefulElement ele ->
             let props = new BehaviorSubject<obj>(ele.Props);
             let state =
-              (ele.Component (props |> Observable.asObservable))
+              (ele.Component.Invoke (props |> Observable.asObservable))
               |> Observable.scanInit ReactNoneDOMNode (fun dom ele -> dom |> updateWith ele)
               |> Observable.distinctUntilChangedCompare EqualityComparer.referenceEquality
               |> Observable.multicast (new BehaviorSubject<ReactDOMNode>(ReactNoneDOMNode))
@@ -113,14 +114,14 @@ module ReactDom =
             ReactStatefulDOMNode {
               element = ele
               id = new obj()
-              updateProps = props.OnNext
+              updateProps = Func<obj, unit> props.OnNext
               state = state |> Observable.asObservable
-              dispose = dispose
+              dispose = Func<unit, unit> dispose
             }
 
         | ReactLazyElement ele -> ReactLazyDOMNode {
             element = ele
-            child = ReactNoneDOMNode |> updateWith (ele.Component ele.Props)
+            child = ReactNoneDOMNode |> updateWith (ele.Component.Invoke ele.Props)
           }
 
         | ReactNativeElement ele -> ReactNativeDOMNode {

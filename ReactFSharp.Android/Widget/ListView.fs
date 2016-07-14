@@ -225,7 +225,7 @@ module ListView =
       member this.AreAllItemsEnabled () = true
       member this.IsEnabled index = true
 
-  let private name = typeof<ListView>.Name
+  let private name = typeof<ListView>.FullName
 
   let private listViewAdapterCache =
     new ConditionalWeakTable<ListView, IImmutableMap<string, ReactView<View>>>()

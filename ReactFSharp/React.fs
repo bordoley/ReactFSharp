@@ -6,40 +6,25 @@ open System
 open System.Reactive.Concurrency
 open System.Reactive.Linq
 
-type [<ReferenceEquality>] ReactElement =
+type ReactElement =
   | ReactStatefulElement of ReactStatefulElement
   | ReactLazyElement of ReactLazyElement
   | ReactNativeElement of ReactNativeElement
   | ReactNoneElement
 
-and ReactStatefulElement private (id: obj, comp: ReactStatefulComponent<obj>, props: obj) =
+and ReactStatefulElement = {
+  Id: obj
+  Component: Func<IObservable<obj>, IObservable<ReactElement>>
+  Props: obj
+}
 
-  static member internal Create<'Props>(comp: ReactStatefulComponent<'Props>,
-                                        props: 'Props
-                                       ): ReactElement =
-    let castedComp (propsStream: IObservable<obj>) =
-      propsStream |> Observable.cast<'Props> |> comp
+and ReactLazyElement = {
+  Id: obj
+  Component: Func<obj, ReactElement>
+  Props:obj
+}
 
-    ReactElement.ReactStatefulElement <| ReactStatefulElement(comp :> obj, castedComp, props)
-
-  member this.Id = id
-  member this.Component = comp
-  member this.Props = props
-
-and ReactLazyElement private (id: obj, comp: ReactComponent<obj>, props: obj) =
-
-  static member internal Create<'Props>(comp: ReactComponent<'Props>,
-                                        props: 'Props
-                                       ): ReactElement =
-
-    let castedComp (props : obj) = comp (props :?> 'Props)
-    ReactElement.ReactLazyElement <| ReactLazyElement(comp :> obj, castedComp, props :> obj)
-
-  member this.Id = id
-  member this.Component = comp
-  member this.Props = props
-
-and [<ReferenceEquality>] ReactNativeElement = {
+and ReactNativeElement = {
     Name: string
     Props: obj
     Children: IImmutableMap<string, ReactElement>
@@ -52,12 +37,28 @@ and ReactComponent<'Props> = 'Props -> ReactElement
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ReactComponent =
   let makeLazy (f: ReactComponent<'Props>): ReactComponent<'Props> =
-    let f props = ReactLazyElement.Create(f, props)
+    let castedComp (props : obj) = f (props :?> 'Props)
+
+    let f props = ReactLazyElement {
+      Id = f :> obj
+      Component = Func<obj, ReactElement>(castedComp)
+      Props = props
+    }
+
     f
 
   let fromStatefulComponent (comp: ReactStatefulComponent<'Props>): ReactComponent<'Props> =
-    let f props = ReactStatefulElement.Create(comp, props)
+    let castedComp (propsStream: IObservable<obj>) =
+      propsStream |> Observable.cast<'Props> |> comp
+
+    let f props = ReactStatefulElement {
+      Id = comp :> obj
+      Component = Func<IObservable<obj>, IObservable<ReactElement>> castedComp
+      Props = props
+    }
+
     f
+
 
   let stateReducing
       (render: ('Props * 'State) -> ReactElement)

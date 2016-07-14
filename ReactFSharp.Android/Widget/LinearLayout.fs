@@ -199,7 +199,7 @@ type LinearLayoutComponentProps = {
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module LinearLayout =
-  let private name = typeof<LinearLayoutCompat>.Name
+  let private name = typeof<LinearLayoutCompat>.FullName
 
   let setProps (onError: Exception -> unit) (view: LinearLayoutCompat) (props: ILinearLayoutProps) = 
     view.BaselineAligned <- props.BaselineAligned
@@ -221,8 +221,8 @@ module LinearLayout =
 
   let viewProvider = (name, createView)
 
-  let internal reactComponent = ReactComponent.makeLazy (fun (props: LinearLayoutComponentProps) -> ReactNativeElement {
+  let internal reactComponent (props: LinearLayoutComponentProps) = ReactNativeElement {
     Name = name
     Props = props.props
     Children = ImmutableMap.create props.children
-  })
+  }

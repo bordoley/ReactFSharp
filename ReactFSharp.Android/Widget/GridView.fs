@@ -163,7 +163,7 @@ type GridViewComponentProps = {
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module GridView =
-  let private name = typeof<GridView>.Name
+  let private name = typeof<GridView>.FullName
 
   let setProps (onError: Exception -> unit) (view: GridView) (props: IGridViewProps) =
     ViewGroup.setProps onError view props
@@ -176,8 +176,9 @@ module GridView =
 
   let viewProvider = (name, createView)
 
-  let internal reactComponent = ReactComponent.makeLazy (fun (props: GridViewComponentProps) -> ReactNativeElement {
+  let internal reactComponent (props: GridViewComponentProps) = ReactNativeElement {
     Name = name
     Props = props.props
     Children = ImmutableMap.create props.children
-  })
+  }
+

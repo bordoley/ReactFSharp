@@ -180,7 +180,7 @@ type ToolbarComponentProps = {
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Toolbar =
-  let private name = typeof<Android.Support.V7.Widget.Toolbar>.Name
+  let private name = typeof<Android.Support.V7.Widget.Toolbar>.FullName
 
   let setProps (onError: Exception -> unit) (view: Android.Support.V7.Widget.Toolbar) (props: IToolbarProps) =
     view.Subtitle <- props.SubTitle
@@ -193,8 +193,8 @@ module Toolbar =
 
   let viewProvider = (name, createView)
 
-  let internal reactComponent = ReactComponent.makeLazy (fun (props: ToolbarComponentProps) -> ReactNativeElement {
+  let internal reactComponent (props: ToolbarComponentProps) = ReactNativeElement {
     Name = name
     Props = props.props
     Children = ImmutableMap.create props.children
-  })
+  }

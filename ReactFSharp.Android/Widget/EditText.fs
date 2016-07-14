@@ -169,7 +169,7 @@ type EditTextProps with
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module EditText =
-  let private name = typeof<AppCompatEditText>.Name
+  let private name = typeof<AppCompatEditText>.FullName
 
   let setProps (onError: Exception -> unit) (view: EditText) (props: IEditTextProps) =
     // FIXME: hack
@@ -182,8 +182,8 @@ module EditText =
 
   let viewProvider = (name, createView)
 
-  let internal reactComponent = ReactComponent.makeLazy (fun (props: EditTextProps) -> ReactNativeElement {
+  let internal reactComponent (props: EditTextProps) = ReactNativeElement {
     Name = name
     Props = props
     Children = ImmutableMap.empty ()
-  }) 
+  }

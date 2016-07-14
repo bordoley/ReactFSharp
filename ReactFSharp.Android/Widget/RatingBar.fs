@@ -160,7 +160,7 @@ type RatingBarProps with
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module RatingBar =
-  let private name = typeof<AppCompatRatingBar>.Name
+  let private name = typeof<AppCompatRatingBar>.FullName
 
   let setProps (onError: Exception -> unit) (view: RatingBar) (props: IRatingBarProps) =
     View.setProps onError view props
@@ -171,8 +171,8 @@ module RatingBar =
 
   let viewProvider = (name, createView)
 
-  let internal reactComponent = ReactComponent.makeLazy (fun (props: RatingBarProps) -> ReactNativeElement {
+  let internal reactComponent (props: RatingBarProps) = ReactNativeElement {
     Name = name
     Props = props
     Children = ImmutableMap.empty ()
-  }) 
+  }

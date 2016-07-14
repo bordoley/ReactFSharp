@@ -160,7 +160,7 @@ type ImageViewProps with
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ImageView =
-  let private name = typeof<AppCompatImageView>.Name
+  let private name = typeof<AppCompatImageView>.FullName
 
   let setProps (onError: Exception -> unit) (view: ImageView) (props: IImageViewProps) =
     View.setProps onError view props
@@ -171,8 +171,8 @@ module ImageView =
 
   let viewProvider = (name, createView)
 
-  let internal reactComponent = ReactComponent.makeLazy (fun (props: ImageViewProps) -> ReactNativeElement {
+  let internal reactComponent (props: ImageViewProps) = ReactNativeElement {
     Name = name
     Props = props
     Children = ImmutableMap.empty ()
-  })
+  }

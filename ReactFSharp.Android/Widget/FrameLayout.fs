@@ -163,7 +163,7 @@ type FrameLayoutComponentProps = {
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module FrameLayout =
-  let private name = typeof<FrameLayout>.Name
+  let private name = typeof<FrameLayout>.FullName
 
   let setProps (onError: Exception -> unit) (view: FrameLayout) (props: IFrameLayoutProps) =
     ViewGroup.setProps onError view props
@@ -174,8 +174,9 @@ module FrameLayout =
 
   let viewProvider = (name, createView)
 
-  let internal reactComponent = ReactComponent.makeLazy (fun (props: FrameLayoutComponentProps) -> ReactNativeElement {
+  let internal reactComponent (props: FrameLayoutComponentProps) = ReactNativeElement {
     Name = name
     Props = props.props
     Children = ImmutableMap.create props.children
-  })
+  }
+

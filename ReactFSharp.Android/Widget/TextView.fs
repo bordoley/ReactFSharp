@@ -172,7 +172,7 @@ type TextViewProps with
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module TextView =
-  let private name = typeof<AppCompatTextView>.Name
+  let private name = typeof<AppCompatTextView>.FullName
 
   let setProps (onError: Exception -> unit) (view: TextView) (props: ITextViewProps) =
     view.Text <- props.Text
@@ -187,8 +187,8 @@ module TextView =
 
   let viewProvider = (name, createView)
 
-  let internal reactComponent = ReactComponent.makeLazy (fun (props: TextViewProps) -> ReactNativeElement {
+  let internal reactComponent (props: TextViewProps) = ReactNativeElement {
     Name = name
     Props = props
     Children = ImmutableMap.empty ()
-  }) 
+  }

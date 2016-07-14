@@ -186,7 +186,7 @@ type RelativeLayoutComponentProps = {
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module RelativeLayout =
-  let private name = typeof<RelativeLayout>.Name
+  let private name = typeof<RelativeLayout>.FullName
 
   let setProps (onError: Exception -> unit) (view: RelativeLayout) (props: IViewGroupProps) =
     ViewGroup.setProps onError view props
@@ -197,8 +197,8 @@ module RelativeLayout =
 
   let viewProvider = (name, createView)
 
-  let internal reactComponent = ReactComponent.makeLazy (fun (props: RelativeLayoutComponentProps) -> ReactNativeElement {
+  let internal reactComponent (props: RelativeLayoutComponentProps) = ReactNativeElement {
     Name = name
     Props = props.props
     Children = ImmutableMap.create props.children
-  })
+  }

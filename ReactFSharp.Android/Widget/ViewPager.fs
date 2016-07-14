@@ -164,7 +164,7 @@ type ViewPagerComponentProps = {
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ViewPager =
-  let private name = typeof<ViewPager>.Name
+  let private name = typeof<ViewPager>.FullName
 
   let setProps (onError: Exception -> unit) (view: ViewPager) (props: IViewPagerProps) =
     ViewGroup.setProps onError view props
@@ -175,8 +175,8 @@ module ViewPager =
 
   let viewProvider = (name, createView)
 
-  let internal reactComponent = ReactComponent.makeLazy (fun (props: ViewPagerComponentProps) -> ReactNativeElement {
+  let internal reactComponent (props: ViewPagerComponentProps) = ReactNativeElement {
     Name = name
     Props = props.props
     Children = ImmutableMap.create props.children
-  })
+  }
