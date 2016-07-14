@@ -203,7 +203,7 @@ module private ViewProps =
     Func<unit, bool>(fun _ -> false)
 
   let private defaultOnSystemUiVisibilityChange =
-    Func<StatusBarVisibility, unit>(fun _ -> ())
+    Func<StatusBarVisibility, unit>(ignore)
 
   let private defaultOnTouch =
     Func<MotionEvent, bool>(fun _ -> false)
@@ -467,7 +467,7 @@ module View =
       |> Observable.observeOn Scheduler.mainLoopScheduler
       |> Observable.iter (view.RequestFocus >> ignore)
       |> Observable.subscribeWithError
-          (fun _ -> ())
+          ignore
           onError
     else Disposable.Empty
 

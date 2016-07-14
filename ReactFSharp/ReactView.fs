@@ -134,7 +134,7 @@ module ReactView =
       (setProps: 'view -> 'props -> IDisposable)
       (initialProps: obj) =
     let view = viewProvider ()
-    createView name view (setProps view) (fun _ -> ()) (fun () -> ()) initialProps
+    createView name view (setProps view) ignore ignore initialProps
 
   let createViewImmediatelyRenderingAllChildren<'view, 'props when 'view :> IDisposable>
       (scheduler: IScheduler)
@@ -204,7 +204,7 @@ module ReactView =
             removeAllViews view
             addViews view childViews
           )
-      |> Observable.subscribeWithError (fun _ -> ()) onError
+      |> Observable.subscribeWithError ignore onError
 
     let onDispose () =
       setChildrenSubject.OnCompleted ()

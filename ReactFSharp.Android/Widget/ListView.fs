@@ -8,6 +8,7 @@ open Android.Widget
 open FSharp.Control.Reactive
 open ImmutableCollections
 open React
+open React.Android
 open React.Android.Views
 open System
 open System.Reactive.Disposables
@@ -17,7 +18,7 @@ open System.Runtime.CompilerServices
 type IListViewProps =
   inherit IViewGroupProps
 
-type ListViewProps = 
+type ListViewProps =
   {
     // View Props
     accessibilityLiveRegion: int
@@ -164,93 +165,107 @@ type ListViewComponentProps = {
   props: IListViewProps
   children: IImmutableMap<int, ReactElement>
 }
-(*
+
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ListView =
   [<Sealed>]
-  type ReactListAdapter (createNativeView: string (* view name *) -> obj (* initialProps *) -> IReactNativeView<View>,
-                         emptyViewProvider: unit -> View) =
+  type ReactListAdapter (children: IObservable<IImmutableMap<int, ReactDOMNode>>,
+                         createNativeView: string (* view name *) -> obj (* initialProps *) -> IReactView<View>,
+                         onError: Exception -> unit) as this =
     inherit BaseAdapter()
 
     let updateNativeView = ReactView.updateNativeView createNativeView
 
-    let reactViewCache = new ConditionalWeakTable<View, ReactView<View>>()
+    let childrenSubject =
+      new BehaviorSubject<IImmutableVector<int * ReactNativeDOMNode>>(ImmutableVector.empty ())
 
-    let onSetDomChildren = new Subject<seq<ReactDOMNode>>()
-    let state = new BehaviorSubject<IImmutableVector<Option<ReactNativeDOMNode>>>(ImmutableVector.empty ())
+    let childrenSubscription =
+      childrenSubject
+      |> Observable.iter (ignore >> this.NotifyDataSetChanged)
+      |> Observable.subscribeWithError ignore onError
 
-    let stateSubscription =
-      onSetDomChildren
-      |> Observable.map (
-            Seq.map (fun dom -> ReactDom.observe dom) 
-            >> Observable.combineLatestSeq 
-            >> Observable.map ImmutableVector.create
+    let children =
+      children
+      |> Observable.flatmap (
+          Seq.map (
+            fun (key, dom) ->
+              ReactDom.observe dom |> Observable.map (fun nativeDomNode -> (key, nativeDomNode))
           )
-      |> Observable.flatmap (fun obs -> obs)
-      |> Observable.subscribeObserver state          
+          >> Observable.combineLatestSeq
+          >> Observable.map (
+              Seq.filter (fun (key, node) -> node |> Option.isSome)
+              >> Seq.map (fun (key, node) -> (key, node |> Option.get))
+              >> ImmutableVector.create
+            )
+        )
+      |> Observable.observeOn Scheduler.mainLoopScheduler
+      |> Observable.subscribeObserver childrenSubject
 
-    override this.Count = state.Value.Count
+    let reactViewCache = new ConditionalWeakTable<View, IReactView<View>>()
+
+    override this.Count = childrenSubject.Value.Count
+
+    override this.GetItem position = null
 
     override this.GetItemId position =
-      state.Value.Item position |> hash |> int64
+      childrenSubject.Value.Item position |> (fun (key, _) -> key) |> int64
 
     override this.GetView (position: int, convertView: View, parent: ViewGroup) =
-      let nativeDomNode = state.Value.Item position
+      let (key, nativeDomNode) = childrenSubject.Value.Item position
 
-      let reactView = 
-        match (reactViewCache.TryGetValue(convertView), nativeDomNode) with 
-        | ((true, reactView), Some domNode) -> reactView |> updateNativeView domNode |> Some
-        | (_ , Some domNode) -> ReactViewNone |> updateNativeView domNode |> Some
-        | _ -> None
-      
+      let reactView =
+        match reactViewCache.TryGetValue(convertView) with
+        | (true, reactView) ->  updateNativeView (Some reactView) (Some nativeDomNode)
+        | _ ->  updateNativeView None (Some nativeDomNode)
+
       match reactView with
       | Some reactView ->
            reactViewCache.Remove reactView.View |> ignore
-           reactViewCache.Add (reactView.View, ReactNativeView reactView)
+           reactViewCache.Add (reactView.View, reactView)
            reactView.View
-      | _  when convertView.Id = -8 -> convertView
-      | _ -> 
-        let emptyView = emptyViewProvider ()
-        emptyView.Id <- -8
-        emptyView
+      | _  -> failwith "Something went wrong"
 
     override this.HasStableIds = true
-
-    member this.SetDomChildren children =
-      children 
-      |> ImmutableMap.values
-      |> onSetDomChildren.OnNext
 
     interface IListAdapter with
       member this.AreAllItemsEnabled () = true
       member this.IsEnabled index = true
 
+    interface IDisposable with
+      member this.Dispose () =
+        childrenSubscription.Dispose ()
+
   let private name = typeof<ListView>.FullName
 
   let private listViewAdapterCache =
-    new ConditionalWeakTable<ListView, IImmutableMap<string, ReactView<View>>>()
+    new ConditionalWeakTable<ListView, IImmutableMap<string, IReactView<View>>>()
 
   let setProps (onError: Exception -> unit) (view: View) (props: IListViewProps) =
     let view = (view :?> ListView)
     ViewGroup.setProps onError view props
 
   let private createView (context: Context): AndroidViewCreator =
-    let viewGroupProvider () = new ListView (context) :> View
+    let createView
+        (onError: Exception -> unit)
+        (createView: string (* view name *) -> obj (* initialProps *) -> IReactView<View>) =
 
-    let createView onError updateWith initialProps =
-      let onDispose () = ()
-      let setChildren view children =
-        Disposable.Empty
-   
-      ReactView.createView name viewGroupProvider (setProps onError) setChildren onDispose initialProps
+      let view = new ListView (context)
+      let setChildrenSubject = new Subject<IImmutableMap<int, ReactDOMNode>>()
+
+      let adapter = new ReactListAdapter (setChildrenSubject, createView, onError)
+      view.Adapter <- adapter
+
+      let onDispose () =
+        setChildrenSubject.OnCompleted()
+        ()
+
+      ReactView.createView name (view :> View) (setProps onError view) setChildrenSubject.OnNext onDispose
 
     createView
 
   let viewProvider = (name, createView)
-
-  let internal reactComponent = ReactComponent.makeLazy (fun (props: ListViewComponentProps) -> ReactNativeElement {
+  let internal reactComponent (props: ListViewComponentProps) = ReactNativeElement {
     Name = name
     Props = props.props
     Children = props.children
-  })
-  *)
+  }
