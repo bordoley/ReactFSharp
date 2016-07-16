@@ -44,49 +44,49 @@ type MainActivity () =
           [|
             Components.Toolbar {
               ToolbarProps.Default with
-                layoutParameters = fillWidthWrapHeightLayoutParams
+                LayoutParameters = fillWidthWrapHeightLayoutParams
                 subTitle = "a subtitle"
                 title = "React FSharp App"
             } (ImmutableMap.empty ())
 
             Components.Button {
               ButtonProps.Default with
-                activated = true
-                background = redDrawable
-                clickable = true
-                enabled = true
-                layoutParameters = fillWidthWrapHeightLayoutParams
+                Activated = true
+                Background = redDrawable
+                Clickable = true
+                Enabled = true
+                LayoutParameters = fillWidthWrapHeightLayoutParams
                 text = "Click on me to increment"
-                onClick = props.onClick
+                OnClick = props.onClick
              }
 
             Components.Button {
               ButtonProps.Default with
-                activated = true
-                background = redDrawable
-                clickable = true
-                enabled = true
-                layoutParameters = fillWidthWrapHeightLayoutParams
+                Activated = true
+                Background = redDrawable
+                Clickable = true
+                Enabled = true
+                LayoutParameters = fillWidthWrapHeightLayoutParams
                 text = "Move focus"
-                onClick = requestFocusDown
+                OnClick = requestFocusDown
              }
 
             Components.TextView {
               TextViewProps.Default with
-                enabled = true
-                focusable = true
-                focusableInTouchMode = true
-                layoutParameters = fillWidthWrapHeightLayoutParams
+                Enabled = true
+                Focusable = true
+                FocusableInTouchMode = true
+                LayoutParameters = fillWidthWrapHeightLayoutParams
                 text = sprintf "count %i" props.count
             }
 
             Components.EditText {
               EditTextProps.Default with
-                enabled = true
-                focusable = true
-                focusableInTouchMode = true
-                layoutParameters = fillWidthWrapHeightLayoutParams
-                requestFocus = focusDownRequested
+                Enabled = true
+                Focusable = true
+                FocusableInTouchMode = true
+                LayoutParameters = fillWidthWrapHeightLayoutParams
+                RequestFocus = focusDownRequested
                 text = "I should have focus"
             }
           |]

@@ -102,180 +102,180 @@ type IViewProps =
 
 type ViewProps =
   {
-    accessibilityLiveRegion: int
-    accessibilityTraversalAfter: int
-    accessibilityTraversalBefore: int
-    activated: bool
-    alpha: float32
-    background: Func<Drawable>
-    clickable: bool
-    contextClickable: bool
-    contentDescription: string
-    drawingCacheEnabled: bool
-    drawingCacheQuality: DrawingCacheQuality
-    elevation: Single
-    enabled: bool
-    fadingEdgeLength:int
-    fitsSystemWindows: bool
-    filterTouchesWhenObscured: bool
-    focusable: bool
-    focusableInTouchMode: bool
-    hapticFeedbackEnabled: bool
-    horizontalFadingEdgeEnabled: bool
-    horizontalScrollBarEnabled: bool
-    id: int
-    importantForAccessibility: int
-    isScrollContainer: bool
-    keepScreenOn: bool
-    labelFor: int
-    layerPaint: Func<Paint>
-    layerType: int
-    layoutDirection: int
-    layoutParameters: Func<ViewGroup.LayoutParams>
-    longClickable: bool
-    minHeight: int
-    minWidth: int
-    nestedScrollingEnabled: bool
-    nextFocusDownId: int
-    nextFocusForwardId: int
-    nextFocusLeftId: int
-    nextFocusRightId: int
-    nextFocusUpId: int
-    onClick: Action
-    onCreateContextMenu: Action<IContextMenu, IContextMenuContextMenuInfo>
-    onDrag: Func<DragEvent, bool>
-    onFocusChange: Action<bool>
-    onGenericMotion: Func<MotionEvent, bool>
-    onHover: Func<MotionEvent, bool>
-    onKey: Func<Keycode, KeyEvent, bool>
-    onLongClick: Func<bool>
-    onSystemUiVisibilityChange: Action<StatusBarVisibility>
-    onTouch: Func<MotionEvent, bool>
-    //outlineProvider: ViewOutlineProvider
-    overScrollBy: IObservable<int * int * int * int * int * int * int * int * bool>
-    overScrollMode: int
-    paddingBottom: int
-    paddingEnd: int
-    paddingStart: int
-    paddingTop: int
-    pivotX: Single
-    pivotY: Single
-    requestFocus: IObservable<FocusSearchDirection>
-    rotation: Single
-    rotationX: Single
-    rotationY: Single
-    scaleX: Single
-    scaleY: Single
-    //scrollBarDefaultDelayBeforeFade: int32
-    //scrollBarFadeDuration: int32
-    //scrollBarFadingEnabled: bool
-    //scrollBarSize: int
-    scrollBarStyle: ScrollbarStyles
-    scrollBy: IObservable<int * int>
-    scrollTo: IObservable<int * int>
-    selected: bool
-    soundEffectsEnabled: bool
-    //stateListAnimator: StateListAnimator
-    //systemUiVisibility: StatusBarVisibility
-    //textAlignment: TextAlignment
-    //textDirection: TextDirection
-    transitionName: string
-    translationX: Single
-    translationY: Single
-    translationZ: Single
-    verticalFadingEdgeEnabled: bool
-    verticalScrollBarEnabled: bool
-    //verticalScrollbarPosition: ScrollbarPosition
-    visibility: ViewStates
+    AccessibilityLiveRegion: int
+    AccessibilityTraversalAfter: int
+    AccessibilityTraversalBefore: int
+    Activated: bool
+    Alpha: float32
+    Background: Func<Drawable>
+    Clickable: bool
+    ContextClickable: bool
+    ContentDescription: string
+    DrawingCacheEnabled: bool
+    DrawingCacheQuality: DrawingCacheQuality
+    Elevation: Single
+    Enabled: bool
+    FadingEdgeLength:int
+    FitsSystemWindows: bool
+    FilterTouchesWhenObscured: bool
+    Focusable: bool
+    FocusableInTouchMode: bool
+    HapticFeedbackEnabled: bool
+    HorizontalFadingEdgeEnabled: bool
+    HorizontalScrollBarEnabled: bool
+    Id: int
+    ImportantForAccessibility: int
+    IsScrollContainer: bool
+    KeepScreenOn: bool
+    LabelFor: int
+    LayerPaint: Func<Paint>
+    LayerType: int
+    LayoutDirection: int
+    LayoutParameters: Func<ViewGroup.LayoutParams>
+    LongClickable: bool
+    MinHeight: int
+    MinWidth: int
+    NestedScrollingEnabled: bool
+    NextFocusDownId: int
+    NextFocusForwardId: int
+    NextFocusLeftId: int
+    NextFocusRightId: int
+    NextFocusUpId: int
+    OnClick: Action
+    OnCreateContextMenu: Action<IContextMenu, IContextMenuContextMenuInfo>
+    OnDrag: Func<DragEvent, bool>
+    OnFocusChange: Action<bool>
+    OnGenericMotion: Func<MotionEvent, bool>
+    OnHover: Func<MotionEvent, bool>
+    OnKey: Func<Keycode, KeyEvent, bool>
+    OnLongClick: Func<bool>
+    OnSystemUiVisibilityChange: Action<StatusBarVisibility>
+    OnTouch: Func<MotionEvent, bool>
+    //OutlineProvider: ViewOutlineProvider
+    OverScrollBy: IObservable<int * int * int * int * int * int * int * int * bool>
+    OverScrollMode: int
+    PaddingBottom: int
+    PaddingEnd: int
+    PaddingStart: int
+    PaddingTop: int
+    PivotX: Single
+    PivotY: Single
+    RequestFocus: IObservable<FocusSearchDirection>
+    Rotation: Single
+    RotationX: Single
+    RotationY: Single
+    ScaleX: Single
+    ScaleY: Single
+    //ScrollBarDefaultDelayBeforeFade: int32
+    //ScrollBarFadeDuration: int32
+    //ScrollBarFadingEnabled: bool
+    //ScrollBarSize: int
+    ScrollBarStyle: ScrollbarStyles
+    ScrollBy: IObservable<int * int>
+    ScrollTo: IObservable<int * int>
+    Selected: bool
+    SoundEffectsEnabled: bool
+    //StateListAnimator: StateListAnimator
+    //SystemUiVisibility: StatusBarVisibility
+    //TextAlignment: TextAlignment
+    //TextDirection: TextDirection
+    TransitionName: string
+    TranslationX: Single
+    TranslationY: Single
+    TranslationZ: Single
+    VerticalFadingEdgeEnabled: bool
+    VerticalScrollBarEnabled: bool
+    //VerticalScrollbarPosition: ScrollbarPosition
+    Visibility: ViewStates
   }
 
   interface IViewProps with
     // View Props
-    member this.AccessibilityLiveRegion = this.accessibilityLiveRegion
-    member this.AccessibilityTraversalAfter = this.accessibilityTraversalAfter
-    member this.AccessibilityTraversalBefore = this.accessibilityTraversalBefore
-    member this.Activated = this.activated
-    member this.Alpha = this.alpha
-    member this.Background = this.background
-    member this.Clickable = this.clickable
-    member this.ContentDescription = this.contentDescription
-    member this.ContextClickable = this.contextClickable
-    member this.DrawingCacheEnabled = this.drawingCacheEnabled
-    member this.DrawingCacheQuality = this.drawingCacheQuality
-    member this.Elevation = this.elevation
-    member this.Enabled = this.enabled
-    member this.FadingEdgeLength = this.fadingEdgeLength
-    member this.FitsSystemWindows = this.fitsSystemWindows
-    member this.FilterTouchesWhenObscured = this.filterTouchesWhenObscured
-    member this.Focusable = this.focusable
-    member this.FocusableInTouchMode = this.focusableInTouchMode
-    member this.HapticFeedbackEnabled = this.hapticFeedbackEnabled
-    member this.HorizontalFadingEdgeEnabled = this.horizontalFadingEdgeEnabled
-    member this.HorizontalScrollBarEnabled = this.horizontalScrollBarEnabled
-    member this.Id = this.id
-    member this.ImportantForAccessibility = this.importantForAccessibility
-    member this.IsScrollContainer = this.isScrollContainer
-    member this.KeepScreenOn = this.keepScreenOn
-    member this.LabelFor = this.labelFor
-    member this.LayerPaint = this.layerPaint
-    member this.LayerType = this.layerType
-    member this.LayoutDirection = this.layoutDirection
-    member this.LayoutParameters = this.layoutParameters
-    member this.LongClickable = this.longClickable
-    member this.MinHeight = this.minHeight
-    member this.MinWidth = this.minWidth
-    member this.NestedScrollingEnabled = this.nestedScrollingEnabled
-    member this.NextFocusDownId = this.nextFocusDownId
-    member this.NextFocusForwardId = this.nextFocusForwardId
-    member this.NextFocusLeftId = this.nextFocusLeftId
-    member this.NextFocusRightId = this.nextFocusRightId
-    member this.NextFocusUpId = this.nextFocusUpId
-    member this.OnClick = this.onClick
-    member this.OnCreateContextMenu = this.onCreateContextMenu
-    member this.OnDrag = this.onDrag
-    member this.OnFocusChange = this.onFocusChange
-    member this.OnGenericMotion = this.onGenericMotion
-    member this.OnHover = this.onHover
-    member this.OnKey = this.onKey
-    member this.OnLongClick = this.onLongClick
-    member this.OnSystemUiVisibilityChange = this.onSystemUiVisibilityChange
-    member this.OnTouch = this.onTouch
-    //member this.OutlineProvider = this.outlineProvider
-    member this.OverScrollBy = this.overScrollBy
-    member this.OverScrollMode = this.overScrollMode
-    member this.PaddingBottom = this.paddingBottom
-    member this.PaddingEnd = this.paddingEnd
-    member this.PaddingStart = this.paddingStart
-    member this.PaddingTop = this.paddingTop
-    member this.PivotX = this.pivotX
-    member this.PivotY = this.pivotY
-    member this.RequestFocus = this.requestFocus
-    member this.Rotation = this.rotation
-    member this.RotationX= this.rotationX
-    member this.RotationY= this.rotationY
-    member this.ScaleX = this.scaleX
-    member this.ScaleY = this.scaleY
-    //member this.ScrollBarDefaultDelayBeforeFade = this.scrollBarDefaultDelayBeforeFade
-    //member this.ScrollBarFadeDuration = this.scrollBarFadeDuration
-    //member this.ScrollBarFadingEnabled = this.scrollBarFadingEnabled
-    //member this.ScrollBarSize = this.scrollBarSize
-    member this.ScrollBarStyle = this.scrollBarStyle
-    member this.ScrollBy = this.scrollBy
-    member this.ScrollTo = this.scrollTo
-    member this.Selected = this.selected
-    member this.SoundEffectsEnabled = this.soundEffectsEnabled
-    //member this.StateListAnimator = this.stateListAnimator
-    //member this.SystemUiVisibility = this.systemUiVisibility
-    //member this.TextAlignment = this.textAlignment
-    //member this.TextDirection = this.textDirection
-    member this.TransitionName = this.transitionName
-    member this.TranslationX = this.translationX
-    member this.TranslationY = this.translationY
-    member this.TranslationZ = this.translationY
-    member this.VerticalFadingEdgeEnabled = this.verticalFadingEdgeEnabled
-    member this.VerticalScrollBarEnabled = this.verticalScrollBarEnabled
-    //member this.VerticalScrollbarPosition = this.verticalScrollbarPosition
-    member this.Visibility = this.visibility
+    member this.AccessibilityLiveRegion = this.AccessibilityLiveRegion
+    member this.AccessibilityTraversalAfter = this.AccessibilityTraversalAfter
+    member this.AccessibilityTraversalBefore = this.AccessibilityTraversalBefore
+    member this.Activated = this.Activated
+    member this.Alpha = this.Alpha
+    member this.Background = this.Background
+    member this.Clickable = this.Clickable
+    member this.ContentDescription = this.ContentDescription
+    member this.ContextClickable = this.ContextClickable
+    member this.DrawingCacheEnabled = this.DrawingCacheEnabled
+    member this.DrawingCacheQuality = this.DrawingCacheQuality
+    member this.Elevation = this.Elevation
+    member this.Enabled = this.Enabled
+    member this.FadingEdgeLength = this.FadingEdgeLength
+    member this.FitsSystemWindows = this.FitsSystemWindows
+    member this.FilterTouchesWhenObscured = this.FilterTouchesWhenObscured
+    member this.Focusable = this.Focusable
+    member this.FocusableInTouchMode = this.FocusableInTouchMode
+    member this.HapticFeedbackEnabled = this.HapticFeedbackEnabled
+    member this.HorizontalFadingEdgeEnabled = this.HorizontalFadingEdgeEnabled
+    member this.HorizontalScrollBarEnabled = this.HorizontalScrollBarEnabled
+    member this.Id = this.Id
+    member this.ImportantForAccessibility = this.ImportantForAccessibility
+    member this.IsScrollContainer = this.IsScrollContainer
+    member this.KeepScreenOn = this.KeepScreenOn
+    member this.LabelFor = this.LabelFor
+    member this.LayerPaint = this.LayerPaint
+    member this.LayerType = this.LayerType
+    member this.LayoutDirection = this.LayoutDirection
+    member this.LayoutParameters = this.LayoutParameters
+    member this.LongClickable = this.LongClickable
+    member this.MinHeight = this.MinHeight
+    member this.MinWidth = this.MinWidth
+    member this.NestedScrollingEnabled = this.NestedScrollingEnabled
+    member this.NextFocusDownId = this.NextFocusDownId
+    member this.NextFocusForwardId = this.NextFocusForwardId
+    member this.NextFocusLeftId = this.NextFocusLeftId
+    member this.NextFocusRightId = this.NextFocusRightId
+    member this.NextFocusUpId = this.NextFocusUpId
+    member this.OnClick = this.OnClick
+    member this.OnCreateContextMenu = this.OnCreateContextMenu
+    member this.OnDrag = this.OnDrag
+    member this.OnFocusChange = this.OnFocusChange
+    member this.OnGenericMotion = this.OnGenericMotion
+    member this.OnHover = this.OnHover
+    member this.OnKey = this.OnKey
+    member this.OnLongClick = this.OnLongClick
+    member this.OnSystemUiVisibilityChange = this.OnSystemUiVisibilityChange
+    member this.OnTouch = this.OnTouch
+    //member this.OutlineProvider = this.OutlineProvider
+    member this.OverScrollBy = this.OverScrollBy
+    member this.OverScrollMode = this.OverScrollMode
+    member this.PaddingBottom = this.PaddingBottom
+    member this.PaddingEnd = this.PaddingEnd
+    member this.PaddingStart = this.PaddingStart
+    member this.PaddingTop = this.PaddingTop
+    member this.PivotX = this.PivotX
+    member this.PivotY = this.PivotY
+    member this.RequestFocus = this.RequestFocus
+    member this.Rotation = this.Rotation
+    member this.RotationX= this.RotationX
+    member this.RotationY= this.RotationY
+    member this.ScaleX = this.ScaleX
+    member this.ScaleY = this.ScaleY
+    //member this.ScrollBarDefaultDelayBeforeFade = this.ScrollBarDefaultDelayBeforeFade
+    //member this.ScrollBarFadeDuration = this.ScrollBarFadeDuration
+    //member this.ScrollBarFadingEnabled = this.ScrollBarFadingEnabled
+    //member this.ScrollBarSize = this.ScrollBarSize
+    member this.ScrollBarStyle = this.ScrollBarStyle
+    member this.ScrollBy = this.ScrollBy
+    member this.ScrollTo = this.ScrollTo
+    member this.Selected = this.Selected
+    member this.SoundEffectsEnabled = this.SoundEffectsEnabled
+    //member this.StateListAnimator = this.StateListAnimator
+    //member this.SystemUiVisibility = this.SystemUiVisibility
+    //member this.TextAlignment = this.TextAlignment
+    //member this.TextDirection = this.TextDirection
+    member this.TransitionName = this.TransitionName
+    member this.TranslationX = this.TranslationX
+    member this.TranslationY = this.TranslationY
+    member this.TranslationZ = this.TranslationY
+    member this.VerticalFadingEdgeEnabled = this.VerticalFadingEdgeEnabled
+    member this.VerticalScrollBarEnabled = this.VerticalScrollBarEnabled
+    //member this.VerticalScrollbarPosition = this.VerticalScrollbarPosition
+    member this.Visibility = this.Visibility
 
 // This is a hack around the F# compiler. We want to ensure that
 // the default event handlers are values so that they can be effectively
@@ -331,91 +331,91 @@ module private ViewProps =
   //let private defaultViewConfiguration = new ViewConfiguration()
 
   let internal defaultProps = {
-    accessibilityLiveRegion = ViewCompat.AccessibilityLiveRegionNone
-    accessibilityTraversalAfter = View.NoId
-    accessibilityTraversalBefore = View.NoId
-    activated = false
-    alpha = 1.0f
-    background = defaultBackground
-    clickable = false
-    contentDescription = ""
-    contextClickable = false
-    drawingCacheEnabled = false
-    drawingCacheQuality = DrawingCacheQuality.Auto
-    elevation = 0.0f
-    enabled = false
-    fadingEdgeLength = 0
-    filterTouchesWhenObscured = false
-    fitsSystemWindows = true
-    focusable = false
-    focusableInTouchMode = false
-    hapticFeedbackEnabled = false
-    horizontalFadingEdgeEnabled = false
-    horizontalScrollBarEnabled = false
-    id = View.NoId
-    importantForAccessibility = ViewCompat.ImportantForAccessibilityAuto
-    isScrollContainer = false
-    keepScreenOn = false
-    labelFor = View.NoId
-    layerPaint = defaultLayerPaint
-    layerType = ViewCompat.LayerTypeNone
-    layoutDirection = ViewCompat.LayoutDirectionInherit
-    layoutParameters = defaultLayoutParameters
-    longClickable = false
-    minHeight = 0
-    minWidth = 0
-    nestedScrollingEnabled = false
-    nextFocusDownId = View.NoId
-    nextFocusForwardId = View.NoId
-    nextFocusLeftId = View.NoId
-    nextFocusRightId = View.NoId
-    nextFocusUpId = View.NoId
-    onClick = defaultOnClick
-    onCreateContextMenu = defaultOnCreateContextMenu
-    onDrag = defaultOnDrag
-    onFocusChange = defaultOnFocusChange
-    onGenericMotion = defaultOnGenericMotion
-    onHover = defaultOnHover
-    onKey = defaultOnKey
-    onLongClick = defaultOnLongClick
-    onSystemUiVisibilityChange = defaultOnSystemUiVisibilityChange
-    onTouch = defaultOnTouch
-    //outlineProvider = ViewOutlineProvider.Background
-    overScrollBy = defaultOverScrollBy
-    overScrollMode = ViewCompat.OverScrollIfContentScrolls
-    paddingBottom = 0
-    paddingEnd = 0
-    paddingStart = 0
-    paddingTop = 0
-    pivotX = 0.0f
-    pivotY = 0.0f
-    requestFocus = defaultRequestFocus
-    rotation = 0.0f
-    rotationX = 0.0f
-    rotationY = 0.0f
-    scaleX = 1.0f
-    scaleY = 1.0f
-    //scrollBarDefaultDelayBeforeFade = ViewConfiguration.ScrollDefaultDelay
-    //scrollBarFadeDuration = ViewConfiguration.ScrollBarFadeDuration
-    //scrollBarFadingEnabled = true
-    //scrollBarSize = defaultViewConfiguration.ScaledScrollBarSize
-    scrollBarStyle = ScrollbarStyles.InsideOverlay
-    scrollBy = defaultScrollBy
-    scrollTo = defaultScrollTo
-    selected = false
-    soundEffectsEnabled = true
-    //stateListAnimator = defaultStateListAnimator
-    //systemUiVisibility =  StatusBarVisibility.Visible
-    //textAlignment = TextAlignment.Inherit
-    //textDirection = TextDirection.Inherit
-    transitionName = ""
-    translationX = 0.0f
-    translationY = 0.0f
-    translationZ = 0.0f
-    verticalFadingEdgeEnabled = false
-    verticalScrollBarEnabled = false
-    //verticalScrollbarPosition = ScrollbarPosition.Default
-    visibility = ViewStates.Visible
+    AccessibilityLiveRegion = ViewCompat.AccessibilityLiveRegionNone
+    AccessibilityTraversalAfter = View.NoId
+    AccessibilityTraversalBefore = View.NoId
+    Activated = false
+    Alpha = 1.0f
+    Background = defaultBackground
+    Clickable = false
+    ContentDescription = ""
+    ContextClickable = false
+    DrawingCacheEnabled = false
+    DrawingCacheQuality = DrawingCacheQuality.Auto
+    Elevation = 0.0f
+    Enabled = false
+    FadingEdgeLength = 0
+    FilterTouchesWhenObscured = false
+    FitsSystemWindows = true
+    Focusable = false
+    FocusableInTouchMode = false
+    HapticFeedbackEnabled = false
+    HorizontalFadingEdgeEnabled = false
+    HorizontalScrollBarEnabled = false
+    Id = View.NoId
+    ImportantForAccessibility = ViewCompat.ImportantForAccessibilityAuto
+    IsScrollContainer = false
+    KeepScreenOn = false
+    LabelFor = View.NoId
+    LayerPaint = defaultLayerPaint
+    LayerType = ViewCompat.LayerTypeNone
+    LayoutDirection = ViewCompat.LayoutDirectionInherit
+    LayoutParameters = defaultLayoutParameters
+    LongClickable = false
+    MinHeight = 0
+    MinWidth = 0
+    NestedScrollingEnabled = false
+    NextFocusDownId = View.NoId
+    NextFocusForwardId = View.NoId
+    NextFocusLeftId = View.NoId
+    NextFocusRightId = View.NoId
+    NextFocusUpId = View.NoId
+    OnClick = defaultOnClick
+    OnCreateContextMenu = defaultOnCreateContextMenu
+    OnDrag = defaultOnDrag
+    OnFocusChange = defaultOnFocusChange
+    OnGenericMotion = defaultOnGenericMotion
+    OnHover = defaultOnHover
+    OnKey = defaultOnKey
+    OnLongClick = defaultOnLongClick
+    OnSystemUiVisibilityChange = defaultOnSystemUiVisibilityChange
+    OnTouch = defaultOnTouch
+    //OutlineProvider = ViewOutlineProvider.Background
+    OverScrollBy = defaultOverScrollBy
+    OverScrollMode = ViewCompat.OverScrollIfContentScrolls
+    PaddingBottom = 0
+    PaddingEnd = 0
+    PaddingStart = 0
+    PaddingTop = 0
+    PivotX = 0.0f
+    PivotY = 0.0f
+    RequestFocus = defaultRequestFocus
+    Rotation = 0.0f
+    RotationX = 0.0f
+    RotationY = 0.0f
+    ScaleX = 1.0f
+    ScaleY = 1.0f
+    //ScrollBarDefaultDelayBeforeFade = ViewConfiguration.ScrollDefaultDelay
+    //ScrollBarFadeDuration = ViewConfiguration.ScrollBarFadeDuration
+    //ScrollBarFadingEnabled = true
+    //ScrollBarSize = defaultViewConfiguration.ScaledScrollBarSize
+    ScrollBarStyle = ScrollbarStyles.InsideOverlay
+    ScrollBy = defaultScrollBy
+    ScrollTo = defaultScrollTo
+    Selected = false
+    SoundEffectsEnabled = true
+    //StateListAnimator = defaultStateListAnimator
+    //SystemUiVisibility =  StatusBarVisibility.Visible
+    //TextAlignment = TextAlignment.Inherit
+    //TextDirection = TextDirection.Inherit
+    TransitionName = ""
+    TranslationX = 0.0f
+    TranslationY = 0.0f
+    TranslationZ = 0.0f
+    VerticalFadingEdgeEnabled = false
+    VerticalScrollBarEnabled = false
+    //VerticalScrollbarPosition = ScrollbarPosition.Default
+    Visibility = ViewStates.Visible
   }
 
 type ViewProps with
@@ -590,7 +590,7 @@ module View =
     ViewCompat.SetPivotY(view, props.PivotY)
 
     let requestFocusSubcription =
-      if props.RequestFocus <> ViewProps.Default.requestFocus then
+      if props.RequestFocus <> ViewProps.Default.RequestFocus then
         props.RequestFocus
         |> Observable.observeOn Scheduler.mainLoopScheduler
         |> Observable.iter (view.RequestFocus >> ignore)
@@ -611,7 +611,7 @@ module View =
     view.Selected <- props.Selected
 
     let scrollBySubcription =
-      if props.ScrollBy <> ViewProps.Default.scrollBy then
+      if props.ScrollBy <> ViewProps.Default.ScrollBy then
         props.ScrollBy
         |> Observable.observeOn Scheduler.mainLoopScheduler
         |> Observable.iter view.ScrollBy
@@ -619,7 +619,7 @@ module View =
       else Disposable.Empty
 
     let scrollToSubcription =
-      if props.ScrollTo <> ViewProps.Default.scrollTo then
+      if props.ScrollTo <> ViewProps.Default.ScrollTo then
         props.ScrollTo
         |> Observable.observeOn Scheduler.mainLoopScheduler
         |> Observable.iter view.ScrollTo
