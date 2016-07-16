@@ -27,9 +27,13 @@ type RatingBarProps =
     Activated: bool
     Alpha: float32
     Background: Func<Drawable>
+    CameraDistance: Single
     Clickable: bool
+    ClipBounds: Func<Option<Rect>>
+    ClipToOutline: bool
     ContextClickable: bool
     ContentDescription: string
+    DrawingCacheBackgroundColor: Color
     DrawingCacheEnabled: bool
     DrawingCacheQuality: DrawingCacheQuality
     Elevation: Single
@@ -71,31 +75,30 @@ type RatingBarProps =
     OnSystemUiVisibilityChange: Action<StatusBarVisibility>
     OnTouch: Func<MotionEvent, bool>
     //OutlineProvider: ViewOutlineProvider
-    OverScrollBy: IObservable<int * int * int * int * int * int * int * int * bool>
     OverScrollMode: int
     Padding: ViewPadding
     Pivot: Single * Single
     RequestFocus: IObservable<FocusSearchDirection>
     Rotation: Single * Single * Single
     Scale: Single * Single
-    //ScrollBarDefaultDelayBeforeFade: int32
-    //ScrollBarFadeDuration: int32
-    //ScrollBarFadingEnabled: bool
-    //ScrollBarSize: int
+    ScrollBarDefaultDelayBeforeFade: int32
+    ScrollBarFadeDuration: int32
+    ScrollBarFadingEnabled: bool
+    ScrollBarSize: int
     ScrollBarStyle: ScrollbarStyles
     ScrollBy: IObservable<int * int>
     ScrollTo: IObservable<int * int>
     Selected: bool
     SoundEffectsEnabled: bool
     //StateListAnimator: StateListAnimator
-    //SystemUiVisibility: StatusBarVisibility
-    //TextAlignment: TextAlignment
-    //TextDirection: TextDirection
+    SystemUiVisibility: StatusBarVisibility
+    TextAlignment: TextAlignment
+    TextDirection: TextDirection
     TransitionName: string
     Translation: Single * Single * Single
     VerticalFadingEdgeEnabled: bool
     VerticalScrollBarEnabled: bool
-    //VerticalScrollbarPosition: ScrollbarPosition
+    VerticalScrollbarPosition: ScrollbarPosition
     Visibility: ViewStates
   }
 
@@ -107,9 +110,13 @@ type RatingBarProps =
     member this.Activated = this.Activated
     member this.Alpha = this.Alpha
     member this.Background = this.Background
+    member this.CameraDistance = this.CameraDistance
     member this.Clickable = this.Clickable
+    member this.ClipBounds = this.ClipBounds
+    member this.ClipToOutline = this.ClipToOutline
     member this.ContentDescription = this.ContentDescription
     member this.ContextClickable = this.ContextClickable
+    member this.DrawingCacheBackgroundColor = this.DrawingCacheBackgroundColor
     member this.DrawingCacheEnabled = this.DrawingCacheEnabled
     member this.DrawingCacheQuality = this.DrawingCacheQuality
     member this.Elevation = this.Elevation
@@ -151,31 +158,30 @@ type RatingBarProps =
     member this.OnSystemUiVisibilityChange = this.OnSystemUiVisibilityChange
     member this.OnTouch = this.OnTouch
     //member this.OutlineProvider = this.OutlineProvider
-    member this.OverScrollBy = this.OverScrollBy
     member this.OverScrollMode = this.OverScrollMode
     member this.Padding = this.Padding
     member this.Pivot = this.Pivot
     member this.RequestFocus = this.RequestFocus
     member this.Rotation = this.Rotation
     member this.Scale = this.Scale
-    //member this.ScrollBarDefaultDelayBeforeFade = this.ScrollBarDefaultDelayBeforeFade
-    //member this.ScrollBarFadeDuration = this.ScrollBarFadeDuration
-    //member this.ScrollBarFadingEnabled = this.ScrollBarFadingEnabled
-    //member this.ScrollBarSize = this.ScrollBarSize
+    member this.ScrollBarDefaultDelayBeforeFade = this.ScrollBarDefaultDelayBeforeFade
+    member this.ScrollBarFadeDuration = this.ScrollBarFadeDuration
+    member this.ScrollBarFadingEnabled = this.ScrollBarFadingEnabled
+    member this.ScrollBarSize = this.ScrollBarSize
     member this.ScrollBarStyle = this.ScrollBarStyle
     member this.ScrollBy = this.ScrollBy
     member this.ScrollTo = this.ScrollTo
     member this.Selected = this.Selected
     member this.SoundEffectsEnabled = this.SoundEffectsEnabled
     //member this.StateListAnimator = this.StateListAnimator
-    //member this.SystemUiVisibility = this.SystemUiVisibility
-    //member this.TextAlignment = this.TextAlignment
-    //member this.TextDirection = this.TextDirection
+    member this.SystemUiVisibility = this.SystemUiVisibility
+    member this.TextAlignment = this.TextAlignment
+    member this.TextDirection = this.TextDirection
     member this.TransitionName = this.TransitionName
     member this.Translation = this.Translation
     member this.VerticalFadingEdgeEnabled = this.VerticalFadingEdgeEnabled
     member this.VerticalScrollBarEnabled = this.VerticalScrollBarEnabled
-    //member this.VerticalScrollbarPosition = this.VerticalScrollbarPosition
+    member this.VerticalScrollbarPosition = this.VerticalScrollbarPosition
     member this.Visibility = this.Visibility
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
@@ -188,9 +194,13 @@ module private RatingBarProps =
     Activated = ViewProps.Default.Activated
     Alpha = ViewProps.Default.Alpha
     Background = ViewProps.Default.Background
+    CameraDistance = ViewProps.Default.CameraDistance
     Clickable = ViewProps.Default.Clickable
+    ClipBounds = ViewGroupProps.Default.ClipBounds
+    ClipToOutline = ViewGroupProps.Default.ClipToOutline
     ContentDescription = ViewProps.Default.ContentDescription
     ContextClickable = ViewProps.Default.ContextClickable
+    DrawingCacheBackgroundColor = ViewGroupProps.Default.DrawingCacheBackgroundColor
     DrawingCacheEnabled = ViewProps.Default.DrawingCacheEnabled
     DrawingCacheQuality = ViewProps.Default.DrawingCacheQuality
     Elevation = ViewProps.Default.Elevation
@@ -232,31 +242,30 @@ module private RatingBarProps =
     OnSystemUiVisibilityChange = ViewProps.Default.OnSystemUiVisibilityChange
     OnTouch = ViewProps.Default.OnTouch
     //OutlineProvider = ViewProps.Default.OutlineProvider
-    OverScrollBy = ViewProps.Default.OverScrollBy
     OverScrollMode = ViewProps.Default.OverScrollMode
     Padding = ViewProps.Default.Padding
     Pivot = ViewProps.Default.Pivot
     RequestFocus = ViewProps.Default.RequestFocus
     Rotation = ViewProps.Default.Rotation
     Scale = ViewProps.Default.Scale
-    //ScrollBarDefaultDelayBeforeFade = ViewProps.Default.ScrollBarDefaultDelayBeforeFade
-    //ScrollBarFadeDuration = ViewProps.Default.ScrollBarDefaultDelayBeforeFade
-    //ScrollBarFadingEnabled = ViewProps.Default.ScrollBarFadingEnabled
-    //ScrollBarSize = ViewProps.Default.ScrollBarSize
+    ScrollBarDefaultDelayBeforeFade = ViewProps.Default.ScrollBarDefaultDelayBeforeFade
+    ScrollBarFadeDuration = ViewProps.Default.ScrollBarDefaultDelayBeforeFade
+    ScrollBarFadingEnabled = ViewProps.Default.ScrollBarFadingEnabled
+    ScrollBarSize = ViewProps.Default.ScrollBarSize
     ScrollBarStyle = ViewProps.Default.ScrollBarStyle
     ScrollBy = ViewProps.Default.ScrollBy
     ScrollTo = ViewProps.Default.ScrollTo
     Selected = ViewProps.Default.Selected
     SoundEffectsEnabled = ViewProps.Default.SoundEffectsEnabled
     //StateListAnimator = ViewProps.Default.StateListAnimator
-    //SystemUiVisibility =  ViewProps.Default.SystemUiVisibility
-    //TextAlignment = ViewProps.Default.TextAlignment
-    //TextDirection = ViewProps.Default.TextDirection
+    SystemUiVisibility =  ViewProps.Default.SystemUiVisibility
+    TextAlignment = ViewProps.Default.TextAlignment
+    TextDirection = ViewProps.Default.TextDirection
     TransitionName = ViewProps.Default.TransitionName
     Translation = ViewProps.Default.Translation
     VerticalFadingEdgeEnabled = ViewProps.Default.VerticalFadingEdgeEnabled
     VerticalScrollBarEnabled = ViewProps.Default.VerticalScrollBarEnabled
-    //VerticalScrollbarPosition = ViewProps.Default.VerticalScrollbarPosition
+    VerticalScrollbarPosition = ViewProps.Default.VerticalScrollbarPosition
     Visibility = ViewProps.Default.Visibility
   }
 
