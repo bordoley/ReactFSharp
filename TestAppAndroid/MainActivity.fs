@@ -3,6 +3,7 @@
 open Android.App
 open Android.Content
 open Android.Graphics
+open Android.Graphics.Drawables
 open Android.OS
 open Android.Runtime
 open Android.Support.V7.Widget
@@ -16,7 +17,7 @@ open React.Android.Widget
 open System
 
 type MyComponentProps = {
-  onClick: Func<unit, unit>
+  onClick: Action
   count: int
 }
 
@@ -24,12 +25,19 @@ type MyComponentProps = {
 type MainActivity () =
   inherit Activity ()
 
-  let fillWidthWrapHeightLayoutParams = new LinearLayoutCompat.LayoutParams(-1, -2)
+  let fillWidthWrapHeightLayoutParams =
+    Func<ViewGroup.LayoutParams>(fun () -> new LinearLayoutCompat.LayoutParams(-1, -2) :> ViewGroup.LayoutParams)
+
+  let redDrawable =
+    Func<Drawable>(fun () -> new ColorDrawable(Color.Red) :> Drawable)
 
   let MyComponent = ReactComponent.makeLazy (fun (props: MyComponentProps) ->
     let focusEvent = new Event<unit>()
+    let focusDownRequested =
+      focusEvent.Publish |> Observable.map (fun _ -> FocusSearchDirection.Down)
+    let requestFocusDown = Action focusEvent.Trigger
 
-    Components.LinearLayout { 
+    Components.LinearLayout {
       LinearLayoutProps.Default with
         orientation = (int) Orientation.Vertical
     } ( ImmutableVector.createUnsafe
@@ -42,8 +50,10 @@ type MainActivity () =
             } (ImmutableMap.empty ())
 
             Components.Button {
-              TextViewProps.Default with
-                backgroundColor = Color.Black
+              ButtonProps.Default with
+                activated = true
+                background = redDrawable
+                clickable = true
                 enabled = true
                 layoutParameters = fillWidthWrapHeightLayoutParams
                 text = "Click on me to increment"
@@ -51,12 +61,14 @@ type MainActivity () =
              }
 
             Components.Button {
-              TextViewProps.Default with
-                backgroundColor = Color.Black
+              ButtonProps.Default with
+                activated = true
+                background = redDrawable
+                clickable = true
                 enabled = true
                 layoutParameters = fillWidthWrapHeightLayoutParams
                 text = "Move focus"
-                onClick = Func<unit, unit>(focusEvent.Trigger)
+                onClick = requestFocusDown
              }
 
             Components.TextView {
@@ -74,7 +86,7 @@ type MainActivity () =
                 focusable = true
                 focusableInTouchMode = true
                 layoutParameters = fillWidthWrapHeightLayoutParams
-                requestFocus = focusEvent.Publish
+                requestFocus = focusDownRequested
                 text = "I should have focus"
             }
           |]
@@ -89,7 +101,7 @@ type MainActivity () =
     let shouldUpdate old updated = true
 
     let actions = new Event<unit>()
-    let onClick = Func<unit, unit>(actions.Trigger)
+    let onClick = Action actions.Trigger
 
     let render (props: unit, state: int) = MyComponent {
       onClick = onClick
@@ -133,9 +145,9 @@ type MainActivity () =
           this.SetContentView (view)
       | None -> this.SetContentView null
 
-    let subscription = 
+    let subscription =
       MyStatefulComponent ()
-      |> ReactView.render views this 
+      |> ReactView.render views this
       |> Observable.subscribeWithError updateView onError
 
     ()
