@@ -13,6 +13,13 @@ open System
 open System.Reactive.Disposables
 open System.Runtime.CompilerServices
 
+type ViewPadding = {
+  Bottom: int
+  End: int
+  Start: int
+  Top: int
+}
+
 type IViewProps =
   abstract member AccessibilityLiveRegion: int
   abstract member AccessibilityTraversalAfter: int
@@ -66,10 +73,7 @@ type IViewProps =
   //abstract member OutlineProvider: ViewOutlineProvider
   abstract member OverScrollBy: IObservable<int * int * int * int * int * int * int * int * bool>
   abstract member OverScrollMode: int
-  abstract member PaddingBottom: int
-  abstract member PaddingEnd: int
-  abstract member PaddingStart: int
-  abstract member PaddingTop: int
+  abstract member Padding: ViewPadding
   abstract member PivotX: Single
   abstract member PivotY: Single
   abstract member RequestFocus: IObservable<FocusSearchDirection>
@@ -154,10 +158,7 @@ type ViewProps =
     //OutlineProvider: ViewOutlineProvider
     OverScrollBy: IObservable<int * int * int * int * int * int * int * int * bool>
     OverScrollMode: int
-    PaddingBottom: int
-    PaddingEnd: int
-    PaddingStart: int
-    PaddingTop: int
+    Padding: ViewPadding
     PivotX: Single
     PivotY: Single
     RequestFocus: IObservable<FocusSearchDirection>
@@ -243,10 +244,7 @@ type ViewProps =
     //member this.OutlineProvider = this.OutlineProvider
     member this.OverScrollBy = this.OverScrollBy
     member this.OverScrollMode = this.OverScrollMode
-    member this.PaddingBottom = this.PaddingBottom
-    member this.PaddingEnd = this.PaddingEnd
-    member this.PaddingStart = this.PaddingStart
-    member this.PaddingTop = this.PaddingTop
+    member this.Padding = this.Padding
     member this.PivotX = this.PivotX
     member this.PivotY = this.PivotY
     member this.RequestFocus = this.RequestFocus
@@ -320,6 +318,13 @@ module private ViewProps =
 
   let private defaultOverScrollBy = Observable.empty<int * int * int * int * int * int * int * int * bool>
 
+  let private defaultPadding = {
+    Bottom = 0
+    End = 0
+    Start = 0
+    Top = 0
+  }
+
   let private defaultRequestFocus = Observable.empty<FocusSearchDirection>
 
   let private defaultScrollBy = Observable.empty<int * int>
@@ -383,10 +388,7 @@ module private ViewProps =
     //OutlineProvider = ViewOutlineProvider.Background
     OverScrollBy = defaultOverScrollBy
     OverScrollMode = ViewCompat.OverScrollIfContentScrolls
-    PaddingBottom = 0
-    PaddingEnd = 0
-    PaddingStart = 0
-    PaddingTop = 0
+    Padding = defaultPadding
     PivotX = 0.0f
     PivotY = 0.0f
     RequestFocus = defaultRequestFocus
@@ -581,10 +583,10 @@ module View =
     ViewCompat.SetOverScrollMode(view, props.OverScrollMode)
     ViewCompat.SetPaddingRelative(
       view,
-      props.PaddingStart,
-      props.PaddingTop,
-      props.PaddingEnd,
-      props.PaddingBottom
+      props.Padding.Start,
+      props.Padding.Top,
+      props.Padding.End,
+      props.Padding.Bottom
     )
     ViewCompat.SetPivotX(view, props.PivotX)
     ViewCompat.SetPivotY(view, props.PivotY)

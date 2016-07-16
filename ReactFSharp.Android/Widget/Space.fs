@@ -72,10 +72,7 @@ type SpaceProps =
     //OutlineProvider: ViewOutlineProvider
     OverScrollBy: IObservable<int * int * int * int * int * int * int * int * bool>
     OverScrollMode: int
-    PaddingBottom: int
-    PaddingEnd: int
-    PaddingStart: int
-    PaddingTop: int
+    Padding: ViewPadding
     PivotX: Single
     PivotY: Single
     RequestFocus: IObservable<FocusSearchDirection>
@@ -161,10 +158,7 @@ type SpaceProps =
     //member this.OutlineProvider = this.OutlineProvider
     member this.OverScrollBy = this.OverScrollBy
     member this.OverScrollMode = this.OverScrollMode
-    member this.PaddingBottom = this.PaddingBottom
-    member this.PaddingEnd = this.PaddingEnd
-    member this.PaddingStart = this.PaddingStart
-    member this.PaddingTop = this.PaddingTop
+    member this.Padding = this.Padding
     member this.PivotX = this.PivotX
     member this.PivotY = this.PivotY
     member this.RequestFocus = this.RequestFocus
@@ -251,10 +245,7 @@ module private SpaceProps =
     //OutlineProvider = ViewProps.Default.OutlineProvider
     OverScrollBy = ViewProps.Default.OverScrollBy
     OverScrollMode = ViewProps.Default.OverScrollMode
-    PaddingBottom = ViewProps.Default.PaddingBottom
-    PaddingEnd = ViewProps.Default.PaddingEnd
-    PaddingStart = ViewProps.Default.PaddingStart
-    PaddingTop = ViewProps.Default.PaddingTop
+    Padding = ViewProps.Default.Padding
     PivotX = ViewProps.Default.PivotX
     PivotY = ViewProps.Default.PivotY
     RequestFocus = ViewProps.Default.RequestFocus

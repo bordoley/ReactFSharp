@@ -76,10 +76,7 @@ type ToolbarProps =
     //OutlineProvider: ViewOutlineProvider
     OverScrollBy: IObservable<int * int * int * int * int * int * int * int * bool>
     OverScrollMode: int
-    PaddingBottom: int
-    PaddingEnd: int
-    PaddingStart: int
-    PaddingTop: int
+    Padding: ViewPadding
     PivotX: Single
     PivotY: Single
     RequestFocus: IObservable<FocusSearchDirection>
@@ -169,10 +166,7 @@ type ToolbarProps =
     //member this.OutlineProvider = this.OutlineProvider
     member this.OverScrollBy = this.OverScrollBy
     member this.OverScrollMode = this.OverScrollMode
-    member this.PaddingBottom = this.PaddingBottom
-    member this.PaddingEnd = this.PaddingEnd
-    member this.PaddingStart = this.PaddingStart
-    member this.PaddingTop = this.PaddingTop
+    member this.Padding = this.Padding
     member this.PivotX = this.PivotX
     member this.PivotY = this.PivotY
     member this.RequestFocus = this.RequestFocus
@@ -263,10 +257,7 @@ module private ToolbarProps =
     //OutlineProvider = ViewGroupProps.Default.OutlineProvider
     OverScrollBy = ViewGroupProps.Default.OverScrollBy
     OverScrollMode = ViewGroupProps.Default.OverScrollMode
-    PaddingBottom = ViewGroupProps.Default.PaddingBottom
-    PaddingEnd = ViewGroupProps.Default.PaddingEnd
-    PaddingStart = ViewGroupProps.Default.PaddingStart
-    PaddingTop = ViewGroupProps.Default.PaddingTop
+    Padding = ViewGroupProps.Default.Padding
     PivotX = ViewGroupProps.Default.PivotX
     PivotY = ViewGroupProps.Default.PivotY
     RequestFocus = ViewGroupProps.Default.RequestFocus

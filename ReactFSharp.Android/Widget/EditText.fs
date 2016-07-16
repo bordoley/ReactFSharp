@@ -73,10 +73,7 @@ type EditTextProps =
     //OutlineProvider: ViewOutlineProvider
     OverScrollBy: IObservable<int * int * int * int * int * int * int * int * bool>
     OverScrollMode: int
-    PaddingBottom: int
-    PaddingEnd: int
-    PaddingStart: int
-    PaddingTop: int
+    Padding: ViewPadding
     PivotX: Single
     PivotY: Single
     RequestFocus: IObservable<FocusSearchDirection>
@@ -165,10 +162,7 @@ type EditTextProps =
     //member this.OutlineProvider = this.OutlineProvider
     member this.OverScrollBy = this.OverScrollBy
     member this.OverScrollMode = this.OverScrollMode
-    member this.PaddingBottom = this.PaddingBottom
-    member this.PaddingEnd = this.PaddingEnd
-    member this.PaddingStart = this.PaddingStart
-    member this.PaddingTop = this.PaddingTop
+    member this.Padding = this.Padding
     member this.PivotX = this.PivotX
     member this.PivotY = this.PivotY
     member this.RequestFocus = this.RequestFocus
@@ -258,10 +252,7 @@ module private EditTextProps =
     //OutlineProvider = TextViewProps.Default.OutlineProvider
     OverScrollBy = TextViewProps.Default.OverScrollBy
     OverScrollMode = TextViewProps.Default.OverScrollMode
-    PaddingBottom = TextViewProps.Default.PaddingBottom
-    PaddingEnd = TextViewProps.Default.PaddingEnd
-    PaddingStart = TextViewProps.Default.PaddingStart
-    PaddingTop = TextViewProps.Default.PaddingTop
+    Padding = TextViewProps.Default.Padding
     PivotX = TextViewProps.Default.PivotX
     PivotY = TextViewProps.Default.PivotY
     RequestFocus = TextViewProps.Default.RequestFocus
