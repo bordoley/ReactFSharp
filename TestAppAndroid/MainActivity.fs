@@ -40,6 +40,13 @@ type MainActivity () =
     Components.LinearLayout {
       LinearLayoutProps.Default with
         orientation = (int) Orientation.Vertical
+        Padding =
+          {
+            Top = 10
+            Bottom = 10
+            Start = 10
+            End = 10
+          }
     } ( ImmutableVector.createUnsafe
           [|
             Components.Toolbar {

@@ -73,14 +73,10 @@ type SpaceProps =
     OverScrollBy: IObservable<int * int * int * int * int * int * int * int * bool>
     OverScrollMode: int
     Padding: ViewPadding
-    PivotX: Single
-    PivotY: Single
+    Pivot: Single * Single
     RequestFocus: IObservable<FocusSearchDirection>
-    Rotation: Single
-    RotationX: Single
-    RotationY: Single
-    ScaleX: Single
-    ScaleY: Single
+    Rotation: Single * Single * Single
+    Scale: Single * Single
     //ScrollBarDefaultDelayBeforeFade: int32
     //ScrollBarFadeDuration: int32
     //ScrollBarFadingEnabled: bool
@@ -95,9 +91,7 @@ type SpaceProps =
     //TextAlignment: TextAlignment
     //TextDirection: TextDirection
     TransitionName: string
-    TranslationX: Single
-    TranslationY: Single
-    TranslationZ: Single
+    Translation: Single * Single * Single
     VerticalFadingEdgeEnabled: bool
     VerticalScrollBarEnabled: bool
     //VerticalScrollbarPosition: ScrollbarPosition
@@ -159,14 +153,10 @@ type SpaceProps =
     member this.OverScrollBy = this.OverScrollBy
     member this.OverScrollMode = this.OverScrollMode
     member this.Padding = this.Padding
-    member this.PivotX = this.PivotX
-    member this.PivotY = this.PivotY
+    member this.Pivot = this.Pivot
     member this.RequestFocus = this.RequestFocus
     member this.Rotation = this.Rotation
-    member this.RotationX= this.RotationX
-    member this.RotationY= this.RotationY
-    member this.ScaleX = this.ScaleX
-    member this.ScaleY = this.ScaleY
+    member this.Scale = this.Scale
     //member this.ScrollBarDefaultDelayBeforeFade = this.ScrollBarDefaultDelayBeforeFade
     //member this.ScrollBarFadeDuration = this.ScrollBarFadeDuration
     //member this.ScrollBarFadingEnabled = this.ScrollBarFadingEnabled
@@ -181,9 +171,7 @@ type SpaceProps =
     //member this.TextAlignment = this.TextAlignment
     //member this.TextDirection = this.TextDirection
     member this.TransitionName = this.TransitionName
-    member this.TranslationX = this.TranslationX
-    member this.TranslationY = this.TranslationY
-    member this.TranslationZ = this.TranslationY
+    member this.Translation = this.Translation
     member this.VerticalFadingEdgeEnabled = this.VerticalFadingEdgeEnabled
     member this.VerticalScrollBarEnabled = this.VerticalScrollBarEnabled
     //member this.VerticalScrollbarPosition = this.VerticalScrollbarPosition
@@ -246,14 +234,10 @@ module private SpaceProps =
     OverScrollBy = ViewProps.Default.OverScrollBy
     OverScrollMode = ViewProps.Default.OverScrollMode
     Padding = ViewProps.Default.Padding
-    PivotX = ViewProps.Default.PivotX
-    PivotY = ViewProps.Default.PivotY
+    Pivot = ViewProps.Default.Pivot
     RequestFocus = ViewProps.Default.RequestFocus
     Rotation = ViewProps.Default.Rotation
-    RotationX = ViewProps.Default.RotationX
-    RotationY = ViewProps.Default.RotationY
-    ScaleX = ViewProps.Default.ScaleX
-    ScaleY = ViewProps.Default.ScaleY
+    Scale = ViewProps.Default.Scale
     //ScrollBarDefaultDelayBeforeFade = ViewProps.Default.ScrollBarDefaultDelayBeforeFade
     //ScrollBarFadeDuration = ViewProps.Default.ScrollBarDefaultDelayBeforeFade
     //ScrollBarFadingEnabled = ViewProps.Default.ScrollBarFadingEnabled
@@ -268,9 +252,7 @@ module private SpaceProps =
     //TextAlignment = ViewProps.Default.TextAlignment
     //TextDirection = ViewProps.Default.TextDirection
     TransitionName = ViewProps.Default.TransitionName
-    TranslationX = ViewProps.Default.TranslationX
-    TranslationY = ViewProps.Default.TranslationY
-    TranslationZ = ViewProps.Default.TranslationZ
+    Translation = ViewProps.Default.Translation
     VerticalFadingEdgeEnabled = ViewProps.Default.VerticalFadingEdgeEnabled
     VerticalScrollBarEnabled = ViewProps.Default.VerticalScrollBarEnabled
     //VerticalScrollbarPosition = ViewProps.Default.VerticalScrollbarPosition

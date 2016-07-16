@@ -74,14 +74,10 @@ type IViewProps =
   abstract member OverScrollBy: IObservable<int * int * int * int * int * int * int * int * bool>
   abstract member OverScrollMode: int
   abstract member Padding: ViewPadding
-  abstract member PivotX: Single
-  abstract member PivotY: Single
+  abstract member Pivot: Single (* X *) * Single (* Y *)
   abstract member RequestFocus: IObservable<FocusSearchDirection>
-  abstract member Rotation: Single
-  abstract member RotationX: Single
-  abstract member RotationY: Single
-  abstract member ScaleX: Single
-  abstract member ScaleY: Single
+  abstract member Rotation: Single (* Pivot *) * Single (* X *) * Single (* Y *)
+  abstract member Scale: Single (* X *) * Single (* Y *)
   //abstract member ScrollBarDefaultDelayBeforeFade: int32
   //abstract member ScrollBarFadeDuration: int32
   //abstract member ScrollBarFadingEnabled: bool
@@ -96,9 +92,7 @@ type IViewProps =
   //abstract member TextAlignment: TextAlignment
   //abstract member TextDirection: TextDirection
   abstract member TransitionName: string
-  abstract member TranslationX: Single
-  abstract member TranslationY: Single
-  abstract member TranslationZ: Single
+  abstract member Translation: Single (* X *) * Single (* Y *) * Single (* Z *)
   abstract member VerticalFadingEdgeEnabled: bool
   abstract member VerticalScrollBarEnabled: bool
   //abstract member VerticalScrollbarPosition: ScrollbarPosition
@@ -159,14 +153,10 @@ type ViewProps =
     OverScrollBy: IObservable<int * int * int * int * int * int * int * int * bool>
     OverScrollMode: int
     Padding: ViewPadding
-    PivotX: Single
-    PivotY: Single
+    Pivot: Single * Single
     RequestFocus: IObservable<FocusSearchDirection>
-    Rotation: Single
-    RotationX: Single
-    RotationY: Single
-    ScaleX: Single
-    ScaleY: Single
+    Rotation: Single * Single * Single
+    Scale: Single * Single
     //ScrollBarDefaultDelayBeforeFade: int32
     //ScrollBarFadeDuration: int32
     //ScrollBarFadingEnabled: bool
@@ -181,9 +171,7 @@ type ViewProps =
     //TextAlignment: TextAlignment
     //TextDirection: TextDirection
     TransitionName: string
-    TranslationX: Single
-    TranslationY: Single
-    TranslationZ: Single
+    Translation: Single * Single * Single
     VerticalFadingEdgeEnabled: bool
     VerticalScrollBarEnabled: bool
     //VerticalScrollbarPosition: ScrollbarPosition
@@ -245,14 +233,10 @@ type ViewProps =
     member this.OverScrollBy = this.OverScrollBy
     member this.OverScrollMode = this.OverScrollMode
     member this.Padding = this.Padding
-    member this.PivotX = this.PivotX
-    member this.PivotY = this.PivotY
+    member this.Pivot = this.Pivot
     member this.RequestFocus = this.RequestFocus
     member this.Rotation = this.Rotation
-    member this.RotationX= this.RotationX
-    member this.RotationY= this.RotationY
-    member this.ScaleX = this.ScaleX
-    member this.ScaleY = this.ScaleY
+    member this.Scale = this.Scale
     //member this.ScrollBarDefaultDelayBeforeFade = this.ScrollBarDefaultDelayBeforeFade
     //member this.ScrollBarFadeDuration = this.ScrollBarFadeDuration
     //member this.ScrollBarFadingEnabled = this.ScrollBarFadingEnabled
@@ -267,9 +251,7 @@ type ViewProps =
     //member this.TextAlignment = this.TextAlignment
     //member this.TextDirection = this.TextDirection
     member this.TransitionName = this.TransitionName
-    member this.TranslationX = this.TranslationX
-    member this.TranslationY = this.TranslationY
-    member this.TranslationZ = this.TranslationY
+    member this.Translation = this.Translation
     member this.VerticalFadingEdgeEnabled = this.VerticalFadingEdgeEnabled
     member this.VerticalScrollBarEnabled = this.VerticalScrollBarEnabled
     //member this.VerticalScrollbarPosition = this.VerticalScrollbarPosition
@@ -325,13 +307,21 @@ module private ViewProps =
     Top = 0
   }
 
+  let private defaultPivot = (0.0f, 0.0f)
+
   let private defaultRequestFocus = Observable.empty<FocusSearchDirection>
+
+  let private defaultRotation = (0.0f, 0.0f, 0.0f)
+
+  let private defaultScale = (1.0f, 1.0f)
 
   let private defaultScrollBy = Observable.empty<int * int>
 
   let private defaultScrollTo = Observable.empty<int * int>
 
   //let private defaultStateListAnimator = new StateListAnimator()
+
+  let private defaultTranslation = (0.0f, 0.0f, 0.0f)
 
   //let private defaultViewConfiguration = new ViewConfiguration()
 
@@ -389,14 +379,10 @@ module private ViewProps =
     OverScrollBy = defaultOverScrollBy
     OverScrollMode = ViewCompat.OverScrollIfContentScrolls
     Padding = defaultPadding
-    PivotX = 0.0f
-    PivotY = 0.0f
+    Pivot = defaultPivot
     RequestFocus = defaultRequestFocus
-    Rotation = 0.0f
-    RotationX = 0.0f
-    RotationY = 0.0f
-    ScaleX = 1.0f
-    ScaleY = 1.0f
+    Rotation = defaultRotation
+    Scale = defaultScale
     //ScrollBarDefaultDelayBeforeFade = ViewConfiguration.ScrollDefaultDelay
     //ScrollBarFadeDuration = ViewConfiguration.ScrollBarFadeDuration
     //ScrollBarFadingEnabled = true
@@ -411,9 +397,7 @@ module private ViewProps =
     //TextAlignment = TextAlignment.Inherit
     //TextDirection = TextDirection.Inherit
     TransitionName = ""
-    TranslationX = 0.0f
-    TranslationY = 0.0f
-    TranslationZ = 0.0f
+    Translation = defaultTranslation
     VerticalFadingEdgeEnabled = false
     VerticalScrollBarEnabled = false
     //VerticalScrollbarPosition = ScrollbarPosition.Default
@@ -588,8 +572,10 @@ module View =
       props.Padding.End,
       props.Padding.Bottom
     )
-    ViewCompat.SetPivotX(view, props.PivotX)
-    ViewCompat.SetPivotY(view, props.PivotY)
+
+    let (pivotX, pivotY) = props.Pivot
+    ViewCompat.SetPivotX(view, pivotX)
+    ViewCompat.SetPivotY(view, pivotY)
 
     let requestFocusSubcription =
       if props.RequestFocus <> ViewProps.Default.RequestFocus then
@@ -599,12 +585,14 @@ module View =
         |> Observable.subscribeWithError ignore onError
       else Disposable.Empty
 
-    ViewCompat.SetRotation(view, props.Rotation)
-    ViewCompat.SetRotationX(view, props.RotationX)
-    ViewCompat.SetRotationY(view, props.RotationY)
+    let (rotationPivot, rotationX, rotationY) = props.Rotation
+    ViewCompat.SetRotation(view, rotationPivot)
+    ViewCompat.SetRotationX(view, rotationX)
+    ViewCompat.SetRotationY(view, rotationY)
 
-    ViewCompat.SetScaleX(view, props.ScaleX)
-    ViewCompat.SetScaleY(view, props.ScaleY)
+    let (scaleX, scaleY) = props.Scale
+    ViewCompat.SetScaleX(view, scaleX)
+    ViewCompat.SetScaleY(view, scaleY)
 
     //view.ScrollBarDefaultDelayBeforeFade <- props.ScrollBarDefaultDelayBeforeFade
     //view.ScrollBarFadeDuration <- props.ScrollBarFadeDuration
@@ -635,9 +623,12 @@ module View =
     //view.TextAlignment <- props.TextAlignment
     //view.TextDirection <- props.TextDirection
     ViewCompat.SetTransitionName(view, props.TransitionName)
-    ViewCompat.SetTranslationX(view, props.TranslationX)
-    ViewCompat.SetTranslationY(view, props.TranslationY)
-    ViewCompat.SetTranslationZ(view, props.TranslationZ)
+
+    let (translationX, translationY, translationZ) = props.Translation
+    ViewCompat.SetTranslationX(view, translationX)
+    ViewCompat.SetTranslationY(view, translationY)
+    ViewCompat.SetTranslationZ(view, translationZ)
+
     view.VerticalFadingEdgeEnabled <- props.VerticalFadingEdgeEnabled
     view.VerticalScrollBarEnabled <- props.VerticalScrollBarEnabled
     //view.VerticalScrollbarPosition <- props.VerticalScrollbarPosition
