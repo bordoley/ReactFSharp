@@ -26,7 +26,7 @@ type ILinearLayoutProps =
   abstract member ShowDividers: int
   abstract member WeightSum: Single
 
-type LinearLayoutProps = 
+type LinearLayoutProps =
   {
     // View Props
     AccessibilityLiveRegion: int
@@ -108,6 +108,19 @@ type LinearLayoutProps =
     VerticalScrollBarEnabled: bool
     VerticalScrollbarPosition: ScrollbarPosition
     Visibility: ViewStates
+
+    // ViewGroup Props
+    AddStatesFromChildren: bool
+    ClipChildren: bool
+    ClipToPadding: bool
+    DescendantFocusability: DescendantFocusability
+    MotionEventSplittingEnabled: bool
+    //layoutAnimation
+    LayoutMode: int
+    // LayoutTransition
+    PersistentDrawingCache: PersistentDrawingCaches
+    TouchscreenBlocksFocus: bool
+    TransitionGroup: bool
 
     // LinearLayout Props
     baselineAligned: bool
@@ -201,6 +214,19 @@ type LinearLayoutProps =
     member this.VerticalScrollbarPosition = this.VerticalScrollbarPosition
     member this.Visibility = this.Visibility
 
+    // ViewGroup Props
+    member this.AddStatesFromChildren = this.AddStatesFromChildren
+    member this.ClipChildren = this.ClipChildren
+    member this.ClipToPadding = this.ClipToPadding
+    member this.DescendantFocusability = this.DescendantFocusability
+    member this.MotionEventSplittingEnabled = this.MotionEventSplittingEnabled
+    //layoutAnimation
+    member this.LayoutMode = this.LayoutMode
+    // LayoutTransition
+    member this.PersistentDrawingCache = this.PersistentDrawingCache
+    member this.TouchscreenBlocksFocus = this.TouchscreenBlocksFocus
+    member this.TransitionGroup = this.TransitionGroup
+
     // LinearLayout Props
     member this.BaselineAligned = this.baselineAligned
     member this.BaselineAlignedChildIndex = this.baselineAlignedChildIndex
@@ -211,7 +237,7 @@ type LinearLayoutProps =
     member this.WeightSum = this.weightSum
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
-module private LinearLayoutProps = 
+module private LinearLayoutProps =
   let internal defaultProps = {
     // View Props
     AccessibilityLiveRegion = ViewGroupProps.Default.AccessibilityLiveRegion
@@ -294,6 +320,19 @@ module private LinearLayoutProps =
     VerticalScrollbarPosition = ViewGroupProps.Default.VerticalScrollbarPosition
     Visibility = ViewGroupProps.Default.Visibility
 
+    // ViewGroup Props
+    AddStatesFromChildren = ViewGroupProps.Default.AddStatesFromChildren
+    ClipChildren = ViewGroupProps.Default.ClipChildren
+    ClipToPadding = ViewGroupProps.Default.ClipToPadding
+    DescendantFocusability = ViewGroupProps.Default.DescendantFocusability
+    MotionEventSplittingEnabled = ViewGroupProps.Default.MotionEventSplittingEnabled
+    //layoutAnimation
+    LayoutMode = ViewGroupProps.Default.LayoutMode
+    // LayoutTransition
+    PersistentDrawingCache = ViewGroupProps.Default.PersistentDrawingCache
+    TouchscreenBlocksFocus = ViewGroupProps.Default.TouchscreenBlocksFocus
+    TransitionGroup = ViewGroupProps.Default.TransitionGroup
+
     // LinearLayout Props
     baselineAligned = true
     baselineAlignedChildIndex = -1
@@ -304,14 +343,14 @@ module private LinearLayoutProps =
     weightSum = -1.0f
   }
 
-type LinearLayoutProps with 
+type LinearLayoutProps with
   static member Default = LinearLayoutProps.defaultProps
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module LinearLayout =
   let private name = typeof<LinearLayoutCompat>.FullName
 
-  let setProps (onError: Exception -> unit) (view: LinearLayoutCompat) (props: ILinearLayoutProps) = 
+  let setProps (onError: Exception -> unit) (view: LinearLayoutCompat) (props: ILinearLayoutProps) =
     view.BaselineAligned <- props.BaselineAligned
 
     if props.BaselineAlignedChildIndex >= 0 then

@@ -101,6 +101,19 @@ type FrameLayoutProps =
     VerticalScrollBarEnabled: bool
     VerticalScrollbarPosition: ScrollbarPosition
     Visibility: ViewStates
+
+    // ViewGroup Props
+    AddStatesFromChildren: bool
+    ClipChildren: bool
+    ClipToPadding: bool
+    DescendantFocusability: DescendantFocusability
+    MotionEventSplittingEnabled: bool
+    //layoutAnimation
+    LayoutMode: int
+    // LayoutTransition
+    PersistentDrawingCache: PersistentDrawingCaches
+    TouchscreenBlocksFocus: bool
+    TransitionGroup: bool
   }
 
   interface IFrameLayoutProps with
@@ -185,8 +198,21 @@ type FrameLayoutProps =
     member this.VerticalScrollbarPosition = this.VerticalScrollbarPosition
     member this.Visibility = this.Visibility
 
+    // ViewGroup Props
+    member this.AddStatesFromChildren = this.AddStatesFromChildren
+    member this.ClipChildren = this.ClipChildren
+    member this.ClipToPadding = this.ClipToPadding
+    member this.DescendantFocusability = this.DescendantFocusability
+    member this.MotionEventSplittingEnabled = this.MotionEventSplittingEnabled
+    //layoutAnimation
+    member this.LayoutMode = this.LayoutMode
+    // LayoutTransition
+    member this.PersistentDrawingCache = this.PersistentDrawingCache
+    member this.TouchscreenBlocksFocus = this.TouchscreenBlocksFocus
+    member this.TransitionGroup = this.TransitionGroup
+
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
-module private FrameLayoutProps = 
+module private FrameLayoutProps =
   let internal defaultProps = {
     // View Props
     AccessibilityLiveRegion = ViewGroupProps.Default.AccessibilityLiveRegion
@@ -268,6 +294,19 @@ module private FrameLayoutProps =
     VerticalScrollBarEnabled = ViewGroupProps.Default.VerticalScrollBarEnabled
     VerticalScrollbarPosition = ViewGroupProps.Default.VerticalScrollbarPosition
     Visibility = ViewGroupProps.Default.Visibility
+
+    // ViewGroup Props
+    AddStatesFromChildren = ViewGroupProps.Default.AddStatesFromChildren
+    ClipChildren = ViewGroupProps.Default.ClipChildren
+    ClipToPadding = ViewGroupProps.Default.ClipToPadding
+    DescendantFocusability = ViewGroupProps.Default.DescendantFocusability
+    MotionEventSplittingEnabled = ViewGroupProps.Default.MotionEventSplittingEnabled
+    //layoutAnimation
+    LayoutMode = ViewGroupProps.Default.LayoutMode
+    // LayoutTransition
+    PersistentDrawingCache = ViewGroupProps.Default.PersistentDrawingCache
+    TouchscreenBlocksFocus = ViewGroupProps.Default.TouchscreenBlocksFocus
+    TransitionGroup = ViewGroupProps.Default.TransitionGroup
   }
 
 type FrameLayoutProps with

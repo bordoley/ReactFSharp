@@ -15,6 +15,18 @@ open System.Runtime.CompilerServices
 type IViewGroupProps =
   inherit IViewProps
 
+  abstract member AddStatesFromChildren: bool
+  abstract member ClipChildren: bool
+  abstract member ClipToPadding: bool
+  abstract member DescendantFocusability: DescendantFocusability
+  abstract member MotionEventSplittingEnabled: bool
+  //layoutAnimation
+  abstract member LayoutMode: int
+  // LayoutTransition
+  abstract member PersistentDrawingCache: PersistentDrawingCaches
+  abstract member TouchscreenBlocksFocus: bool
+  abstract member TransitionGroup: bool
+
 type ViewGroupProps =
   {
     AccessibilityLiveRegion: int
@@ -96,6 +108,19 @@ type ViewGroupProps =
     VerticalScrollBarEnabled: bool
     VerticalScrollbarPosition: ScrollbarPosition
     Visibility: ViewStates
+
+    // ViewGroup Props
+    AddStatesFromChildren: bool
+    ClipChildren: bool
+    ClipToPadding: bool
+    DescendantFocusability: DescendantFocusability
+    MotionEventSplittingEnabled: bool
+    //layoutAnimation
+    LayoutMode: int
+    // LayoutTransition
+    PersistentDrawingCache: PersistentDrawingCaches
+    TouchscreenBlocksFocus: bool
+    TransitionGroup: bool
   }
 
   interface IViewGroupProps with
@@ -180,6 +205,19 @@ type ViewGroupProps =
     member this.VerticalScrollbarPosition = this.VerticalScrollbarPosition
     member this.Visibility = this.Visibility
 
+    // ViewGroup Props
+    member this.AddStatesFromChildren = this.AddStatesFromChildren
+    member this.ClipChildren = this.ClipChildren
+    member this.ClipToPadding = this.ClipToPadding
+    member this.DescendantFocusability = this.DescendantFocusability
+    member this.MotionEventSplittingEnabled = this.MotionEventSplittingEnabled
+    //layoutAnimation
+    member this.LayoutMode = this.LayoutMode
+    // LayoutTransition
+    member this.PersistentDrawingCache = this.PersistentDrawingCache
+    member this.TouchscreenBlocksFocus = this.TouchscreenBlocksFocus
+    member this.TransitionGroup = this.TransitionGroup
+
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module private ViewGroupProps =
   let internal defaultProps = {
@@ -263,6 +301,19 @@ module private ViewGroupProps =
     VerticalScrollBarEnabled = ViewProps.Default.VerticalScrollBarEnabled
     VerticalScrollbarPosition = ViewProps.Default.VerticalScrollbarPosition
     Visibility = ViewProps.Default.Visibility
+
+    // ViewGroup Props
+    AddStatesFromChildren = false
+    ClipChildren = true
+    ClipToPadding = true
+    DescendantFocusability = DescendantFocusability.AfterDescendants
+    MotionEventSplittingEnabled = false
+    //layoutAnimation
+    LayoutMode = -1
+    // LayoutTransition
+    PersistentDrawingCache = PersistentDrawingCaches.ScrollingCache
+    TouchscreenBlocksFocus = false
+    TransitionGroup = false
   }
 
 type ViewGroupProps with
@@ -306,4 +357,24 @@ module ViewGroup =
       initialProps
 
   let setProps (onError: Exception -> unit) (view: ViewGroup) (props: IViewGroupProps) =
+    view.SetAddStatesFromChildren props.AddStatesFromChildren
+    view.SetClipChildren props.ClipChildren
+    view.SetClipToPadding props.ClipToPadding
+    view.DescendantFocusability <- props.DescendantFocusability
+
+    ViewGroupCompat.SetMotionEventSplittingEnabled(
+      view,
+      props.MotionEventSplittingEnabled
+    )
+    //layoutAnimation
+
+    ViewGroupCompat.SetLayoutMode(view, props.LayoutMode)
+
+    // LayoutTransition
+    view.PersistentDrawingCache <- props.PersistentDrawingCache
+
+    if Android.OS.Build.VERSION.SdkInt >= Android.OS.BuildVersionCodes.Lollipop then
+      view.TouchscreenBlocksFocus <- props.TouchscreenBlocksFocus
+   
+    ViewGroupCompat.SetTransitionGroup(view, props.TransitionGroup)
     View.setProps onError view props
