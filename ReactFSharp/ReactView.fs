@@ -29,11 +29,9 @@ module ReactView =
     match (view, dom) with
     | (Some reactView, Some dom)
           when dom.element.Name = reactView.Name ->
-        if dom.element.Props <> reactView.Props then
-          reactView.Props <- dom.element.Props
-        if dom.children <> reactView.Children then 
-          reactView.Children <- dom.children
-
+        // Let the react views filter out duplicated props/children
+        reactView.Props <- dom.element.Props
+        reactView.Children <- dom.children
         view
     | (_, Some dom) ->
         view |> Option.iter dispose
