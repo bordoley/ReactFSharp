@@ -79,7 +79,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Scheduler.fs" />
-    <Compile Include="Views\ReactView.fs" />
+    <Compile Include="ReactView.fs" />
     <Compile Include="Views\View.fs" />
     <Compile Include="Views\ViewGroup.fs" />
     <Compile Include="Widget\Space.fs" />

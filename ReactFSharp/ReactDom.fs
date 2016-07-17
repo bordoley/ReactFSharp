@@ -37,11 +37,7 @@ module ReactDom =
   let rec observe<'view> (dom: ReactDOMNode): IObservable<Option<ReactNativeDOMNode>> =
     match dom with
     | ReactStatefulDOMNode dom ->
-        let mapper (reactView: ReactDOMNode)=
-          observe reactView
-
-        dom.state
-        |> Observable.flatmap mapper
+        dom.state |> Observable.flatmap observe
     | ReactLazyDOMNode dom ->
        observe dom.child
     | ReactNativeDOMNode dom ->

@@ -11,6 +11,8 @@ Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "TestAppAndroid", "TestAppAn
 EndProject
 Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "ImmutableCollections", "ImmutableCollections\ImmutableCollections.fsproj", "{15264E12-9F19-484B-93E2-E15EB428938B}"
 EndProject
+Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "ReactFSharp.iOS", "ReactFSharp.iOS\ReactFSharp.iOS.fsproj", "{8B254B9C-A431-4A4F-8F83-A3F94B5F55C3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -81,6 +83,18 @@ Global
 		{15264E12-9F19-484B-93E2-E15EB428938B}.Release|iPhoneSimulator.Build.0 = Release|Any CPU
 		{15264E12-9F19-484B-93E2-E15EB428938B}.Debug|iPhone.ActiveCfg = Debug|Any CPU
 		{15264E12-9F19-484B-93E2-E15EB428938B}.Debug|iPhone.Build.0 = Debug|Any CPU
+		{8B254B9C-A431-4A4F-8F83-A3F94B5F55C3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8B254B9C-A431-4A4F-8F83-A3F94B5F55C3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8B254B9C-A431-4A4F-8F83-A3F94B5F55C3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8B254B9C-A431-4A4F-8F83-A3F94B5F55C3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8B254B9C-A431-4A4F-8F83-A3F94B5F55C3}.Debug|iPhoneSimulator.ActiveCfg = Debug|Any CPU
+		{8B254B9C-A431-4A4F-8F83-A3F94B5F55C3}.Debug|iPhoneSimulator.Build.0 = Debug|Any CPU
+		{8B254B9C-A431-4A4F-8F83-A3F94B5F55C3}.Release|iPhone.ActiveCfg = Release|Any CPU
+		{8B254B9C-A431-4A4F-8F83-A3F94B5F55C3}.Release|iPhone.Build.0 = Release|Any CPU
+		{8B254B9C-A431-4A4F-8F83-A3F94B5F55C3}.Release|iPhoneSimulator.ActiveCfg = Release|Any CPU
+		{8B254B9C-A431-4A4F-8F83-A3F94B5F55C3}.Release|iPhoneSimulator.Build.0 = Release|Any CPU
+		{8B254B9C-A431-4A4F-8F83-A3F94B5F55C3}.Debug|iPhone.ActiveCfg = Debug|Any CPU
+		{8B254B9C-A431-4A4F-8F83-A3F94B5F55C3}.Debug|iPhone.Build.0 = Debug|Any CPU
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
 		Policies = $0

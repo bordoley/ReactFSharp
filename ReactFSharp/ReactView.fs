@@ -29,10 +29,11 @@ module ReactView =
     match (view, dom) with
     | (Some reactView, Some dom)
           when dom.element.Name = reactView.Name ->
-        if dom.element.Props = reactView.Props then
-          if dom.children = reactView.Children then ()
-          else reactView.Children <- dom.children
-        else reactView.Props <- dom.element.Props
+        if dom.element.Props <> reactView.Props then
+          reactView.Props <- dom.element.Props
+        if dom.children <> reactView.Children then 
+          reactView.Children <- dom.children
+
         view
     | (_, Some dom) ->
         view |> Option.iter dispose
@@ -118,7 +119,7 @@ module ReactView =
         member this.Name = name
         member this.Props
           with get () = propsSubject.Value :> obj
-           and set props =
+           and set props = 
              propsSubject.OnNext (props :?> 'props)
              throwIfErrors ()
         member this.View = view

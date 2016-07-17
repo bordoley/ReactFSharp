@@ -1,10 +1,9 @@
-﻿namespace React.Android.Views
+﻿namespace React.Android
 
 open Android.Content
 open Android.Views
 open ImmutableCollections
 open React
-open React.Android
 open System
 open System.Reactive.Concurrency
 

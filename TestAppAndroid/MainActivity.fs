@@ -12,6 +12,7 @@ open Android.Widget
 open FSharp.Control.Reactive
 open ImmutableCollections
 open React
+open React.Android
 open React.Android.Views
 open React.Android.Widget
 open System
