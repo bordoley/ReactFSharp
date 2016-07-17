@@ -15,9 +15,9 @@ and ReactStatefulDOMNode =
   {
     element: ReactStatefulElement
     id: obj
-    updateProps: Func<obj, unit>
+    updateProps: Action<obj>
     state: IObservable<ReactDOMNode>
-    dispose: Func<unit, unit>
+    dispose: Action
   }
   interface IDisposable with
     member this.Dispose() = this.dispose.Invoke ()
@@ -114,9 +114,9 @@ module ReactDom =
             ReactStatefulDOMNode {
               element = ele
               id = new obj()
-              updateProps = Func<obj, unit> props.OnNext
+              updateProps = Action<obj> props.OnNext
               state = state |> Observable.asObservable
-              dispose = Func<unit, unit> dispose
+              dispose = Action dispose
             }
 
         | ReactLazyElement ele -> ReactLazyDOMNode {
