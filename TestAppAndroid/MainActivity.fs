@@ -32,12 +32,12 @@ type MainActivity () =
   let redDrawable =
     Func<Drawable>(fun () -> new ColorDrawable(Color.Red) :> Drawable)
 
-  let MyComponent = ReactComponent.makeLazy (fun (props: MyComponentProps) ->
-    let focusEvent = new Event<unit>()
-    let focusDownRequested =
-      focusEvent.Publish |> Observable.map (fun _ -> FocusSearchDirection.Down)
-    let requestFocusDown = Action focusEvent.Trigger
+  let focusEvent = new Event<unit>()
+  let focusDownRequested =
+    focusEvent.Publish |> Observable.map (fun _ -> FocusSearchDirection.Down)
+  let requestFocusDown = Action focusEvent.Trigger
 
+  let MyComponent = ReactComponent.makeLazy (fun (props: MyComponentProps) ->
     Components.LinearLayout {
       LinearLayoutProps.Default with
         orientation = (int) Orientation.Vertical

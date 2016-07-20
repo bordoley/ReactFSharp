@@ -3,12 +3,10 @@
 open FSharp.Control.Reactive
 open ImmutableCollections
 open System
-open System.Collections.Generic
 open System.Reactive.Concurrency
 open System.Reactive.Disposables
 open System.Reactive.Linq
 open System.Reactive.Subjects
-open System.Runtime.CompilerServices
 
 type IReactView<'view when 'view :> IDisposable> =
   inherit IDisposable
@@ -28,16 +26,16 @@ module ReactView =
       (dom: Option<ReactNativeDOMNode>): Option<IReactView<'view>> =
     match (view, dom) with
     | (Some reactView, Some dom)
-          when dom.element.Name = reactView.Name ->
+          when dom.Element.Name = reactView.Name ->
         // Let the react views filter out duplicated props/children
-        reactView.Props <- dom.element.Props
-        reactView.Children <- dom.children
+        reactView.Props <- dom.Element.Props
+        reactView.Children <- dom.Children
         view
     | (_, Some dom) ->
         view |> Option.iter dispose
 
-        let newReactView = createNativeView dom.element.Name dom.element.Props
-        newReactView.Children <- dom.children
+        let newReactView = createNativeView dom.Element.Name dom.Element.Props
+        newReactView.Children <- dom.Children
         Some newReactView
     | _ ->
         view |> Option.iter dispose

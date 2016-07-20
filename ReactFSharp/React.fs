@@ -3,8 +3,6 @@
 open FSharp.Control.Reactive
 open ImmutableCollections
 open System
-open System.Reactive.Concurrency
-open System.Reactive.Linq
 
 type ReactElement =
   | ReactStatefulElement of ReactStatefulElement
@@ -12,17 +10,74 @@ type ReactElement =
   | ReactNativeElement of ReactNativeElement
   | ReactNoneElement
 
-and ReactStatefulElement = {
-  Id: obj
-  Component: Func<IObservable<obj>, IObservable<ReactElement>>
-  Props: obj
-}
+and [<AbstractClass>] ReactStatefulElement internal () =
+  abstract member Id: obj
 
-and ReactLazyElement = {
-  Id: obj
-  Component: Func<obj, ReactElement>
-  Props:obj
-}
+  abstract member Evaluate: IObservable<obj> -> IObservable<ReactElement>
+
+  abstract member Props: obj
+
+  override this.Equals (that: obj) =
+    match that with
+    | :? ReactStatefulElement as that ->
+      (this :> IEquatable<ReactStatefulElement>).Equals that
+    | _ -> false
+
+  override this.GetHashCode () =
+    (hash this.Id * 31) + (hash this.Props)
+
+  interface IEquatable<ReactStatefulElement> with
+    member this.Equals (that: ReactStatefulElement) =
+      Object.ReferenceEquals(this.Id, that.Id) &&
+      this.Props = that.Props
+
+and private ReactStatefulElement<'Props> internal (comp: ReactStatefulComponent<'Props>,
+                                                   props: 'Props
+                                                  ) =
+  inherit ReactStatefulElement ()
+
+  override this.Id = comp :> obj
+
+  override this.Evaluate (propChanges: IObservable<obj>) =
+    propChanges
+    |> Observable.cast<'Props>
+    |> Observable.startWith [props]
+    |> Observable.distinctUntilChanged
+    |> comp
+
+  override this.Props = props :> obj
+
+and [<AbstractClass>] ReactLazyElement internal () =
+  abstract member Id: obj
+
+  abstract member Evaluate: unit -> ReactElement
+
+  abstract member Props: obj
+
+  override this.Equals (that: obj) =
+    match that with
+    | :? ReactStatefulElement as that ->
+      (this :> IEquatable<ReactLazyElement>).Equals that
+    | _ -> false
+
+  override this.GetHashCode () =
+    (hash this.Id * 31) + (hash this.Props)
+
+  interface IEquatable<ReactLazyElement> with
+    member this.Equals (that: ReactLazyElement) =
+      Object.ReferenceEquals(this.Id, that.Id) &&
+      this.Props = that.Props
+
+and private ReactLazyElement<'Props> (comp: ReactComponent<'Props>,
+                                      props: 'Props
+                                     ) =
+  inherit ReactLazyElement ()
+
+  override this.Id = comp :> obj
+
+  override this.Evaluate () = comp props
+
+  override this.Props = props :> obj
 
 and ReactNativeElement = {
     Name: string
@@ -37,28 +92,17 @@ and ReactComponent<'Props> = 'Props -> ReactElement
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ReactComponent =
   let makeLazy (f: ReactComponent<'Props>): ReactComponent<'Props> =
-    let castedComp (props : obj) = f (props :?> 'Props)
-
-    let f props = ReactLazyElement {
-      Id = f :> obj
-      Component = Func<obj, ReactElement>(castedComp)
-      Props = props
-    }
+    let f props =
+      ReactLazyElement<'Props>(f, props) :> ReactLazyElement
+      |> ReactElement.ReactLazyElement
 
     f
 
   let fromStatefulComponent (comp: ReactStatefulComponent<'Props>): ReactComponent<'Props> =
-    let castedComp (propsStream: IObservable<obj>) =
-      propsStream |> Observable.cast<'Props> |> comp
-
-    let f props = ReactStatefulElement {
-      Id = comp :> obj
-      Component = Func<IObservable<obj>, IObservable<ReactElement>> castedComp
-      Props = props
-    }
-
+    let f props =
+      ReactStatefulElement<'Props> (comp, props) :> ReactStatefulElement
+      |> ReactElement.ReactStatefulElement
     f
-
 
   let stateReducing
       (render: ('Props * 'State) -> ReactElement)
