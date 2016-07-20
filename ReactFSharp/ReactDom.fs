@@ -12,7 +12,7 @@ type ReactDOMNode =
   | ReactNoneDOMNode
 
 and ReactStatefulDOMNode internal (id: obj,
-                                   updateProps: obj -> unit,
+                                   setProps: obj -> unit,
                                    state: IObservable<ReactDOMNode>
                                   ) =
   let state = 
@@ -22,8 +22,9 @@ and ReactStatefulDOMNode internal (id: obj,
 
   member this.Id = id
 
-  member this.UpdateProps props =
-    updateProps props
+  member this.Props
+    with set props =
+      setProps props
 
   interface IObservable<ReactDOMNode> with
     member this.Subscribe observer =
@@ -69,7 +70,7 @@ module ReactDom =
 
     | (ReactStatefulElement element, ReactStatefulDOMNode node)
           when Object.ReferenceEquals(node.Id, element.Id) ->
-        node.UpdateProps element.Props
+        node.Props <- element.Props
         tree
 
     | (ReactLazyElement ele, ReactLazyDOMNode node)

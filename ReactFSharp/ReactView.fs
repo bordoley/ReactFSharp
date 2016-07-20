@@ -12,9 +12,9 @@ type IReactView<'view when 'view :> IDisposable> =
   inherit IDisposable
 
   abstract member Name: string with get
-  abstract member Props: obj with get, set
+  abstract member Props: obj with set
   abstract member View: 'view
-  abstract member Children: IImmutableMap<int, ReactDOMNode> with get, set
+  abstract member Children: IImmutableMap<int, ReactDOMNode> with set
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ReactView =
@@ -84,12 +84,13 @@ module ReactView =
       (onDispose: unit -> unit)
       (initialProps: obj) : IReactView<'view> =
 
-    let initialProps = (initialProps :?> 'props)
-
-    let propsSubject = new BehaviorSubject<'props>(initialProps)
-    let childrenSubject = new BehaviorSubject<IImmutableMap<int, ReactDOMNode>>(ImmutableMap.empty ())
     let errors = new BehaviorSubject<Option<Exception>>(None)
+    let throwIfErrors () =
+      match errors.Value with
+      | Some exn -> raise (AggregateException exn)
+      | _ -> ()
 
+    let propsSubject = new Subject<'props>()
     let propsSubscription =
       propsSubject
       |> Observable.distinctUntilChanged
@@ -100,10 +101,7 @@ module ReactView =
       |> Observable.last
       |> Observable.subscribeWithError dispose (Some >> errors.OnNext)
 
-    let throwIfErrors () =
-      match errors.Value with
-      | Some exn -> raise (AggregateException exn)
-      | _ -> ()
+    propsSubject.OnNext (initialProps :?> 'props)
 
     {
       new IReactView<'view> with
@@ -114,14 +112,12 @@ module ReactView =
           view.Dispose ()
         member this.Name = name
         member this.Props
-          with get () = propsSubject.Value :> obj
-           and set props = 
+          with set props =
              propsSubject.OnNext (props :?> 'props)
              throwIfErrors ()
         member this.View = view
         member this.Children
-          with get () = childrenSubject.Value
-           and set value =
+          with set value =
              setChildren value
     }
 
