@@ -7,8 +7,7 @@ open System.Reactive.Concurrency
 open UIKit
 
 type IOSViewCreator = (Exception -> unit) (* onError *) ->
-                        (string (* view name *) -> obj (* initialProps *) -> IReactView<UIView>) ->
-                        obj (* initialProps *) ->
+                        (string (* view name *) -> IReactView<UIView>) ->
                         IReactView<UIView>
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
@@ -17,9 +16,9 @@ module ReactView =
       (nativeViews: IImmutableMap<string, IOSViewCreator>)
       (element: ReactElement) =
 
-    let createNativeView onError viewCreator name (props: obj) =
+    let createNativeView onError viewCreator name =
       let createIOSView = (nativeViews |> ImmutableMap.get name)
-      createIOSView onError viewCreator props
+      createIOSView onError viewCreator
 
     ReactView.render Scheduler.mainLoopScheduler createNativeView element
 

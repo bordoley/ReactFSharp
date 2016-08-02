@@ -737,8 +737,7 @@ module View =
       (viewProvider: unit -> 'view)
       (setProps: (Exception -> unit) -> 'view -> 'props -> IDisposable)
       (onError: Exception -> unit)
-      (createNativeView: string (* view name *) -> obj (* initialProps *) -> IReactView<View>)
-      (initialProps: obj) =
+      (createNativeView: string (* view name *) -> IReactView<View>) =
 
     let viewProvider () = viewProvider () :> View
     let setProps onError (view: View) props = setProps onError (view :?> 'view) props
@@ -747,4 +746,3 @@ module View =
       name
       viewProvider
       (setProps onError)
-      initialProps

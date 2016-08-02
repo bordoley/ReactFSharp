@@ -320,7 +320,7 @@ type ListViewProps with
 module ListView =
   [<Sealed>]
   type ReactListAdapter (children: IObservable<IImmutableMap<int, ReactDOMNode>>,
-                         createNativeView: string (* view name *) -> obj (* initialProps *) -> IReactView<View>,
+                         createNativeView: string (* view name *) -> IReactView<View>,
                          onError: Exception -> unit) as this =
     inherit BaseAdapter()
 
@@ -394,7 +394,7 @@ module ListView =
   let private createView (context: Context): AndroidViewCreator =
     let createView
         (onError: Exception -> unit)
-        (createView: string (* view name *) -> obj (* initialProps *) -> IReactView<View>) =
+        (createView: string (* view name *) -> IReactView<View>) =
 
       let view = new ListView (context)
       let setChildrenSubject = new Subject<IImmutableMap<int, ReactDOMNode>>()

@@ -21,7 +21,7 @@ module ReactView =
   let private dispose (disposable: IDisposable) = disposable.Dispose()
 
   let updateNativeView
-      (createNativeView: string (* view name *) -> obj (* initialProps *) -> IReactView<'view>)
+      (createNativeView: string (* view name *) -> IReactView<'view>)
       (view: Option<IReactView<'view>>)
       (dom: Option<ReactNativeDOMNode>): Option<IReactView<'view>> =
     match (view, dom) with
@@ -34,7 +34,8 @@ module ReactView =
     | (_, Some dom) ->
         view |> Option.iter dispose
 
-        let newReactView = createNativeView dom.Element.Name dom.Element.Props
+        let newReactView = createNativeView dom.Element.Name
+        newReactView.Props <- dom.Element.Props
         newReactView.Children <- dom.Children
         Some newReactView
     | _ ->
@@ -45,20 +46,19 @@ module ReactView =
       (scheduler: IScheduler)
       (createNativeView:
         (Exception -> unit) (* onError *) ->
-        (string (* view name *) -> obj (* initialProps *) -> IReactView<'view>) ->
+        (string (* view name *) -> IReactView<'view>) ->
         string (* view name *) ->
-        obj (* initialProps *) ->
         IReactView<'view>
       )
       (element: ReactElement): IObservable<Option<'view>>=
 
     let curryCreateNativeView onError =
       let createNativeViewRef =
-        let dummy (viewName: string) (initialProps: obj): IReactView<'view> = failwith "oops"
+        let dummy (viewName: string): IReactView<'view> = failwith "oops"
         ref dummy
 
-      let createNativeView (viewName: string) (initialProps: obj) =
-          createNativeView onError (!createNativeViewRef) viewName initialProps
+      let createNativeView (viewName: string) =
+          createNativeView onError (!createNativeViewRef) viewName
 
       createNativeViewRef := createNativeView
       createNativeView
@@ -81,8 +81,7 @@ module ReactView =
       (view: 'view)
       (setProps: 'props -> IDisposable)
       (setChildren: IImmutableMap<int, ReactDOMNode> -> unit)
-      (onDispose: unit -> unit)
-      (initialProps: obj) : IReactView<'view> =
+      (onDispose: unit -> unit) : IReactView<'view> =
 
     let errors = new BehaviorSubject<Option<Exception>>(None)
     let throwIfErrors () =
@@ -100,8 +99,6 @@ module ReactView =
           (fun acc next -> acc |> dispose; next)
       |> Observable.last
       |> Observable.subscribeWithError dispose (Some >> errors.OnNext)
-
-    propsSubject.OnNext (initialProps :?> 'props)
 
     {
       new IReactView<'view> with
@@ -124,21 +121,19 @@ module ReactView =
   let createViewWithoutChildren<'view, 'props when 'view :> IDisposable>
       (name: string)
       (viewProvider: unit -> 'view)
-      (setProps: 'view -> 'props -> IDisposable)
-      (initialProps: obj) =
+      (setProps: 'view -> 'props -> IDisposable) =
     let view = viewProvider ()
-    createView name view (setProps view) ignore ignore initialProps
+    createView name view (setProps view) ignore ignore
 
   let createViewImmediatelyRenderingAllChildren<'view, 'props when 'view :> IDisposable>
       (scheduler: IScheduler)
       (onError: Exception -> unit)
-      (createNativeView: string (* view name *) -> obj (* initialProps *) -> IReactView<'view>)
+      (createNativeView: string (* view name *) -> IReactView<'view>)
       (removeAllViews: 'view -> unit)
       (addViews: 'view (* parent *) -> seq<'view> (* children *)-> unit)
       (name: string)
       (viewProvider: unit -> 'view)
-      (setProps: 'view -> 'props -> IDisposable)
-      (initialProps: obj) =
+      (setProps: 'view -> 'props -> IDisposable) =
 
     let view = viewProvider ()
     let updateNativeView = updateNativeView createNativeView
@@ -206,4 +201,4 @@ module ReactView =
       |> ImmutableMap.values
       |> Seq.iter dispose
 
-    createView name view (setProps view) setChildrenSubject.OnNext onDispose initialProps
+    createView name view (setProps view) setChildrenSubject.OnNext onDispose

@@ -338,8 +338,7 @@ module ViewGroup =
       (viewGroupProvider: unit -> 'viewGroup)
       (setProps: (Exception -> unit) -> 'viewGroup -> 'props -> IDisposable)
       (onError: Exception -> unit)
-      (createNativeView: string (* view name *) -> obj (* initialProps *) -> IReactView<View>)
-      (initialProps: obj) =
+      (createNativeView: string (* view name *) -> IReactView<View>) =
 
     let viewGroupProvider () = viewGroupProvider () :> View
     let setProps onError (view: View) props =
@@ -354,7 +353,6 @@ module ViewGroup =
       name
       viewGroupProvider
       (setProps onError)
-      initialProps
 
   let setProps (onError: Exception -> unit) (view: ViewGroup) (props: IViewGroupProps) =
     view.SetAddStatesFromChildren props.AddStatesFromChildren
